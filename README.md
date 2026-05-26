@@ -58,6 +58,17 @@ $EDITOR .env
 ./run.sh teardown    # ADB 측 객체 + DB Link/credential 정리
 ```
 
+(선택) Oracle 26ai **Deep Data Security** 변형도 같은 시나리오를 declarative SQL 로
+재현합니다. VPD 데모와 공존하며 별도 ddsuser_*/v_dds_* 객체로 깔립니다.
+([docs/05-dds-variant.md](docs/05-dds-variant.md))
+
+```bash
+./run.sh dds            # dds-setup + dds-tests
+./run.sh dds-setup      # 13_dds_variant.sql 적용
+./run.sh dds-tests      # ddsuser_* 4명 매트릭스 검증
+./run.sh dds-teardown   # DDS 객체만 정리 (VPD 데모는 보존)
+```
+
 ---
 
 ## 사전 준비
@@ -129,7 +140,9 @@ $EDITOR .env
 │       ├── 10_tests_user_both.sql  # both
 │       ├── 11_tests_user_none.sql  # default deny (fail-closed) 검증
 │       ├── 12_tests_admin_audit.sql
-│       └── 13_dds_variant.sql      # (선택) 같은 4-user 매트릭스를 26ai Deep Data Security 로 재구현
+│       ├── 13_dds_variant.sql      # (선택) 같은 4-user 매트릭스를 26ai Deep Data Security 로 재구현
+│       ├── 14_tests_dds_user.sql   # (선택) ddsuser_* 공용 매트릭스 검증 + bypass 시도
+│       └── 15_dds_cleanup.sql      # (선택) DDS 객체 멱등 정리
 └── docs/
     ├── 03-detailed-guide.md     # 한국어 상세 설명 (아키텍처, 정책 로직, 운영 고려사항)
     └── 05-dds-variant.md        # (선택) VPD ↔ DDS 1:1 매핑 + 26ai 변형 사용법

@@ -51,6 +51,7 @@
 SET ECHO OFF
 SET FEEDBACK ON
 SET DEFINE ON
+SET VERIFY OFF       -- 비번이 'new 1:' 라인으로 echo 되는 것을 막음 (leak 방지)
 
 PROMPT === 0. Creating DDS-only views (no VPD policy attached) ===
 -- Functionally identical to v_customers_pg / v_customers_my but

@@ -12,6 +12,12 @@
 #   ./run.sh all          # source → adb → tests → audit
 #   ./run.sh teardown     # ADB 측 객체 + 원격 link/cred 만 정리 (원격 PG/MySQL 데이터는 보존)
 #
+# (선택) 26ai Deep Data Security 변형 — VPD 데모와 공존하며 같은 4-user 매트릭스를 재구현:
+#   ./run.sh dds-setup    # 13_dds_variant.sql 적용 (END USER + DATA ROLE + DATA GRANT)
+#   ./run.sh dds-tests    # 4명 ddsuser_* 로 매트릭스 검증
+#   ./run.sh dds          # dds-setup → dds-tests
+#   ./run.sh dds-teardown # DDS 객체만 정리 (VPD 데모는 보존)
+#
 # 환경설정:
 #   cp .env.example .env  →  값 채우고  →  ./run.sh
 # ============================================================
@@ -65,6 +71,10 @@ DEFINE VPDUSER_MY_PASSWORD   = "${VPDUSER_MY_PASSWORD}"
 DEFINE VPDUSER_PG_PASSWORD   = "${VPDUSER_PG_PASSWORD}"
 DEFINE VPDUSER_BOTH_PASSWORD = "${VPDUSER_BOTH_PASSWORD}"
 DEFINE VPDUSER_NONE_PASSWORD = "${VPDUSER_NONE_PASSWORD}"
+DEFINE DDSUSER_MY_PASSWORD   = "${DDSUSER_MY_PASSWORD:-}"
+DEFINE DDSUSER_PG_PASSWORD   = "${DDSUSER_PG_PASSWORD:-}"
+DEFINE DDSUSER_BOTH_PASSWORD = "${DDSUSER_BOTH_PASSWORD:-}"
+DEFINE DDSUSER_NONE_PASSWORD = "${DDSUSER_NONE_PASSWORD:-}"
 @${sql_file}
 SQLEOF
 }
@@ -165,15 +175,50 @@ do_teardown() {
 }
 
 # ============================================================
+# (선택) DDS 단계 — Oracle 26ai Deep Data Security
+# 메인 VPD 데모와 공존. 26ai 미지원 ADB 에서는 ORA-00942 등으로 실패함.
+# ============================================================
+do_dds_prereq() {
+  require_env \
+    DDSUSER_MY_PASSWORD DDSUSER_PG_PASSWORD \
+    DDSUSER_BOTH_PASSWORD DDSUSER_NONE_PASSWORD
+  log "DDS 변형용 비밀번호 4개 확인됨"
+}
+
+do_dds_setup() {
+  log "=== dds-setup: 13_dds_variant.sql (END USER + DATA ROLE + DATA GRANT) ==="
+  # 멱등성: 부분 적용 상태를 먼저 청소한 뒤 재생성
+  run_sqlplus_file "$ROOT/sql/adb/15_dds_cleanup.sql"
+  run_sqlplus_file "$ROOT/sql/adb/13_dds_variant.sql"
+  ok "DDS 셋업 완료"
+}
+
+do_dds_tests() {
+  log "=== dds-tests: 4-user (ddsuser_*) 매트릭스 검증 ==="
+  # END USER 이름이 lowercase 라 사용자명을 큰따옴표로 감싸서 전달.
+  run_sqlplus_as '"ddsuser_my"'   "$DDSUSER_MY_PASSWORD"   "$ROOT/sql/adb/14_tests_dds_user.sql"
+  run_sqlplus_as '"ddsuser_pg"'   "$DDSUSER_PG_PASSWORD"   "$ROOT/sql/adb/14_tests_dds_user.sql"
+  run_sqlplus_as '"ddsuser_both"' "$DDSUSER_BOTH_PASSWORD" "$ROOT/sql/adb/14_tests_dds_user.sql"
+  run_sqlplus_as '"ddsuser_none"' "$DDSUSER_NONE_PASSWORD" "$ROOT/sql/adb/14_tests_dds_user.sql"
+  ok "DDS 4명 (MY / PG / BOTH / NONE) 테스트 실행 완료"
+}
+
+do_dds_teardown() {
+  log "=== dds-teardown: DDS 객체만 정리 (VPD 데모는 보존) ==="
+  run_sqlplus_file "$ROOT/sql/adb/15_dds_cleanup.sql"
+  ok "DDS teardown 완료"
+}
+
+# ============================================================
 # 디스패치
 # ============================================================
 case "$CMD" in
-  prereq)   do_prereq ;;
-  source)   do_prereq; do_source ;;
-  adb)      do_prereq; do_adb ;;
-  tests)    do_prereq; do_tests ;;
-  audit)    do_prereq; do_audit ;;
-  teardown) do_prereq; do_teardown ;;
+  prereq)       do_prereq ;;
+  source)       do_prereq; do_source ;;
+  adb)          do_prereq; do_adb ;;
+  tests)        do_prereq; do_tests ;;
+  audit)        do_prereq; do_audit ;;
+  teardown)     do_prereq; do_teardown ;;
   all)
     do_prereq
     do_source
@@ -182,7 +227,16 @@ case "$CMD" in
     do_audit
     ok "=== ALL DONE — VPD POC 전체 파이프라인 통과 ==="
     ;;
+  dds-setup)    do_prereq; do_dds_prereq; do_dds_setup ;;
+  dds-tests)    do_prereq; do_dds_prereq; do_dds_tests ;;
+  dds-teardown) do_prereq; do_dds_teardown ;;
+  dds)
+    do_prereq; do_dds_prereq
+    do_dds_setup
+    do_dds_tests
+    ok "=== DDS DONE — Deep Data Security 변형 셋업 + 검증 통과 ==="
+    ;;
   *)
-    die "알 수 없는 명령: $CMD  (사용: prereq|source|adb|tests|audit|all|teardown)"
+    die "알 수 없는 명령: $CMD  (사용: prereq|source|adb|tests|audit|all|teardown | dds|dds-setup|dds-tests|dds-teardown)"
     ;;
 esac

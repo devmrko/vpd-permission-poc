@@ -10,6 +10,7 @@
 SET ECHO OFF
 SET FEEDBACK ON
 SET DEFINE ON
+SET VERIFY OFF       -- 비번이 'new 1:' 라인으로 echo 되는 것을 막음 (leak 방지)
 
 PROMPT === Creating end-user accounts ===
 -- Passwords come from .env (DEFINE) so they aren't hardcoded in source.
