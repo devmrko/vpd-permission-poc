@@ -128,9 +128,11 @@ $EDITOR .env
 │       ├── 09_tests_user_pg.sql    # PG only
 │       ├── 10_tests_user_both.sql  # both
 │       ├── 11_tests_user_none.sql  # default deny (fail-closed) 검증
-│       └── 12_tests_admin_audit.sql
+│       ├── 12_tests_admin_audit.sql
+│       └── 13_dds_variant.sql      # (선택) 같은 4-user 매트릭스를 26ai Deep Data Security 로 재구현
 └── docs/
-    └── 03-detailed-guide.md     # 한국어 상세 설명 (아키텍처, 정책 로직, 운영 고려사항)
+    ├── 03-detailed-guide.md     # 한국어 상세 설명 (아키텍처, 정책 로직, 운영 고려사항)
+    └── 05-dds-variant.md        # (선택) VPD ↔ DDS 1:1 매핑 + 26ai 변형 사용법
 ```
 
 ---
@@ -139,6 +141,9 @@ $EDITOR .env
 
 * [docs/03-detailed-guide.md](docs/03-detailed-guide.md) — 권한 매핑 모델, 정책
   함수의 동적 SQL, Secure Context 사용 이유, 운영 시 주의점 등 전체 해설.
+* [docs/05-dds-variant.md](docs/05-dds-variant.md) — Oracle AI Database 26ai
+  의 신기능 **Deep Data Security** 로 같은 데모를 재구현 (선택). 선언형 SQL
+  Data Grant 가 VPD 의 PL/SQL 정책 함수를 어떻게 한 줄로 대체하는지 비교.
 
 ---
 
