@@ -11,6 +11,52 @@ End-to-End 데모입니다.
 
 ---
 
+## 무엇을 통제하는가
+
+이 POC 가 다루는 통제 축은 세 가지입니다.
+
+### 1. 행 단위 접근 제어 (Row-Level Access Control)
+
+네 명의 엔드유저가 같은 SQL — 예: `SELECT * FROM v_customers_pg` — 를 실행해도,
+세션 정체성에 매핑된 권한에 따라 **서로 다른 행 집합** 을 돌려받습니다.
+
+* 권한 회수는 `GRANT SELECT` 해제가 아니라 `permission` 테이블의 행 삭제로 일어납니다.
+  GRANT 는 4 명 모두 동일하게 받아 두고, 차이를 만드는 것은 매핑 데이터입니다.
+* 매핑이 아예 없는 유저는 자동으로 빈 결과 (VPD: `1=0`) 또는 객체 자체 미노출
+  (DDS: `ORA-00942`) — **default deny**.
+* `region IN ('APAC')` 같은 행 필터는 정책 함수 또는 데이터 그랜트의 `WHERE` 절로
+  ADB 한 곳에서 선언됩니다. 원본 DB (PostgreSQL, MySQL) 는 이 사실을 모릅니다.
+
+### 2. 컬럼 마스킹 (Column-Level Redaction)
+
+행 자체는 보여주되 특정 컬럼만 가리는 통제입니다. 예: 영업팀은 고객 행은 다 보지만
+`email` 컬럼은 항상 `NULL` 로 반환.
+
+* VPD 경로: 별도의 `DBMS_REDACT` 정책 (`sql/adb/06a_redaction.sql`).
+* DDS 경로: 데이터 그랜트 안에 `(ALL COLUMNS EXCEPT email)` 한 줄로 흡수.
+
+### 3. 두 가지 구현 — VPD 와 DDS
+
+동일한 4 유저 × 2 소스 매트릭스를 두 방식으로 각각 구현했습니다. 결과(행/마스킹)는
+같지만, 정책을 *어떻게 표현하느냐* 가 다릅니다.
+
+| 항목 | VPD (기존) | DDS (26ai 신규) |
+|---|---|---|
+| 정책 표현 | PL/SQL 정책 함수 + Application Context | 선언형 SQL (`CREATE DATA GRANT`) |
+| 컬럼 마스킹 | 별도 `DBMS_REDACT` 정책 객체 | 그랜트 안에 `ALL COLUMNS EXCEPT` |
+| 권한 없는 접근 | 0 rows 반환 (객체는 보임) | 객체 자체 미노출 (`ORA-00942`) |
+| 신원 매핑 | DB 유저 → LOGON 트리거 → 세션 컨텍스트 | END USER → DATA ROLE → DATA GRANT |
+| 운영 코드량 | 정책 함수 + 컨텍스트 패키지 + 로그온 트리거 | 데이터 그랜트 DDL 만 |
+
+애플리케이션 코드는 두 경우 모두 권한 로직을 전혀 알 필요가 없습니다. 누가 어떤 행/컬럼을
+볼 수 있는지는 ADB 한 곳에서 결정되고, 원본 DB 와 애플리케이션은 그 결정의 결과만
+받습니다.
+
+DDS 변형의 능력 (멀티테넌트, OAuth2 federated identity, MAC 모드, 운영 단위 그랜트 등)
+과 한계는 [docs/05-dds-variant.md](docs/05-dds-variant.md) 참고.
+
+---
+
 ## 구성요소
 
 | 계층 | 객체 | 역할 |
