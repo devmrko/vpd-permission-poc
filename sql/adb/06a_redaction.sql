@@ -6,8 +6,10 @@
 --   PII columns (email, full_name) are MASKED unless the session
 --   has full-region access ('*') on the corresponding view.
 --
---   - VPDUSER_A (KR_ANALYSTS, regions = 'APAC')  -> sees masked PII
---   - VPDUSER_B (GLOBAL_ADMINS, regions = '*')   -> sees real PII
+--   - VPDUSER_MY    -> PG view masked, MY view unmasked (allowed '*')
+--   - VPDUSER_PG    -> PG view unmasked, MY view masked
+--   - VPDUSER_BOTH  -> both views unmasked
+--   - VPDUSER_NONE  -> both masked (but rows filtered to 0 anyway)
 --
 -- Reuses the secure VPD_CTX populated at logon — no new context.
 -- Data Redaction and VPD compose: VPD filters rows first, Redaction

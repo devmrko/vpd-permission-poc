@@ -43,7 +43,8 @@ LOGON 시 한 번만 읽으므로 쿼리 부하 0.
 
 ```
             +---------------------+
-            |  vpduser_a / b      |  ← 사용자 로그인
+            |  vpduser_my / pg /  |  ← 사용자 로그인
+            |  both / none        |
             +----------+----------+
                        |
               (1) LOGON 트리거
@@ -88,7 +89,7 @@ LOGON 시 한 번만 읽으므로 쿼리 부하 0.
 |---|---|
 | `app_customer` | 도메인의 "고객사" 개념 (멀티 테넌트 hook) |
 | `app_user` | DB 유저 → 도메인 유저 매핑 (`db_username` 컬럼이 핵심) |
-| `app_group` | 그룹 (KR_ANALYSTS, GLOBAL_ADMINS, ...) |
+| `app_group` | 그룹 (MY_ONLY, PG_ONLY, BOTH_SOURCES, ...) |
 | `user_group` | user ↔ group N:N |
 | `db_source` | 원본 소스 식별자 (PG, MY) |
 | `permission` | (group, source, region) 행 — `region='*'` 이면 전체 허용 |
@@ -112,7 +113,7 @@ LOGON 시 한 번만 읽으므로 쿼리 부하 0.
 4. 그 외 → `RETURN 'region IN (''APAC'',''EMEA'')'` 형식으로 in-list
 
 → 컨텍스트는 **Secure Application Context** (`USING ctx_pkg`) 라 다른 패키지에서
-설정 불가. `vpduser_a` 가 `DBMS_SESSION.SET_CONTEXT('VPD_CTX', ...)` 직접 호출 →
+설정 불가. 엔드유저가 `DBMS_SESSION.SET_CONTEXT('VPD_CTX', ...)` 직접 호출 →
 ORA-01031.
 
 ---
@@ -134,8 +135,8 @@ ORA-01031.
 | 누가 | 무엇을 할 수 있나 |
 |---|---|
 | `ADMIN` (ADB 관리자) | 전부 다. 정책 BYPASS. **운영에선 절대 일반 사용자에게 주지 말 것** |
-| `vpduser_a/b` | (a) 자기에게 GRANT 된 뷰 SELECT, (b) `ctx_pkg.init` 호출 |
-| `vpduser_a/b` 가 **못** 하는 것 | DBMS_RLS 변경, EXEMPT ACCESS POLICY, CREATE TABLE (스냅샷 방지), 매핑 테이블 직접 SELECT, DB Link 직접 SELECT |
+| `vpduser_*` (my/pg/both/none) | (a) 자기에게 GRANT 된 뷰 SELECT, (b) `ctx_pkg.init` 호출 |
+| `vpduser_*` 가 **못** 하는 것 | DBMS_RLS 변경, EXEMPT ACCESS POLICY, CREATE TABLE (스냅샷 방지), 매핑 테이블 직접 SELECT, DB Link 직접 SELECT |
 
 → 즉 엔드유저 입장에서 정책을 우회할 표면이 없습니다. `07_end_users.sql` 의
 주석에서 "what we are deliberately NOT granting" 섹션이 그 목록.

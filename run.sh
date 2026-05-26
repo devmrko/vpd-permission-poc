@@ -7,7 +7,7 @@
 #   ./run.sh prereq       # 도구 존재 / .env 변수만 검증
 #   ./run.sh source       # 원격 PG + MySQL 에 customers 테이블/seed 생성
 #   ./run.sh adb          # ADB 측 cleanup → dblinks → perm/ctx/view/policy → end_users
-#   ./run.sh tests        # vpduser_a / vpduser_b 로 접속해서 행 필터 검증
+#   ./run.sh tests        # 4-user (my/pg/both/none) 로 접속해서 행 필터 검증
 #   ./run.sh audit        # admin 으로 정책/뷰/유저 상태 점검
 #   ./run.sh all          # source → adb → tests → audit
 #   ./run.sh teardown     # ADB 측 객체 + 원격 link/cred 만 정리 (원격 PG/MySQL 데이터는 보존)
@@ -61,14 +61,16 @@ DEFINE MY_PORT            = ${MY_PORT}
 DEFINE MY_DB              = "${MY_DB}"
 DEFINE MY_USER            = "${MY_USER}"
 DEFINE MY_PASSWORD        = "${MY_PASSWORD}"
-DEFINE VPDUSER_A_PASSWORD = "${VPDUSER_A_PASSWORD}"
-DEFINE VPDUSER_B_PASSWORD = "${VPDUSER_B_PASSWORD}"
+DEFINE VPDUSER_MY_PASSWORD   = "${VPDUSER_MY_PASSWORD}"
+DEFINE VPDUSER_PG_PASSWORD   = "${VPDUSER_PG_PASSWORD}"
+DEFINE VPDUSER_BOTH_PASSWORD = "${VPDUSER_BOTH_PASSWORD}"
+DEFINE VPDUSER_NONE_PASSWORD = "${VPDUSER_NONE_PASSWORD}"
 @${sql_file}
 SQLEOF
 }
 
 # ============================================================
-# 헬퍼: 엔드유저 (vpduser_a / vpduser_b) 로 sqlplus 호출
+# 헬퍼: 엔드유저 (vpduser_my / pg / both / none) 로 sqlplus 호출
 # 인자: $1 = USER, $2 = PASSWORD, $3 = SQL 파일
 # ============================================================
 run_sqlplus_as() {
@@ -93,7 +95,8 @@ do_prereq() {
 
   require_env \
     TNS_ADMIN ADB_TNS ADB_USER \
-    VPDUSER_A_PASSWORD VPDUSER_B_PASSWORD \
+    VPDUSER_MY_PASSWORD VPDUSER_PG_PASSWORD \
+    VPDUSER_BOTH_PASSWORD VPDUSER_NONE_PASSWORD \
     PG_HOST PG_PORT PG_DB PG_USER \
     MY_HOST MY_PORT MY_DB MY_USER \
     DBLINK_PG_NAME DBLINK_MY_NAME
@@ -140,15 +143,17 @@ do_adb() {
 }
 
 do_tests() {
-  log "=== tests: 엔드유저 권한/필터 검증 ==="
-  run_sqlplus_as vpduser_a "$VPDUSER_A_PASSWORD" "$ROOT/sql/adb/08_tests_user_a.sql"
-  run_sqlplus_as vpduser_b "$VPDUSER_B_PASSWORD" "$ROOT/sql/adb/09_tests_user_b.sql"
-  ok "user_a / user_b 테스트 실행 완료 (위 출력에서 행 수 / 거부 결과 확인)"
+  log "=== tests: 4-user access matrix 검증 ==="
+  run_sqlplus_as vpduser_my   "$VPDUSER_MY_PASSWORD"   "$ROOT/sql/adb/08_tests_user_my.sql"
+  run_sqlplus_as vpduser_pg   "$VPDUSER_PG_PASSWORD"   "$ROOT/sql/adb/09_tests_user_pg.sql"
+  run_sqlplus_as vpduser_both "$VPDUSER_BOTH_PASSWORD" "$ROOT/sql/adb/10_tests_user_both.sql"
+  run_sqlplus_as vpduser_none "$VPDUSER_NONE_PASSWORD" "$ROOT/sql/adb/11_tests_user_none.sql"
+  ok "4명 (MY / PG / BOTH / NONE) 테스트 실행 완료"
 }
 
 do_audit() {
-  log "=== audit: admin 으로 정책 / 뷰 / 유저 상태 점검 ==="
-  run_sqlplus_file "$ROOT/sql/adb/10_tests_admin_audit.sql"
+  log "=== audit: admin 으로 정책 / 뷰 / 매트릭스 점검 ==="
+  run_sqlplus_file "$ROOT/sql/adb/12_tests_admin_audit.sql"
   ok "audit 완료"
 }
 

@@ -53,8 +53,8 @@ $EDITOR .env
 | `PG_HOST` 등 | 원격 Postgres 연결정보 |
 | `MY_HOST` 등 | 원격 MySQL 연결정보 |
 
-VPDUSER A/B 의 패스워드는 데모용 기본값이 들어있으니 그대로 써도 무방하지만,
-공유 환경이면 바꿔주세요.
+VPDUSER (`my` / `pg` / `both` / `none`) 의 패스워드는 데모용 기본값이 들어있으니 그대로
+써도 무방하지만, 공유 환경이면 바꿔주세요.
 
 ---
 
@@ -71,7 +71,7 @@ VPDUSER A/B 의 패스워드는 데모용 기본값이 들어있으니 그대로
 [ OK ] Postgres source 준비 완료
 [ OK ] MySQL source 준비 완료
 [ OK ] ADB setup 완료
-[ OK ] user_a / user_b 테스트 실행 완료 (위 출력에서 행 수 / 거부 결과 확인)
+[ OK ] 4명 (MY / PG / BOTH / NONE) 테스트 실행 완료 (위 출력에서 행 수 / 거부 결과 확인)
 [ OK ] audit 완료
 [ OK ] === ALL DONE — VPD POC 전체 파이프라인 통과 ===
 ```
@@ -79,9 +79,15 @@ VPDUSER A/B 의 패스워드는 데모용 기본값이 들어있으니 그대로
 이후 직접 검증해보고 싶으면:
 
 ```bash
-# vpduser_a 로 접속 → APAC rows 만 보여야 함
-sqlplus vpduser_a/${VPDUSER_A_PASSWORD}@${ADB_TNS}
-SQL> SELECT region, COUNT(*) FROM admin.v_customers_pg GROUP BY region;
+# vpduser_pg 로 접속 → PG 뷰는 전부 보이고 MY 뷰는 0 rows 여야 함
+sqlplus vpduser_pg/${VPDUSER_PG_PASSWORD}@${ADB_TNS}
+SQL> SELECT COUNT(*) FROM admin.v_customers_pg;   -- 12
+SQL> SELECT COUNT(*) FROM admin.v_customers_my;   -- 0
+
+# vpduser_none 으로 접속 → 양쪽 뷰 모두 0 rows (default deny)
+sqlplus vpduser_none/${VPDUSER_NONE_PASSWORD}@${ADB_TNS}
+SQL> SELECT COUNT(*) FROM admin.v_customers_pg;   -- 0
+SQL> SELECT COUNT(*) FROM admin.v_customers_my;   -- 0
 ```
 
 ---

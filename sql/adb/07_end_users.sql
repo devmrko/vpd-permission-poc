@@ -1,10 +1,11 @@
 -- ============================================================
 -- 07_end_users.sql
--- Create the two end-user accounts with MINIMAL privileges.
+-- Create the FOUR end-user accounts with MINIMAL privileges.
 -- Add a LOGON trigger that loads each user's context automatically.
 -- Run as ADMIN.
 --
--- DEFINE: &VPDUSER_A_PASSWORD, &VPDUSER_B_PASSWORD
+-- DEFINE: &VPDUSER_MY_PASSWORD, &VPDUSER_PG_PASSWORD,
+--         &VPDUSER_BOTH_PASSWORD, &VPDUSER_NONE_PASSWORD
 -- ============================================================
 SET ECHO OFF
 SET FEEDBACK ON
@@ -13,25 +14,38 @@ SET DEFINE ON
 PROMPT === Creating end-user accounts ===
 -- Passwords come from .env (DEFINE) so they aren't hardcoded in source.
 -- Production should use IAM / proxy auth / mTLS instead of static passwords.
-CREATE USER vpduser_a IDENTIFIED BY "&VPDUSER_A_PASSWORD";
-CREATE USER vpduser_b IDENTIFIED BY "&VPDUSER_B_PASSWORD";
+CREATE USER vpduser_my   IDENTIFIED BY "&VPDUSER_MY_PASSWORD";
+CREATE USER vpduser_pg   IDENTIFIED BY "&VPDUSER_PG_PASSWORD";
+CREATE USER vpduser_both IDENTIFIED BY "&VPDUSER_BOTH_PASSWORD";
+CREATE USER vpduser_none IDENTIFIED BY "&VPDUSER_NONE_PASSWORD";
 
--- ADB requires a tablespace quota even for read-only users in some setups; we
--- skip QUOTA since these users won't create objects.
-GRANT CREATE SESSION TO vpduser_a;
-GRANT CREATE SESSION TO vpduser_b;
+-- Login privilege only. No QUOTA — these users never create objects.
+GRANT CREATE SESSION TO vpduser_my;
+GRANT CREATE SESSION TO vpduser_pg;
+GRANT CREATE SESSION TO vpduser_both;
+GRANT CREATE SESSION TO vpduser_none;
 
 PROMPT === Granting SELECT on the policy-protected views ONLY ===
-GRANT SELECT ON v_customers_pg TO vpduser_a;
-GRANT SELECT ON v_customers_my TO vpduser_a;
-GRANT SELECT ON v_customers_pg TO vpduser_b;
-GRANT SELECT ON v_customers_my TO vpduser_b;
+-- We deliberately grant SELECT on BOTH views to all four users.
+-- The VPD policy decides what they actually see — including 0 rows
+-- when there is no permission row. This is what makes the demo a
+-- clean security boundary: revoking access doesn't mean revoking
+-- the GRANT; it means removing the row in `permission`.
+GRANT SELECT ON v_customers_pg TO vpduser_my;
+GRANT SELECT ON v_customers_my TO vpduser_my;
+GRANT SELECT ON v_customers_pg TO vpduser_pg;
+GRANT SELECT ON v_customers_my TO vpduser_pg;
+GRANT SELECT ON v_customers_pg TO vpduser_both;
+GRANT SELECT ON v_customers_my TO vpduser_both;
+GRANT SELECT ON v_customers_pg TO vpduser_none;
+GRANT SELECT ON v_customers_my TO vpduser_none;
 
--- Allow them to call ctx_pkg.init (the logon trigger needs this, and a manual
--- re-init is sometimes useful). The package is bound to vpd_ctx so calling it
--- is harmless: it only ever loads the caller's OWN permissions.
-GRANT EXECUTE ON ctx_pkg TO vpduser_a;
-GRANT EXECUTE ON ctx_pkg TO vpduser_b;
+-- ctx_pkg is bound to the secure context; calling it is harmless
+-- (the package always loads ONLY the caller's own permissions).
+GRANT EXECUTE ON ctx_pkg TO vpduser_my;
+GRANT EXECUTE ON ctx_pkg TO vpduser_pg;
+GRANT EXECUTE ON ctx_pkg TO vpduser_both;
+GRANT EXECUTE ON ctx_pkg TO vpduser_none;
 
 -- NOTE on what we are deliberately NOT granting:
 --   * NO grant on app_user / permission / etc.    -> users can't read who-can-see-what
@@ -46,7 +60,8 @@ CREATE OR REPLACE TRIGGER vpd_logon_trg
 AFTER LOGON ON DATABASE
 BEGIN
   -- Only fire for our application end-users. ADMIN logons keep normal behavior.
-  IF SYS_CONTEXT('USERENV','SESSION_USER') IN ('VPDUSER_A','VPDUSER_B') THEN
+  IF SYS_CONTEXT('USERENV','SESSION_USER') IN
+       ('VPDUSER_MY','VPDUSER_PG','VPDUSER_BOTH','VPDUSER_NONE') THEN
     admin.ctx_pkg.init;
   END IF;
 EXCEPTION

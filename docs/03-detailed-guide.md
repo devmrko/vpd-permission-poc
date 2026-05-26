@@ -3,6 +3,13 @@
 > **이 문서의 대상 독자:** 데이터베이스 보안이나 Oracle 기술에 익숙하지 않은 분.
 > 용어가 나올 때마다 풀어서 설명하고, 왜 그 장치가 필요한지를 함께 적습니다.
 
+> **시나리오 안내:** 현재 `./run.sh` 가 자동으로 깔아주는 기본 시나리오는 4명의
+> 엔드유저 (`vpduser_my`/`pg`/`both`/`none`) 가 각각 다른 소스에 접근 가능한 **소스
+> 단위 매트릭스** 입니다 (README 참고). 본 상세 가이드는 그 위에 얹을 수 있는 **행
+> 단위 region 필터링** 변형(`KR_ANALYSTS → APAC`, `GLOBAL_ADMINS → '*'`) 을 예시로
+> 사용합니다 — VPD 메커니즘 자체는 동일하므로 개념 이해에는 차이가 없습니다.
+> region 필터를 실제로 켜려면 `sql/adb/03_seed.sql` 하단의 주석을 해제하세요.
+
 ---
 
 ## 목차
@@ -470,24 +477,35 @@ AUDIT POLICY vpd_view_access;
 ## 9. 디렉터리·파일 구조
 
 ```
-ords/
-├── .env                      ← ADB 연결 정보 (비밀번호 포함, .gitignore 됨)
-├── .gitignore                ← .env, *.log 제외
-├── README.md                 ← (선택) 실행 가이드
-├── run_poc.sh                ← 셋업/테스트/감사 일괄 실행 스크립트
+vpd-permission-poc/
+├── .env                      ← ADB + RDS 연결 정보 (.gitignore 됨)
+├── .env.example
+├── README.md                 ← 클론-앤-고 가이드
+├── run.sh                    ← 원클릭 오케스트레이터
+├── scripts/lib/common.sh
 ├── sql/
-│   ├── 00_cleanup.sql        ← 초기화 (멱등성)
-│   ├── 01_perm_tables.sql    ← 권한 모델 6개 테이블 생성
-│   ├── 02_seed.sql           ← 데모 데이터 주입
-│   ├── 03_secure_ctx.sql     ← ctx_pkg + Secure Context 생성
-│   ├── 04_views.sql          ← 외부 테이블에 대한 로컬 뷰 2개
-│   ├── 05_policy.sql         ← VPD 정책 함수 + ADD_POLICY
-│   ├── 06_end_users.sql      ← 일반 사용자 2명 + LOGON 트리거
-│   ├── 07_tests_user_a.sql   ← VPDUSER_A 입장에서 검증
-│   ├── 08_tests_user_b.sql   ← VPDUSER_B 입장에서 검증
-│   └── 09_tests_admin_audit.sql ← ADMIN 입장에서 정책·권한 현황 감사
+│   ├── source/
+│   │   ├── postgres_setup.sql   ← 원격 PG: customers + 12 rows
+│   │   └── mysql_setup.sql      ← 원격 MySQL: customers + 12 rows
+│   └── adb/
+│       ├── 00_cleanup.sql       ← 멱등 초기화
+│       ├── 01_dblinks.sql       ← DB Link + credential
+│       ├── 02_perm_tables.sql   ← 권한 매핑 6개 테이블
+│       ├── 03_seed.sql          ← 4-user 매트릭스 시드
+│       ├── 04_secure_ctx.sql    ← ctx_pkg + Secure Context
+│       ├── 05_views.sql         ← DB Link 통합 뷰
+│       ├── 06_policy.sql        ← VPD 정책 + 정책 함수
+│       ├── 06a_redaction.sql    ← Data Redaction (이메일/이름 마스킹)
+│       ├── 07_end_users.sql     ← 4 유저 + LOGON 트리거
+│       ├── 08_tests_user_my.sql    ← MY only + 우회 시도 5종
+│       ├── 09_tests_user_pg.sql    ← PG only
+│       ├── 10_tests_user_both.sql  ← both
+│       ├── 11_tests_user_none.sql  ← default deny 검증
+│       └── 12_tests_admin_audit.sql
 └── docs/
-    └── 설명.md               ← (이 문서)
+    ├── 01-quickstart.md
+    ├── 02-architecture.md
+    └── 03-detailed-guide.md     ← (이 문서)
 ```
 
 ---
@@ -495,18 +513,18 @@ ords/
 ## 10. 실행 방법
 
 ```bash
-cd /Users/joungminko/devkit/ords
+cd vpd-permission-poc
 
-# 1) 전체 셋업 + 테스트 + 감사 한 번에
-./run_poc.sh all
+# 1) 전체 파이프라인 한 번에
+./run.sh                # = ./run.sh all
 
 # 또는 단계별로:
-./run_poc.sh setup     # 정리 + 모든 객체 생성
-./run_poc.sh test      # VPDUSER_A, VPDUSER_B 시점 테스트
-./run_poc.sh audit     # ADMIN 시점 정책·권한 감사
-./run_poc.sh teardown  # 전부 삭제
-
-# .env 파일이 있어야 합니다. (이 POC 에는 포함됨)
+./run.sh prereq         # 도구/.env 검증
+./run.sh source         # 원격 PG + MySQL 에 customers 테이블/seed
+./run.sh adb            # ADB 측 cleanup → dblink → 권한/뷰/정책 → 4 유저
+./run.sh tests          # 4 명 (MY/PG/BOTH/NONE) 시점 테스트
+./run.sh audit          # ADMIN 시점 정책·권한 감사
+./run.sh teardown       # ADB 측 객체 + dblink 정리
 ```
 
 ### 사람의 눈으로 직접 확인하고 싶을 때
@@ -514,15 +532,21 @@ cd /Users/joungminko/devkit/ords
 ```bash
 source .env
 
-# VPDUSER_A로 직접 들어가서 쿼리해보기:
-sqlplus "vpduser_a/\"RowFilter#A2026\"@$ADB_TNS"
+# 기본 시나리오 — vpduser_pg: PG 뷰는 다 보이고 MySQL 뷰는 0 rows
+sqlplus "vpduser_pg/\"${VPDUSER_PG_PASSWORD}\"@$ADB_TNS"
+SQL> SELECT COUNT(*) FROM admin.v_customers_pg;   -- 12
+SQL> SELECT COUNT(*) FROM admin.v_customers_my;   -- 0
+
+# vpduser_none — default deny
+sqlplus "vpduser_none/\"${VPDUSER_NONE_PASSWORD}\"@$ADB_TNS"
+SQL> SELECT COUNT(*) FROM admin.v_customers_pg;   -- 0
+SQL> SELECT COUNT(*) FROM admin.v_customers_my;   -- 0
+
+# region 필터 변형을 켰을 때 — vpduser_both 에게 APAC 만 허용한 경우
+# (sql/adb/03_seed.sql 하단 UPDATE 주석 해제 후)
+sqlplus "vpduser_both/\"${VPDUSER_BOTH_PASSWORD}\"@$ADB_TNS"
 SQL> SELECT region, COUNT(*) FROM admin.v_customers_pg GROUP BY region;
 -- 결과: APAC 만 보임
-
-# VPDUSER_B로:
-sqlplus "vpduser_b/\"RowFilter#B2026\"@$ADB_TNS"
-SQL> SELECT region, COUNT(*) FROM admin.v_customers_pg GROUP BY region;
--- 결과: APAC, EMEA, NA 모두 보임
 ```
 
 ---

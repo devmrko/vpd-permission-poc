@@ -41,7 +41,7 @@ seed rows : 12 (PK 101~112, 역시 APAC/EMEA/AMER 4/4/4)
 PK 범위를 PG (1~12) 와 다르게 가져간 이유:
 
 * 두 소스는 서로 독립적인 별개의 데이터 라는 것을 데모에서 시각적으로 보여주기 위함
-* `vpduser_b` 가 양쪽 뷰를 합칠 때 PK 가 겹치지 않아 UNION 데모하기 쉬움
+* `vpduser_both` 가 양쪽 뷰를 합칠 때 PK 가 겹치지 않아 UNION 데모하기 쉬움
 
 수동 실행:
 
@@ -68,7 +68,8 @@ DBMS_CLOUD_ADMIN.CREATE_DATABASE_LINK(
 );
 ```
 
-MySQL 도 동일 패턴, `db_type` 만 `'mysql'`.
+MySQL 도 동일 패턴, `db_type` 만 `'mysql_community'` (AWS RDS MySQL 은 Community 빌드 — 기본
+`'mysql'` 은 Enterprise Server 전용이라 `ORA-28500` 으로 거절됨).
 
 링크 검증:
 

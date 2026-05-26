@@ -21,7 +21,7 @@ End-to-End 데모입니다.
 | ADB - 컨텍스트 | `vpd_ctx` (Secure Application Context) + `ctx_pkg` | 로그인 시 권한을 세션 컨텍스트로 로딩 |
 | ADB - 뷰 | `v_customers_pg`, `v_customers_my` | DB Link 위의 통합 뷰. **이 뷰에만 VPD/Redaction 정책이 붙음** |
 | ADB - 정책 | `CUSTOMERS_PG_POLICY`, `CUSTOMERS_MY_POLICY`, `PII_REDACT_PG/MY` | VPD 행 필터 + 이메일 마스킹 |
-| ADB - 엔드유저 | `vpduser_a`, `vpduser_b` | 최소 권한. 뷰만 SELECT 가능. LOGON 트리거로 컨텍스트 자동 로딩 |
+| ADB - 엔드유저 | `vpduser_my`, `vpduser_pg`, `vpduser_both`, `vpduser_none` | 최소 권한. 뷰만 SELECT 가능. LOGON 트리거로 컨텍스트 자동 로딩 |
 
 ---
 
@@ -44,7 +44,7 @@ $EDITOR .env
 1. **prereq** — `sqlplus`, `psql`, `mysql` 존재 + `.env` 변수 검증
 2. **source** — 원격 PG/MySQL 에 `customers` 테이블 + seed (멱등)
 3. **adb** — ADB 측 cleanup → DB Link → 권한 테이블/seed → context/view/policy → 엔드유저
-4. **tests** — `vpduser_a` 와 `vpduser_b` 로 접속해 행 필터/마스킹 검증
+4. **tests** — 4 명 (`vpduser_my`/`vpduser_pg`/`vpduser_both`/`vpduser_none`) 로 접속해 행 필터/마스킹/default-deny 검증
 5. **audit** — ADMIN 으로 정책/뷰/유저 상태 점검
 
 세부 단계만 따로 돌리려면:
@@ -73,23 +73,33 @@ $EDITOR .env
 
 ---
 
-## 데모 시나리오
+## 데모 시나리오 — 2×2 source access matrix
 
-`sql/adb/03_seed.sql` 의 매핑:
+`sql/adb/03_seed.sql` 의 매핑 (4 유저, 4 케이스):
 
-| DB 유저 | 그룹 | 볼 수 있는 region |
-|---|---|---|
-| `vpduser_a` | `KR_ANALYSTS` | `APAC` 만 |
-| `vpduser_b` | `GLOBAL_ADMINS` | `*` (전체) |
+| DB 유저 | 그룹 | PG 뷰 | MySQL 뷰 | VPD 결과 |
+|---|---|---|---|---|
+| `vpduser_my`   | `MY_ONLY`      | ✗ 0 rows | ✓ ALL    | PG=`1=0` / MY=`NULL` |
+| `vpduser_pg`   | `PG_ONLY`      | ✓ ALL    | ✗ 0 rows | PG=`NULL` / MY=`1=0` |
+| `vpduser_both` | `BOTH_SOURCES` | ✓ ALL    | ✓ ALL    | PG=`NULL` / MY=`NULL` |
+| `vpduser_none` | (그룹 없음)    | ✗ 0 rows | ✗ 0 rows | PG=`1=0` / MY=`1=0` (default deny) |
 
-따라서:
+핵심 포인트:
 
-* `vpduser_a` 로 `SELECT * FROM admin.v_customers_pg` → APAC rows 만, 이메일 마스킹됨
-* `vpduser_b` 로 같은 쿼리 → 전체 rows, 이메일 원본
-* 누구든 원본 테이블 직접 접근 시도 (`@RDS_POSTGRES_LINK` 등) → 권한 없음
+* 네 유저 모두 **양쪽 뷰에 SELECT GRANT 는 동일하게 주어집니다.** 차이를 만드는 건
+  GRANT 가 아니라 `permission` 테이블의 행. 즉 **권한 회수 = GRANT 해제가 아니라
+  permission row 삭제**.
+* `vpduser_none` 처럼 매핑이 아예 없는 유저는 자동으로 fail-closed
+  (`1=0` predicate) — **deny by default**.
+* 누구든 원본 테이블 직접 접근 시도 (`@RDS_POSTGRES_LINK` 등) → 권한 없음.
 
-`sql/adb/08_tests_user_a.sql` 가 우회 시도 5개 (DBMS_RLS 변경, 다른 유저 컨텍스트
-설정 등) 를 시도하고 모두 ORA-xxxxx 로 실패하는 것을 보여줍니다.
+`sql/adb/08_tests_user_my.sql` 가 우회 시도 5개 (원격 직접 SELECT, 컨텍스트
+스푸핑, DBMS_RLS 변경, 매핑 테이블 SELECT) 를 시도하고 모두 ORA-xxxxx 로 실패하는 것을
+보여줍니다. 09/10/11 은 각 유저의 expected 행 수를 가볍게 확인합니다.
+
+> Row-level region 필터링 (예: `vpduser_both` 가 PG 는 APAC 만) 도 정책 함수에
+> 그대로 살아있습니다. `03_seed.sql` 하단의 주석 처리된 `UPDATE permission ...
+> allowed_regions='APAC'` 한 줄이면 활성화됩니다.
 
 ---
 
@@ -113,10 +123,12 @@ $EDITOR .env
 │       ├── 05_views.sql         # DB Link 통합 뷰
 │       ├── 06_policy.sql        # VPD 정책 + 정책 함수
 │       ├── 06a_redaction.sql    # Data Redaction (이메일 마스킹)
-│       ├── 07_end_users.sql     # vpduser_a/b + LOGON 트리거
-│       ├── 08_tests_user_a.sql  # APAC-only 검증 + 우회 시도
-│       ├── 09_tests_user_b.sql  # GLOBAL_ADMIN 검증
-│       └── 10_tests_admin_audit.sql
+│       ├── 07_end_users.sql        # 4 유저 + LOGON 트리거
+│       ├── 08_tests_user_my.sql    # MY only — 우회 시도 5종 포함
+│       ├── 09_tests_user_pg.sql    # PG only
+│       ├── 10_tests_user_both.sql  # both
+│       ├── 11_tests_user_none.sql  # default deny (fail-closed) 검증
+│       └── 12_tests_admin_audit.sql
 └── docs/
     └── 03-detailed-guide.md     # 한국어 상세 설명 (아키텍처, 정책 로직, 운영 고려사항)
 ```
