@@ -160,6 +160,62 @@ $EDITOR .env
 
 ---
 
+## DDS 설정 핵심
+
+DDS 변형을 직접 셋업할 때 알아야 하는 최소 단위. `sql/adb/13_dds_variant.sql` 가 이
+순서로 돌아가며, 행/컬럼 통제가 모두 **선언형 DDL 한 줄** 로 끝납니다.
+
+### 사전 조건
+
+* Oracle AI Database 23.26.2 이상 (ADB 는 기본 충족)
+* `COMPATIBLE` 파라미터 ≥ 20.0
+* ADMIN 권한: `CREATE END USER`, `CREATE DATA ROLE`, `GRANT DATA ROLE`, `CREATE DATA GRANT`
+
+### 4 스텝 DDL 레시피
+
+```sql
+-- 1) END USER — 스키마 없음, 로그온 전용
+CREATE END USER "alice" IDENTIFIED BY "<pw>";
+
+-- 2) CREATE SESSION 캐리어. END USER 는 regular ROLE 을 직접 받지 못함
+--    (ORA-01917) 이므로 반드시 DATA ROLE 으로 한 번 감싼다.
+CREATE ROLE      dds_db_role;
+GRANT CREATE SESSION TO dds_db_role;
+
+CREATE DATA ROLE analyst_role;
+GRANT dds_db_role TO analyst_role;
+
+-- 3) END USER ↔ DATA ROLE 매핑
+GRANT DATA ROLE analyst_role TO "alice";
+
+-- 4) 데이터 그랜트 — 행 필터(WHERE) + 컬럼 마스킹(ALL COLUMNS EXCEPT) 이 한 줄에 결합
+CREATE DATA GRANT admin.alice_apac_grant
+  AS SELECT (ALL COLUMNS EXCEPT email)
+  ON   admin.v_customers
+  WHERE region = 'APAC'
+  TO   analyst_role;
+```
+
+### 반드시 알아야 할 함정
+
+| 증상 | 원인 | 대응 |
+|---|---|---|
+| `ORA-01917 user or role does not exist` | END USER 에게 regular ROLE 을 직접 GRANT | 위처럼 DATA ROLE 으로 한 번 감싸기 |
+| 권한 있는 유저인데 0 rows | 같은 뷰에 VPD policy 가 살아있음 (VPD 의 `1=0` 가 DDS 보다 먼저 적용) | DDS 전용 뷰 (예: `v_dds_*`) 를 따로 만들거나 `SET USE DATA GRANTS ONLY` 적용 |
+| 권한 없는 유저가 0 rows 가 아니라 `ORA-00942` | DDS 정상 동작 — 객체 자체 미노출 | 그대로 둠. VPD 의 "0 rows" 보다 강한 enumeration 방어 |
+| 데이터 그랜트가 안 먹는 것 같음 | `dba_data_grants` 미확인 | `SELECT * FROM dba_data_grants;` / `dba_data_roles` / `dba_end_users` 로 상태 점검 |
+
+### 자주 쓰는 변주
+
+* **컬럼만 마스킹**: `AS SELECT (ALL COLUMNS EXCEPT ssn) ON ...` — 별도 redaction 정책 불필요
+* **MAC 모드 (해당 객체는 DATA GRANT 로만 접근)**: `ALTER TABLE admin.customers SET USE DATA GRANTS ONLY ENABLED;`
+* **운영(operation) 단위**: `AS INSERT ON ...`, `AS UPDATE (status) ON ... WHERE owner_id = ORA_END_USER_CONTEXT.username TO ...`
+* **Federated identity**: `CREATE DATA ROLE ... MAPPED TO 'AZURE_ROLE=Sales';` — OAuth2 토큰 클레임으로 자동 매핑
+
+자세한 옵션과 운영 가이드는 [docs/05-dds-variant.md](docs/05-dds-variant.md) 참고.
+
+---
+
 ## 디렉토리
 
 ```
