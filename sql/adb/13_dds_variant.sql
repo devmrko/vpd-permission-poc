@@ -31,16 +31,19 @@
 -- ------------------------------------------------------------
 -- This script creates *new* end users with the `ddsuser_` prefix
 -- so it does NOT collide with the VPD demo users (`vpduser_*`).
--- Both paths can coexist on the same ADB. The shared objects
--- (views v_customers_pg / v_customers_my, db_source table, etc.)
--- are reused — DDS adds a parallel access path, it does not
--- replace anything.
 --
--- We deliberately do NOT enable `SET USE DATA GRANTS ONLY` on
--- the views — doing so would block the existing VPD users who
--- rely on the regular GRANT SELECT path. The DDS users get their
--- access exclusively through DATA GRANTs (no regular SELECT
--- grant is issued), so MAC is not required for this demo.
+-- It also creates **dedicated DDS-only views** (`v_dds_customers_pg`,
+-- `v_dds_customers_my`) — separate from the VPD demo's
+-- `v_customers_pg`/`v_customers_my`. Reason: the VPD views have a
+-- live `DBMS_RLS` policy that returns `1=0` for any session whose
+-- LOGON trigger didn't load the VPD application context — i.e. for
+-- our DDS end users. Putting DDS Data Grants on top of the VPD
+-- views would silently return 0 rows (DDS allows but VPD blocks).
+-- Dedicated views with no VPD policy let DDS be the sole gatekeeper.
+--
+-- We deliberately do NOT enable `SET USE DATA GRANTS ONLY` on the
+-- DDS views in this demo — but doing so is the recommended
+-- production posture (single declarative policy plane).
 --
 -- DEFINE: &DDSUSER_MY_PASSWORD, &DDSUSER_PG_PASSWORD,
 --         &DDSUSER_BOTH_PASSWORD, &DDSUSER_NONE_PASSWORD
@@ -48,6 +51,25 @@
 SET ECHO OFF
 SET FEEDBACK ON
 SET DEFINE ON
+
+PROMPT === 0. Creating DDS-only views (no VPD policy attached) ===
+-- Functionally identical to v_customers_pg / v_customers_my but
+-- kept separate so that DDS Data Grants are the sole authority.
+CREATE OR REPLACE VIEW v_dds_customers_pg AS
+SELECT "customer_id"  AS customer_id,
+       "full_name"    AS full_name,
+       "email"        AS email,
+       "signup_date"  AS signup_date,
+       "region"       AS region
+FROM   "public"."customers"@RDS_POSTGRES_LINK;
+
+CREATE OR REPLACE VIEW v_dds_customers_my AS
+SELECT "customer_id"  AS customer_id,
+       "full_name"    AS full_name,
+       "email"        AS email,
+       "signup_date"  AS signup_date,
+       "region"       AS region
+FROM   "ecommerce_poc"."customers"@RDS_LINK;
 
 PROMPT === 1. Creating local END USERs (schemaless, no objects) ===
 -- End users in DDS do not own a schema and cannot create objects.
@@ -67,21 +89,23 @@ GRANT CREATE SESSION TO dds_db_role;
 CREATE DATA ROLE my_only_role;
 CREATE DATA ROLE pg_only_role;
 CREATE DATA ROLE both_sources_role;
--- (No role for the "none" user — absence of a data role = default deny.)
+-- A "connect only" data role for ddsuser_none — they need to be able
+-- to log in (so we can prove "authenticated but no data visible"),
+-- but they must hold NO data grants. END USERs can't be grantees of
+-- a regular ROLE directly (ORA-01917) — connection privilege must
+-- flow through a DATA ROLE.
+CREATE DATA ROLE connect_only_role;
 
 GRANT dds_db_role TO my_only_role;
 GRANT dds_db_role TO pg_only_role;
 GRANT dds_db_role TO both_sources_role;
+GRANT dds_db_role TO connect_only_role;
 
 PROMPT === 3. Mapping end users to data roles ===
 GRANT DATA ROLE my_only_role       TO "ddsuser_my";
 GRANT DATA ROLE pg_only_role       TO "ddsuser_pg";
 GRANT DATA ROLE both_sources_role  TO "ddsuser_both";
--- ddsuser_none gets nothing — they can authenticate (no, actually
--- they cannot, because they have no data role carrying dds_db_role).
--- Grant CREATE SESSION directly so they can prove "logged in but
--- denied at the data layer" — same UX as VPDUSER_NONE in the VPD demo.
-GRANT dds_db_role TO "ddsuser_none";
+GRANT DATA ROLE connect_only_role  TO "ddsuser_none";
 
 PROMPT === 4. Creating DATA GRANTs (the declarative equivalent of the VPD policy) ===
 -- These five lines replace the entire vpd_region_filter PL/SQL
@@ -91,24 +115,24 @@ PROMPT === 4. Creating DATA GRANTs (the declarative equivalent of the VPD policy
 -- DDSUSER_MY -> ALL rows from v_customers_my, no PG access.
 CREATE DATA GRANT admin.dds_my_only_grant_mysql
   AS SELECT
-  ON admin.v_customers_my
+  ON admin.v_dds_customers_my
   TO my_only_role;
 
 -- DDSUSER_PG -> ALL rows from v_customers_pg, no MY access.
 CREATE DATA GRANT admin.dds_pg_only_grant_pg
   AS SELECT
-  ON admin.v_customers_pg
+  ON admin.v_dds_customers_pg
   TO pg_only_role;
 
 -- DDSUSER_BOTH -> both views.
 CREATE DATA GRANT admin.dds_both_grant_pg
   AS SELECT
-  ON admin.v_customers_pg
+  ON admin.v_dds_customers_pg
   TO both_sources_role;
 
 CREATE DATA GRANT admin.dds_both_grant_mysql
   AS SELECT
-  ON admin.v_customers_my
+  ON admin.v_dds_customers_my
   TO both_sources_role;
 
 -- DDSUSER_NONE: NO data grant -> default deny.
@@ -121,7 +145,7 @@ PROMPT === 5. (Optional) Region row-level filter — DDS-style ===
 --
 --   CREATE OR REPLACE DATA GRANT admin.dds_both_grant_pg
 --     AS SELECT
---     ON admin.v_customers_pg
+--     ON admin.v_dds_customers_pg
 --     WHERE region = 'APAC'
 --     TO both_sources_role;
 --
@@ -130,7 +154,7 @@ PROMPT === 5. (Optional) Region row-level filter — DDS-style ===
 --
 --   CREATE OR REPLACE DATA GRANT admin.dds_both_grant_mysql
 --     AS SELECT
---     ON admin.v_customers_my
+--     ON admin.v_dds_customers_my
 --     WHERE region IN ('APAC','EMEA')
 --     TO both_sources_role;
 
@@ -142,7 +166,7 @@ PROMPT === 6. (Optional) Column masking — DDS-style ===
 --
 --   CREATE OR REPLACE DATA GRANT admin.dds_both_grant_pg
 --     AS SELECT (ALL COLUMNS EXCEPT email)
---     ON admin.v_customers_pg
+--     ON admin.v_dds_customers_pg
 --     TO both_sources_role;
 --
 -- Excluded columns return NULL (same UX as redaction), but it's
@@ -154,8 +178,10 @@ PROMPT === DDS variant ready ===
 -- Verify with:
 --   sqlplus '"ddsuser_pg"'/<pw>@<service>
 --   SQL> SELECT ORA_END_USER_CONTEXT.username FROM dual;
---   SQL> SELECT COUNT(*) FROM admin.v_customers_pg;   -- expect 12
---   SQL> SELECT COUNT(*) FROM admin.v_customers_my;   -- expect 0 (no grant)
+--   SQL> SELECT COUNT(*) FROM admin.v_dds_customers_pg;   -- expect 12
+--   SQL> SELECT COUNT(*) FROM admin.v_dds_customers_my;   -- expect ORA-00942
+-- (DDS hides the object entirely when no grant exists — note this is
+--  stronger than VPD which would return "0 rows" for the same case.)
 --
 -- Audit the grants:
 --   SELECT * FROM dba_data_grants;
