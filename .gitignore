@@ -1,0 +1,19 @@
+# 환경/비밀 — 절대 commit 금지
+.env
+.env.*
+!.env.example
+
+# Oracle wallet
+wallet/
+*.sso
+*.p12
+*.pem
+*.key
+
+# 로컬 실행 로그
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
