@@ -3,7 +3,12 @@ package com.cloudhandson.vpdbackoffice.web;
 import com.cloudhandson.vpdbackoffice.domain.token.TokenIssueCommand;
 import com.cloudhandson.vpdbackoffice.mapper.UserMapper;
 import com.cloudhandson.vpdbackoffice.service.BearerTokenService;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.time.format.DateTimeFormatter;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,16 +21,19 @@ public class TokenController {
 
   private final BearerTokenService tokenService;
   private final UserMapper userMapper;
+  private final Clock clock;
 
-  public TokenController(BearerTokenService tokenService, UserMapper userMapper) {
+  public TokenController(BearerTokenService tokenService, UserMapper userMapper, Clock clock) {
     this.tokenService = tokenService;
     this.userMapper = userMapper;
+    this.clock = clock;
   }
 
   @GetMapping("/tokens")
   public String tokens(Model model) {
     model.addAttribute("tokens", tokenService.findAll());
     model.addAttribute("users", userMapper.findAll());
+    model.addAttribute("defaultExpiresAt", defaultExpiresAt());
     return "tokens";
   }
 
@@ -38,7 +46,7 @@ public class TokenController {
   ) {
     var issued = tokenService.issueToken(new TokenIssueCommand(
         userId,
-        OffsetDateTime.parse(expiresAt),
+        parseBrowserDateTime(expiresAt),
         description
     ));
     redirectAttributes.addFlashAttribute("issued", issued);
@@ -54,5 +62,18 @@ public class TokenController {
     tokenService.revokeToken(keyId, reason);
     redirectAttributes.addFlashAttribute("message", "토큰을 회수했습니다.");
     return "redirect:/tokens";
+  }
+
+  private String defaultExpiresAt() {
+    return LocalDateTime.now(clock.withZone(ZoneId.systemDefault()))
+        .plusMonths(1)
+        .truncatedTo(ChronoUnit.MINUTES)
+        .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+  }
+
+  private OffsetDateTime parseBrowserDateTime(String expiresAt) {
+    return LocalDateTime.parse(expiresAt)
+        .atZone(ZoneId.systemDefault())
+        .toOffsetDateTime();
   }
 }

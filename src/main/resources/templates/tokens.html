@@ -27,7 +27,7 @@
       </label>
       <label>
         만료 시각
-        <input class="form-control" name="expiresAt" placeholder="2026-12-31T23:59:59+09:00" required>
+        <input class="form-control" name="expiresAt" type="datetime-local" th:value="${defaultExpiresAt}" required>
       </label>
       <label>
         설명
