@@ -13,8 +13,4 @@ public record DatabaseObjectOption(
   public String label() {
     return owner + "." + objectName + " (" + objectType + ")";
   }
-
-  public String defaultOrdsPath() {
-    return owner.toLowerCase() + "/" + objectName.toLowerCase();
-  }
 }

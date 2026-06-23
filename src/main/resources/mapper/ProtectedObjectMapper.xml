@@ -71,6 +71,12 @@
     VALUES (#{columnId}, #{objectId}, UPPER(#{columnName}), #{sensitiveYn})
   </insert>
 
+  <update id="updateOrdsPath">
+    UPDATE cb_protected_object
+    SET ords_path = #{ordsPath,jdbcType=VARCHAR}
+    WHERE object_id = #{objectId,jdbcType=NUMERIC}
+  </update>
+
   <update id="disableObject">
     UPDATE cb_protected_object
     SET enabled_yn = 'N'

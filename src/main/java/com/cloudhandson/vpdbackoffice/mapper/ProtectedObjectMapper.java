@@ -34,5 +34,7 @@ public interface ProtectedObjectMapper {
                     @Param("columnName") String columnName,
                     @Param("sensitiveYn") String sensitiveYn);
 
+  int updateOrdsPath(@Param("objectId") long objectId, @Param("ordsPath") String ordsPath);
+
   int disableObject(@Param("objectId") long objectId);
 }

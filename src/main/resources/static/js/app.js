@@ -76,8 +76,8 @@ async function syncObjectCatalogSelection() {
   if (objectInput) {
     objectInput.value = selected.dataset.objectName || '';
   }
-  if (ordsPathInput) {
-    ordsPathInput.value = selected.dataset.defaultPath || '';
+  if (ordsPathInput && !ordsPathInput.value) {
+    ordsPathInput.focus();
   }
   if (!columnsInput) {
     return;

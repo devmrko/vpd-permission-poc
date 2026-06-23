@@ -1,6 +1,7 @@
 package com.cloudhandson.vpdbackoffice.web;
 
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedObjectCreateCommand;
+import com.cloudhandson.vpdbackoffice.service.AppException;
 import com.cloudhandson.vpdbackoffice.service.ProtectedObjectService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -34,9 +35,28 @@ public class ProtectedObjectController {
       @RequestParam(required = false) String sensitiveColumns,
       RedirectAttributes redirectAttributes
   ) {
-    protectedObjectService.createObject(
-        new ProtectedObjectCreateCommand(owner, objectName, ordsPath, columns, sensitiveColumns));
-    redirectAttributes.addFlashAttribute("message", "보호 객체를 추가했습니다.");
+    try {
+      protectedObjectService.createObject(
+          new ProtectedObjectCreateCommand(owner, objectName, ordsPath, columns, sensitiveColumns));
+      redirectAttributes.addFlashAttribute("message", "보호 객체를 추가했습니다.");
+    } catch (AppException exception) {
+      redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+    }
+    return "redirect:/objects";
+  }
+
+  @PostMapping("/objects/ords-path")
+  public String updateOrdsPath(
+      @RequestParam long objectId,
+      @RequestParam String ordsPath,
+      RedirectAttributes redirectAttributes
+  ) {
+    try {
+      protectedObjectService.updateOrdsPath(objectId, ordsPath);
+      redirectAttributes.addFlashAttribute("message", "ORDS Path를 수정했습니다.");
+    } catch (AppException exception) {
+      redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+    }
     return "redirect:/objects";
   }
 

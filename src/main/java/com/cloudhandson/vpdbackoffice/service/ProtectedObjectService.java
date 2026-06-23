@@ -68,29 +68,8 @@ public class ProtectedObjectService {
     if (existing != null) {
       return existing;
     }
-    List<String> columns = mapper.findDatabaseColumns(owner, objectName);
-    if (columns.isEmpty()) {
-      throw new AppException("DB 객체 컬럼을 찾을 수 없습니다: " + owner + "." + objectName);
-    }
-    long objectId = mapper.nextObjectId();
-    mapper.insertObject(objectId, new ProtectedObjectCreateCommand(
-        owner,
-        objectName,
-        defaultOrdsPath(owner, objectName),
-        String.join(",", columns),
-        ""
-    ));
-    for (String column : columns) {
-      mapper.insertColumn(mapper.nextColumnId(), objectId, column, "N");
-    }
-    auditService.record(new AuditEvent("PROTECTED_OBJECT_CREATED", null, objectId, "SUCCESS", null, null,
-        owner + "." + objectName));
-    return mapper.findById(objectId);
-  }
-
-  private String defaultOrdsPath(String owner, String objectName) {
-    String schemaPath = owner.equalsIgnoreCase("CB_ORDS") ? "cb-ords" : owner.toLowerCase(Locale.ROOT);
-    return schemaPath + "/" + objectName.toLowerCase(Locale.ROOT);
+    throw new AppException("테이블/뷰 관리에서 실제 ORDS Path를 먼저 등록하세요: "
+        + owner.toUpperCase(Locale.ROOT) + "." + objectName.toUpperCase(Locale.ROOT));
   }
 
   private ProtectedObjectCreateCommand normalizeCreateCommand(ProtectedObjectCreateCommand command) {
@@ -98,13 +77,26 @@ public class ProtectedObjectService {
     String objectName = command.objectName().trim().toUpperCase(Locale.ROOT);
     String ordsPath = command.ordsPath();
     if (ordsPath == null || ordsPath.isBlank()) {
-      ordsPath = defaultOrdsPath(owner, objectName);
+      throw new AppException("ORDS Path는 실제 ORDS module/template 경로를 입력해야 합니다.");
     }
     String columns = command.columns();
     if (columns == null || columns.isBlank()) {
       columns = String.join(",", mapper.findDatabaseColumns(owner, objectName));
     }
     return new ProtectedObjectCreateCommand(owner, objectName, ordsPath.trim(), columns, command.sensitiveColumns());
+  }
+
+  @Transactional
+  public void updateOrdsPath(long objectId, String ordsPath) {
+    if (ordsPath == null || ordsPath.isBlank()) {
+      throw new AppException("ORDS Path는 필수입니다.");
+    }
+    int updated = mapper.updateOrdsPath(objectId, ordsPath.trim());
+    if (updated == 0) {
+      throw new AppException("보호 객체를 찾을 수 없습니다.");
+    }
+    auditService.record(new AuditEvent("PROTECTED_OBJECT_ORDS_PATH_UPDATED", null, objectId, "SUCCESS", null, null,
+        ordsPath.trim()));
   }
 
   @Transactional
