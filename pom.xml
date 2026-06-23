@@ -52,6 +52,11 @@
       <artifactId>ojdbc11</artifactId>
       <version>${oracle.jdbc.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.oracle.database.security</groupId>
+      <artifactId>oraclepki</artifactId>
+      <version>${oracle.jdbc.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
