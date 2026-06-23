@@ -86,6 +86,14 @@ body {
   display: inline;
 }
 
+.switch-field {
+  align-items: center;
+  display: flex;
+  gap: .5rem;
+  min-height: 38px;
+  padding-left: 2.5rem;
+}
+
 .token-value {
   display: block;
   margin-top: .5rem;

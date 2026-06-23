@@ -3,6 +3,7 @@ package com.cloudhandson.vpdbackoffice.mapper;
 import com.cloudhandson.vpdbackoffice.domain.permission.AppRole;
 import com.cloudhandson.vpdbackoffice.domain.permission.PermissionRule;
 import com.cloudhandson.vpdbackoffice.domain.permission.PermissionSet;
+import com.cloudhandson.vpdbackoffice.domain.permission.PermissionView;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -13,6 +14,8 @@ public interface PermissionMapper {
   List<AppRole> findRoles();
 
   AppRole findRole(@Param("roleId") long roleId);
+
+  List<PermissionView> findPermissionViews();
 
   PermissionSet findPermissionSet(@Param("roleId") long roleId, @Param("objectId") long objectId);
 
@@ -32,6 +35,8 @@ public interface PermissionMapper {
   void deleteVisibleColumns(@Param("permissionId") long permissionId);
 
   void insertVisibleColumn(@Param("permissionId") long permissionId, @Param("columnName") String columnName);
+
+  int deletePermission(@Param("permissionId") long permissionId);
 
   long nextPermissionId();
 

@@ -5,6 +5,7 @@ import com.cloudhandson.vpdbackoffice.domain.permission.AppRole;
 import com.cloudhandson.vpdbackoffice.domain.permission.PermissionRule;
 import com.cloudhandson.vpdbackoffice.domain.permission.PermissionSet;
 import com.cloudhandson.vpdbackoffice.domain.permission.PermissionSetCommand;
+import com.cloudhandson.vpdbackoffice.domain.permission.PermissionView;
 import com.cloudhandson.vpdbackoffice.domain.permission.RuleCommand;
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedColumn;
 import com.cloudhandson.vpdbackoffice.mapper.PermissionMapper;
@@ -36,6 +37,10 @@ public class PermissionService {
 
   public List<AppRole> findRoles() {
     return permissionMapper.findRoles();
+  }
+
+  public List<PermissionView> findPermissionViews() {
+    return permissionMapper.findPermissionViews();
   }
 
   @Transactional
@@ -81,6 +86,18 @@ public class PermissionService {
         "roleId=" + command.roleId()
     ));
     return new PermissionSet(permissionId, command.roleId(), command.objectId(), "SELECT", List.of(), List.of());
+  }
+
+  @Transactional
+  public void deletePermission(long permissionId) {
+    permissionMapper.deleteRules(permissionId);
+    permissionMapper.deleteVisibleColumns(permissionId);
+    int deleted = permissionMapper.deletePermission(permissionId);
+    if (deleted == 0) {
+      throw new AppException("삭제할 권한을 찾을 수 없습니다.");
+    }
+    auditService.record(new AuditEvent("PERMISSION_DELETED", null, null, "SUCCESS", null, null,
+        "permissionId=" + permissionId));
   }
 
   private void validateRules(List<RuleCommand> rules) {

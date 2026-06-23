@@ -30,6 +30,7 @@ public class PermissionController {
   public String permissions(Model model) {
     model.addAttribute("roles", permissionService.findRoles());
     model.addAttribute("objects", protectedObjectService.findEnabled());
+    model.addAttribute("permissions", permissionService.findPermissionViews());
     return "permissions";
   }
 
@@ -50,6 +51,13 @@ public class PermissionController {
         visibleColumns == null ? List.of() : visibleColumns
     ));
     redirectAttributes.addFlashAttribute("message", "권한을 저장했습니다.");
+    return "redirect:/permissions";
+  }
+
+  @PostMapping("/permissions/delete")
+  public String delete(@RequestParam long permissionId, RedirectAttributes redirectAttributes) {
+    permissionService.deletePermission(permissionId);
+    redirectAttributes.addFlashAttribute("message", "권한을 삭제했습니다.");
     return "redirect:/permissions";
   }
 }

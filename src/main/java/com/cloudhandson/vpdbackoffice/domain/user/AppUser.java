@@ -5,6 +5,7 @@ public record AppUser(
     String username,
     String empNo,
     String deptCode,
+    String canReadContents,
     String activeYn
 ) {
 

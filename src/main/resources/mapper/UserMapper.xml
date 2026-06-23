@@ -7,6 +7,7 @@
            user_name AS username,
            employee_no AS emp_no,
            dept_code,
+           can_read_contents,
            active AS active_yn
     FROM cb_app_user
     ORDER BY username
@@ -17,8 +18,57 @@
            user_name AS username,
            employee_no AS emp_no,
            dept_code,
+           can_read_contents,
            active AS active_yn
     FROM cb_app_user
     WHERE user_id = #{userId}
   </select>
+
+  <select id="findUserRoles" resultType="com.cloudhandson.vpdbackoffice.domain.user.UserRoleView">
+    SELECT u.user_id,
+           u.user_name AS username,
+           r.role_id,
+           r.role_name
+    FROM cb_user_role ur
+    JOIN cb_app_user u ON u.user_id = ur.user_id
+    JOIN cb_app_role r ON r.role_id = ur.role_id
+    ORDER BY u.user_name, r.role_name
+  </select>
+
+  <select id="nextUserId" resultType="long">
+    SELECT NVL(MAX(user_id), 0) + 1 FROM cb_app_user
+  </select>
+
+  <insert id="insertUser">
+    INSERT INTO cb_app_user (
+      user_id, user_name, employee_no, dept_code, can_read_contents, active
+    ) VALUES (
+      #{userId},
+      #{command.username},
+      #{command.empNo},
+      #{command.deptCode},
+      <choose>
+        <when test="command.canReadContents"> 'Y' </when>
+        <otherwise> 'N' </otherwise>
+      </choose>,
+      'Y'
+    )
+  </insert>
+
+  <update id="updateActive">
+    UPDATE cb_app_user
+    SET active = #{activeYn}
+    WHERE user_id = #{userId}
+  </update>
+
+  <insert id="insertUserRole">
+    INSERT INTO cb_user_role (user_id, role_id)
+    VALUES (#{userId}, #{roleId})
+  </insert>
+
+  <delete id="deleteUserRole">
+    DELETE FROM cb_user_role
+    WHERE user_id = #{userId}
+      AND role_id = #{roleId}
+  </delete>
 </mapper>

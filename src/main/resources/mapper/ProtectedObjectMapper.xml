@@ -21,4 +21,34 @@
     WHERE object_id = #{objectId}
     ORDER BY column_id
   </select>
+
+  <select id="nextObjectId" resultType="long">
+    SELECT NVL(MAX(object_id), 0) + 1 FROM cb_protected_object
+  </select>
+
+  <select id="nextColumnId" resultType="long">
+    SELECT NVL(MAX(column_id), 0) + 1 FROM cb_protected_column
+  </select>
+
+  <insert id="insertObject">
+    INSERT INTO cb_protected_object (object_id, owner, object_name, ords_path, enabled_yn)
+    VALUES (
+      #{objectId},
+      UPPER(#{command.owner}),
+      UPPER(#{command.objectName}),
+      #{command.ordsPath},
+      'Y'
+    )
+  </insert>
+
+  <insert id="insertColumn">
+    INSERT INTO cb_protected_column (column_id, object_id, column_name, sensitive_yn)
+    VALUES (#{columnId}, #{objectId}, UPPER(#{columnName}), #{sensitiveYn})
+  </insert>
+
+  <update id="disableObject">
+    UPDATE cb_protected_object
+    SET enabled_yn = 'N'
+    WHERE object_id = #{objectId}
+  </update>
 </mapper>

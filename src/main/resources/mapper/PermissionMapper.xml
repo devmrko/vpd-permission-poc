@@ -14,6 +14,23 @@
     WHERE role_id = #{roleId}
   </select>
 
+  <select id="findPermissionViews" resultType="com.cloudhandson.vpdbackoffice.domain.permission.PermissionView">
+    SELECT p.perm_id AS permission_id,
+           r.role_id,
+           r.role_name,
+           o.object_id,
+           p.target_name AS object_name,
+           p.action_name AS action,
+           LISTAGG(pr.rule_type || NVL2(pr.rule_value, ':' || pr.rule_value, ''), ', ')
+             WITHIN GROUP (ORDER BY pr.rule_id) AS rules
+    FROM cb_permission p
+    JOIN cb_app_role r ON r.role_id = p.role_id
+    LEFT JOIN cb_protected_object o ON o.object_name = p.target_name
+    LEFT JOIN cb_permission_rule pr ON pr.perm_id = p.perm_id
+    GROUP BY p.perm_id, r.role_id, r.role_name, o.object_id, p.target_name, p.action_name
+    ORDER BY r.role_name, p.target_name
+  </select>
+
   <select id="findPermissionId" resultType="long">
     SELECT p.perm_id
     FROM cb_permission p
@@ -73,4 +90,9 @@
     INSERT INTO cb_permission_column (permission_id, column_name)
     VALUES (#{permissionId}, #{columnName})
   </insert>
+
+  <delete id="deletePermission">
+    DELETE FROM cb_permission
+    WHERE perm_id = #{permissionId}
+  </delete>
 </mapper>

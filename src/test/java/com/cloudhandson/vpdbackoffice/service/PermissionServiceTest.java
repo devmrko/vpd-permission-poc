@@ -7,6 +7,7 @@ import com.cloudhandson.vpdbackoffice.domain.permission.AppRole;
 import com.cloudhandson.vpdbackoffice.domain.permission.PermissionRule;
 import com.cloudhandson.vpdbackoffice.domain.permission.PermissionSet;
 import com.cloudhandson.vpdbackoffice.domain.permission.PermissionSetCommand;
+import com.cloudhandson.vpdbackoffice.domain.permission.PermissionView;
 import com.cloudhandson.vpdbackoffice.domain.permission.RuleCommand;
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedColumn;
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedObject;
@@ -25,7 +26,8 @@ class PermissionServiceTest {
   @BeforeEach
   void setUp() {
     permissionMapper = new FakePermissionMapper();
-    protectedObjectService = new ProtectedObjectService(null) {
+    AuditService auditService = new AuditService(new NoopAuditMapper());
+    protectedObjectService = new ProtectedObjectService(null, auditService) {
       @Override
       public ProtectedObject assertEnabled(long objectId) {
         return new ProtectedObject(1L, "ADMIN", "CB_V_SEARCH_DOCUMENTS", "cb-agent-security/vpd/documents", "Y");
@@ -36,7 +38,6 @@ class PermissionServiceTest {
         return List.of();
       }
     };
-    AuditService auditService = new AuditService(new NoopAuditMapper());
     permissionService = new PermissionService(permissionMapper, protectedObjectService, auditService);
   }
 
@@ -88,6 +89,11 @@ class PermissionServiceTest {
     }
 
     @Override
+    public List<PermissionView> findPermissionViews() {
+      return List.of();
+    }
+
+    @Override
     public PermissionSet findPermissionSet(long roleId, long objectId) {
       return null;
     }
@@ -119,6 +125,11 @@ class PermissionServiceTest {
 
     @Override
     public void insertVisibleColumn(long permissionId, String columnName) {
+    }
+
+    @Override
+    public int deletePermission(long permissionId) {
+      return 1;
     }
 
     @Override
