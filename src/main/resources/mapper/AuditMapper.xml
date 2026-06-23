@@ -7,7 +7,14 @@
       audit_id, event_type, key_id, object_id, status, row_count, error_code, message, created_at
     ) VALUES (
       cb_ords_probe_audit_seq.NEXTVAL,
-      #{eventType}, #{keyId}, #{objectId}, #{status}, #{rowCount}, #{errorCode}, #{message}, SYSTIMESTAMP
+      #{eventType,jdbcType=VARCHAR},
+      #{keyId,jdbcType=NUMERIC},
+      #{objectId,jdbcType=NUMERIC},
+      #{status,jdbcType=VARCHAR},
+      #{rowCount,jdbcType=NUMERIC},
+      #{errorCode,jdbcType=VARCHAR},
+      #{message,jdbcType=VARCHAR},
+      SYSTIMESTAMP
     )
   </insert>
 </mapper>
