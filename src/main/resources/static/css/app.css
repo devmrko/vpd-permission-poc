@@ -143,6 +143,17 @@ body {
   display: inline;
 }
 
+.action-stack {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+
+.action-stack .inline-form {
+  display: inline-flex;
+}
+
 .switch-field {
   align-items: center;
   display: flex;

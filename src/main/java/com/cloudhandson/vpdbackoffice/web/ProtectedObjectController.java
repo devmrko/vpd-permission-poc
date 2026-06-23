@@ -2,7 +2,9 @@ package com.cloudhandson.vpdbackoffice.web;
 
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedObjectCreateCommand;
 import com.cloudhandson.vpdbackoffice.service.AppException;
+import com.cloudhandson.vpdbackoffice.service.OrdsMetadataService;
 import com.cloudhandson.vpdbackoffice.service.ProtectedObjectService;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,9 +16,14 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class ProtectedObjectController {
 
   private final ProtectedObjectService protectedObjectService;
+  private final OrdsMetadataService ordsMetadataService;
 
-  public ProtectedObjectController(ProtectedObjectService protectedObjectService) {
+  public ProtectedObjectController(
+      ProtectedObjectService protectedObjectService,
+      OrdsMetadataService ordsMetadataService
+  ) {
     this.protectedObjectService = protectedObjectService;
+    this.ordsMetadataService = ordsMetadataService;
   }
 
   @GetMapping("/objects")
@@ -56,6 +63,20 @@ public class ProtectedObjectController {
       redirectAttributes.addFlashAttribute("message", "ORDS Path를 수정했습니다.");
     } catch (AppException exception) {
       redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+    }
+    return "redirect:/objects";
+  }
+
+  @PostMapping("/objects/ords-handler")
+  public String createOrdsHandler(@RequestParam long objectId, RedirectAttributes redirectAttributes) {
+    try {
+      var result = ordsMetadataService.createObjectQueryHandler(objectId);
+      redirectAttributes.addFlashAttribute("message", "ORDS 조회 Handler를 생성했습니다: " + result.ordsPath());
+    } catch (AppException exception) {
+      redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+    } catch (DataAccessException exception) {
+      RuntimeErrorMessage error = RuntimeErrorMessages.dataAccess(exception);
+      redirectAttributes.addFlashAttribute("errorMessage", error.message());
     }
     return "redirect:/objects";
   }
