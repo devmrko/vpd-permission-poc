@@ -111,7 +111,7 @@ USING (
   SELECT 1 AS object_id,
          'ADMIN' AS owner,
          'CB_V_SEARCH_DOCUMENTS' AS object_name,
-         'cb-agent-security/vpd/documents' AS ords_path,
+         'cb-ords/cb-agent-security/vpd/documents' AS ords_path,
          'Y' AS enabled_yn
   FROM dual
 ) src

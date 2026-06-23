@@ -121,7 +121,7 @@ public class OrdsProbeService {
       return auditAndReturn(command, ProbeResult.blocked(
           status,
           status.name(),
-          trimMessage(e.getResponseBodyAsString()),
+          httpErrorMessage(status, e.getResponseBodyAsString()),
           requestHeaders,
           requestPayload,
           prettyHeaders(e.getResponseHeaders()),
@@ -255,6 +255,15 @@ public class OrdsProbeService {
     }
     if (status == ProbeStatus.ORDS_TIMEOUT) {
       return "ORDS 응답 시간이 초과되었습니다. ORDS 상태와 BACKOFFICE_ORDS_TIMEOUT_SECONDS 설정을 확인하세요. 상세: "
+          + detail;
+    }
+    return detail;
+  }
+
+  private String httpErrorMessage(ProbeStatus status, String body) {
+    String detail = trimMessage(body);
+    if (status == ProbeStatus.ORDS_PATH_NOT_FOUND) {
+      return "ORDS 경로를 찾을 수 없습니다. 설정의 Base URL과 보호 객체 ORDS Path가 실제 ORDS schema mapping/module/template 경로와 일치하는지 확인하세요. 상세: "
           + detail;
     }
     return detail;

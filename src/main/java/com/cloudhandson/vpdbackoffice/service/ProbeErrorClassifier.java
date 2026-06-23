@@ -23,6 +23,12 @@ public class ProbeErrorClassifier {
     if (status != null && (status.value() == 401 || status.value() == 403)) {
       return ProbeStatus.INVALID_TOKEN;
     }
+    if (status != null && status.value() == 404) {
+      return ProbeStatus.ORDS_PATH_NOT_FOUND;
+    }
+    if (text.contains("\"code\"") && text.contains("NotFound")) {
+      return ProbeStatus.ORDS_PATH_NOT_FOUND;
+    }
     return ProbeStatus.UNKNOWN_ERROR;
   }
 

@@ -32,6 +32,12 @@ class ProbeErrorClassifierTest {
   }
 
   @Test
+  void classifiesOrdsNotFound() {
+    assertThat(classifier.classify(HttpStatus.NOT_FOUND, "{\"code\":\"NotFound\"}"))
+        .isEqualTo(ProbeStatus.ORDS_PATH_NOT_FOUND);
+  }
+
+  @Test
   void detectsOrdsConnectionRefused() {
     assertThat(classifier.isUnavailable(new ResourceAccessException(
         "I/O error",
