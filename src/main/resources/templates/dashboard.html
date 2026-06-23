@@ -9,6 +9,14 @@
     <p>보호 객체, Bearer Token, ORDS 검증 상태를 확인합니다.</p>
   </div>
 
+  <div class="alert alert-warning" th:if="${setupError}">
+    <div class="fw-semibold">DB 연결 설정이 필요합니다.</div>
+    <div th:text="${setupError}"></div>
+    <div class="mt-2">
+      <code>./run.sh backoffice-support</code>
+    </div>
+  </div>
+
   <section class="summary-grid">
     <a class="summary-tile" href="/permissions">
       <span class="label">보호 객체</span>
