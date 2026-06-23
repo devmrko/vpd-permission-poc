@@ -20,6 +20,25 @@
     </span>
   </div>
 
+  <div class="probe-exchange-grid">
+    <section class="probe-exchange">
+      <h3>Request Headers</h3>
+      <pre th:text="${result.requestHeaders()} ?: '{}'">{}</pre>
+    </section>
+    <section class="probe-exchange">
+      <h3>Request Payload</h3>
+      <pre th:text="${result.requestPayload()} ?: '{}'">{}</pre>
+    </section>
+    <section class="probe-exchange">
+      <h3>Response Headers</h3>
+      <pre th:text="${result.responseHeaders()} ?: '{}'">{}</pre>
+    </section>
+    <section class="probe-exchange">
+      <h3>Response Body</h3>
+      <pre th:text="${result.responseBody()} ?: ''"></pre>
+    </section>
+  </div>
+
   <div class="table-responsive" th:if="${!#lists.isEmpty(result.rows())}">
     <table class="table table-sm table-striped align-middle">
       <thead>

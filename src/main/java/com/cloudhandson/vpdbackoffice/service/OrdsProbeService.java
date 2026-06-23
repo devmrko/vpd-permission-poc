@@ -97,21 +97,47 @@ public class OrdsProbeService {
           ProbeStatus.OBJECT_DISABLED, "OBJECT_DISABLED", e.getMessage()));
     }
 
+    String requestHeaders = null;
+    String requestPayload = null;
     try {
       URI uri = buildUri(object.ordsPath(), command.limit());
       HttpHeaders headers = new HttpHeaders();
       headers.setBearerAuth(command.bearerToken());
+      requestHeaders = prettyHeaders(maskedRequestHeaders(headers));
+      requestPayload = prettyJson("{}");
       ResponseEntity<String> response = ordsRestTemplate.exchange(
           uri, HttpMethod.POST, new HttpEntity<>(headers), String.class);
-      ProbeResult result = parseSuccess(response.getBody(), object.objectId());
+      ProbeResult result = parseSuccess(
+          response.getBody(),
+          object.objectId(),
+          requestHeaders,
+          requestPayload,
+          prettyHeaders(response.getHeaders()),
+          prettyJson(response.getBody())
+      );
       return auditAndReturn(command, result);
     } catch (HttpStatusCodeException e) {
       ProbeStatus status = errorClassifier.classify(e.getStatusCode(), e.getResponseBodyAsString());
       return auditAndReturn(command, ProbeResult.blocked(
-          status, status.name(), trimMessage(e.getResponseBodyAsString())));
+          status,
+          status.name(),
+          trimMessage(e.getResponseBodyAsString()),
+          requestHeaders,
+          requestPayload,
+          prettyHeaders(e.getResponseHeaders()),
+          prettyJson(e.getResponseBodyAsString())
+      ));
     } catch (ResourceAccessException e) {
       ProbeStatus status = classifyResourceAccess(e);
-      return auditAndReturn(command, ProbeResult.blocked(status, status.name(), resourceAccessMessage(status, e)));
+      return auditAndReturn(command, ProbeResult.blocked(
+          status,
+          status.name(),
+          resourceAccessMessage(status, e),
+          requestHeaders,
+          requestPayload,
+          "{}",
+          ""
+      ));
     } catch (Exception e) {
       return auditAndReturn(command, ProbeResult.blocked(
           ProbeStatus.INVALID_ORDS_RESPONSE, "INVALID_ORDS_RESPONSE", e.getMessage()));
@@ -129,7 +155,14 @@ public class OrdsProbeService {
         .toUri();
   }
 
-  private ProbeResult parseSuccess(String body, long objectId) throws Exception {
+  private ProbeResult parseSuccess(
+      String body,
+      long objectId,
+      String requestHeaders,
+      String requestPayload,
+      String responseHeaders,
+      String responseBody
+  ) throws Exception {
     JsonNode root = objectMapper.readTree(body);
     JsonNode rowsNode = root.has("rows") ? root.get("rows") : root;
     rowsNode = root.has("items") ? root.get("items") : rowsNode;
@@ -153,7 +186,11 @@ public class OrdsProbeService {
         rows.size(),
         findMaskedColumns(objectId, rows),
         null,
-        null
+        null,
+        requestHeaders,
+        requestPayload,
+        responseHeaders,
+        responseBody
     );
   }
 
@@ -229,5 +266,54 @@ public class OrdsProbeService {
       return null;
     }
     return body.length() <= 500 ? body : body.substring(0, 500);
+  }
+
+  private HttpHeaders maskedRequestHeaders(HttpHeaders headers) {
+    HttpHeaders masked = new HttpHeaders();
+    masked.putAll(headers);
+    List<String> authorization = headers.get(HttpHeaders.AUTHORIZATION);
+    if (authorization != null && !authorization.isEmpty()) {
+      masked.set(HttpHeaders.AUTHORIZATION, maskBearer(authorization.get(0)));
+    }
+    return masked;
+  }
+
+  private String maskBearer(String value) {
+    if (value == null || value.isBlank()) {
+      return "";
+    }
+    if (!value.toLowerCase(Locale.ROOT).startsWith("bearer ")) {
+      return "****";
+    }
+    String token = value.substring("Bearer ".length());
+    String suffix = token.length() <= 6 ? "" : token.substring(token.length() - 6);
+    return "Bearer ****" + suffix;
+  }
+
+  private String prettyHeaders(HttpHeaders headers) {
+    if (headers == null || headers.isEmpty()) {
+      return "{}";
+    }
+    return prettyObject(headers);
+  }
+
+  private String prettyJson(String body) {
+    if (body == null || body.isBlank()) {
+      return "";
+    }
+    try {
+      return objectMapper.writerWithDefaultPrettyPrinter()
+          .writeValueAsString(objectMapper.readTree(body));
+    } catch (Exception ignored) {
+      return body;
+    }
+  }
+
+  private String prettyObject(Object value) {
+    try {
+      return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(value);
+    } catch (Exception ignored) {
+      return String.valueOf(value);
+    }
   }
 }
