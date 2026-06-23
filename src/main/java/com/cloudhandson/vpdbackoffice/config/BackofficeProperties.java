@@ -7,7 +7,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record BackofficeProperties(
     Security security,
     Token token,
-    Ords ords
+    Ords ords,
+    Ai ai
 ) {
 
   public record Security(String adminUser, String adminPassword) {
@@ -17,5 +18,8 @@ public record BackofficeProperties(
   }
 
   public record Ords(String baseUrl, Duration timeout) {
+  }
+
+  public record Ai(boolean enabled, String baseUrl, String model, String apiKey, Duration timeout) {
   }
 }

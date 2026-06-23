@@ -16,6 +16,7 @@
   - ADB 권한 관리 테이블과 ORDS Bearer Key 검증 테이블을 조회/수정하는 서비스
   - 보호 객체, 사용자, 역할, 행 규칙, 컬럼 표시 권한, Bearer Token 관리 화면
   - Bearer Token을 사용해 ORDS에 `SELECT *` 성격의 조회를 실행하고 VPD/Redaction 적용 결과를 확인하는 화면
+  - ORDS 검증 결과를 내부 도구 실행 결과로 감싸 OpenAI 호환 LLM에 전달하는 MCP-style reasoning 화면
   - Thymeleaf + HTMX + Alpine.js + Bootstrap 5 기반 서버 렌더링 프론트
   - Audit log 저장과 오류 유형 구분 표시
 - **제외 (out of scope)**:
@@ -43,7 +44,7 @@
   - ORDS Handler 또는 REST Enabled SQL 성격의 조회 API
   - Oracle JDBC, MyBatis, Spring Security, Thymeleaf, HTMX
 - 제약:
-  - `.env`와 DB 비밀번호, Bearer Token 원문은 git에 저장하지 않는다.
+  - `.env`와 DB 비밀번호, Bearer Token 원문, AI API Key는 git에 저장하지 않는다.
   - 객체명은 반드시 DB에 등록된 보호 객체 whitelist로 제한한다.
   - 백오피스 DB 계정은 권한 관리 테이블과 검증용 ORDS 호출에 필요한 최소 권한만 갖는다.
   - VPD는 행(row) 통제, Redaction은 컬럼 값 마스킹/NULL 처리로 설명하고 구현한다.
@@ -114,6 +115,14 @@ src/test/java/com/cloudhandson/vpdbackoffice/
   -> 응답/오류 분류
   -> Audit 저장
   -> Thymeleaf fragment로 결과 영역 갱신
+
+MCP-style reasoning
+  -> McpReasoningController
+  -> McpReasoningService
+  -> 내부 tool registry에서 보호 객체별 ORDS 조회 도구 선택
+  -> OrdsProbeService로 Bearer Token 기반 조회 실행
+  -> 조회 rows/request/response 증거를 OpenAI 호환 Chat Completions API에 전달
+  -> AI 응답과 도구 실행 증거를 화면에 함께 표시
 ```
 
 ### I/O와 순수 로직 경계
@@ -246,3 +255,19 @@ src/test/java/com/cloudhandson/vpdbackoffice/
 - 백오피스 관리자 로그인은 초기에는 local user로 둘지, 사내 인증과 연결할지 후속 결정이 필요하다.
 - 컬럼 정책을 Redaction DDL까지 자동 생성할지, 관리 테이블 저장 후 DBA 적용으로 둘지 결정이 필요하다.
 - 실제 구현 issue를 별도 Redmine 하위 이슈로 나눌지, #424를 Developer 단계로 계속 이동할지 결정이 필요하다.
+
+## 13. MCP-style Reasoning 추가 설계
+
+초기 구현은 외부 MCP client 라이브러리를 사용하지 않는다. 백오피스 내부에서 보호 객체를 도구 목록으로 만들고, 도구 실행은 기존 `OrdsProbeService`를 재사용한다. 이렇게 하면 실제 ORDS/VPD 결과를 그대로 증거로 삼으면서도, 추후 표준 MCP server endpoint로 분리하기 쉽다.
+
+### 설정
+
+| 환경변수 | 설명 |
+|---|---|
+| `BACKOFFICE_AI_ENABLED` | AI 호출 활성화 여부 |
+| `BACKOFFICE_AI_BASE_URL` | OpenAI 호환 API base URL |
+| `BACKOFFICE_AI_MODEL` | 호출할 모델명 |
+| `BACKOFFICE_AI_API_KEY` | 실제 호출에 사용할 API Key |
+| `BACKOFFICE_AI_TIMEOUT_SECONDS` | AI 호출 timeout |
+
+`vpdtest1`, `vpdtest2` 같은 키 별칭은 `.env`에 보관하고, 운영자가 선택한 값을 `BACKOFFICE_AI_API_KEY`에 연결한다.

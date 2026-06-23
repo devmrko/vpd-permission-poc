@@ -392,6 +392,31 @@ body {
   white-space: pre-wrap;
 }
 
+.ai-answer {
+  background: var(--rw-primary-soft);
+  border: 1px solid var(--rw-border);
+  border-radius: 8px;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+.ai-answer h3 {
+  border-bottom: 1px solid var(--rw-border);
+  font-size: .9rem;
+  font-weight: 700;
+  margin: 0;
+  padding: .6rem .8rem;
+}
+
+.ai-answer pre {
+  color: var(--rw-text);
+  font-family: inherit;
+  font-size: .95rem;
+  margin: 0;
+  padding: .85rem;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 640px) {
   .form-grid .span-2 {
     grid-column: span 1;

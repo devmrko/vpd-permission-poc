@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('MCP Reasoning')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container py-4">
+  <div class="page-title">
+    <h1>MCP Reasoning</h1>
+    <p>보호 객체 ORDS 호출을 내부 도구로 실행하고, 실행 증거를 OpenAI 호환 모델에 전달해 권한 결과를 해석합니다.</p>
+  </div>
+
+  <div class="alert alert-warning" th:if="${runtimeError}">
+    <strong th:text="${runtimeError.title()}">DB 연결 설정이 필요합니다.</strong>
+    <span th:text="${runtimeError.message()}">message</span>
+    <div th:if="${runtimeError.showSupportCommand()}">
+      <code>./run.sh backoffice-support</code>
+    </div>
+  </div>
+
+  <section class="content-band">
+    <div class="section-heading">
+      <h2>도구 실행</h2>
+      <a class="btn btn-sm btn-outline-secondary" href="/mcp/tools" target="_blank" rel="noreferrer">도구 JSON</a>
+    </div>
+    <form hx-post="/mcp-reasoning" hx-target="#mcp-result" hx-swap="innerHTML" class="form-grid">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <label>
+        Bearer Token 원문
+        <input class="form-control" name="bearerToken" type="password" autocomplete="off" required>
+      </label>
+      <label>
+        도구
+        <select class="form-select" name="objectId" required>
+          <option th:each="tool : ${tools}"
+                  th:value="${tool.objectId()}"
+                  th:text="${tool.name() + ' / ' + tool.displayName()}"></option>
+        </select>
+      </label>
+      <label>
+        Limit
+        <input class="form-control" name="limit" type="number" min="1" max="500" value="50">
+      </label>
+      <label class="span-2">
+        질문
+        <textarea class="form-control" name="question" rows="3"
+                  placeholder="예: 이 토큰으로 어떤 행이 보이고 어떤 컬럼이 NULL 처리됐는지 요약해줘."></textarea>
+      </label>
+      <button class="btn rw-btn-primary" type="submit">Reasoning 실행</button>
+    </form>
+  </section>
+
+  <section class="content-band">
+    <div class="section-heading">
+      <h2>등록된 도구</h2>
+      <span class="badge text-bg-secondary" th:text="${#lists.size(tools)}">0</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+        <tr>
+          <th>Name</th>
+          <th>Object</th>
+          <th>ORDS Path</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="tool : ${tools}">
+          <td><code th:text="${tool.name()}">tool</code></td>
+          <td th:text="${tool.displayName()}">ADMIN.TABLE</td>
+          <td><code th:text="${tool.ordsPath()}">path</code></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(tools)}">
+          <td colspan="3" class="text-muted">등록된 보호 객체 도구가 없습니다.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="mcp-result" class="content-band">
+    <div class="text-muted">Reasoning 결과가 여기에 표시됩니다.</div>
+  </section>
+</main>
+</body>
+</html>

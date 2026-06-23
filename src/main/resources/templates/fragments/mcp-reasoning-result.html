@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="result">
+  <div class="section-heading">
+    <h2>Reasoning 결과</h2>
+    <span class="badge"
+          th:classappend="${result.modelStatus() == 'SUCCESS'} ? ' text-bg-success' : ' text-bg-warning'"
+          th:text="${result.modelStatus()}">SUCCESS</span>
+  </div>
+
+  <div class="meta-row">
+    <span>Tool: <code th:text="${result.toolName()}">tool</code></span>
+    <span>ORDS Status: <strong th:text="${result.probeResult().status()}">SUCCESS</strong></span>
+    <span>Rows: <strong th:text="${result.probeResult().rowCount()}">0</strong></span>
+  </div>
+
+  <section class="ai-answer">
+    <h3>Answer</h3>
+    <pre th:text="${result.answer()}">answer</pre>
+  </section>
+
+  <div class="probe-exchange-grid">
+    <section class="probe-exchange">
+      <h3>Prompt</h3>
+      <pre th:text="${result.prompt()}">prompt</pre>
+    </section>
+    <section class="probe-exchange">
+      <h3>Tool Evidence JSON</h3>
+      <pre th:text="${result.evidenceJson()}">{}</pre>
+    </section>
+  </div>
+
+  <div class="probe-exchange-grid">
+    <section class="probe-exchange">
+      <h3>Request Headers</h3>
+      <pre th:text="${result.probeResult().requestHeaders()} ?: '{}'">{}</pre>
+    </section>
+    <section class="probe-exchange">
+      <h3>Response Body</h3>
+      <pre th:text="${result.probeResult().responseBody()} ?: ''"></pre>
+    </section>
+  </div>
+
+  <div class="table-responsive" th:if="${!#lists.isEmpty(result.probeResult().rows())}">
+    <table class="table table-sm table-striped align-middle">
+      <thead>
+      <tr>
+        <th th:each="column : ${result.probeResult().columns()}" th:text="${column}">column</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="row : ${result.probeResult().rows()}">
+        <td th:each="column : ${result.probeResult().columns()}" th:text="${row.get(column)}">value</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>
