@@ -33,6 +33,10 @@ public class ProtectedObjectService {
     return mapper.findDatabaseObjects();
   }
 
+  public List<String> findDatabaseColumns(String owner, String objectName) {
+    return mapper.findDatabaseColumns(owner, objectName);
+  }
+
   public ProtectedObject assertEnabled(long objectId) {
     ProtectedObject object = mapper.findById(objectId);
     if (object == null || !object.enabled()) {

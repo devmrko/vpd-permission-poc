@@ -28,13 +28,7 @@ function filterUserRoleDetail() {
   empty.hidden = shown !== 0;
 }
 
-function syncRuleColumnOptions() {
-  const objectSelect = document.querySelector('select[name="objectRef"]');
-  if (!objectSelect) {
-    return;
-  }
-  const selectedOption = objectSelect.options[objectSelect.selectedIndex];
-  const columns = (selectedOption?.dataset.columns || '').split(',').filter(Boolean);
+function renderRuleColumnOptions(columns) {
   document.querySelectorAll('.rule-column-select').forEach((select) => {
     const current = select.value;
     select.innerHTML = '<option value="">전체 행</option>' + columns
@@ -44,6 +38,26 @@ function syncRuleColumnOptions() {
       select.value = current;
     }
   });
+}
+
+async function syncRuleColumnOptions() {
+  const objectSelect = document.querySelector('select[name="objectRef"]');
+  if (!objectSelect) {
+    return;
+  }
+  const selectedOption = objectSelect.options[objectSelect.selectedIndex];
+  const fallbackColumns = (selectedOption?.dataset.columns || '').split(',').filter(Boolean);
+  renderRuleColumnOptions(fallbackColumns);
+  try {
+    const response = await fetch(`/permissions/object-columns?objectRef=${encodeURIComponent(objectSelect.value)}`);
+    if (!response.ok) {
+      return;
+    }
+    const columns = await response.json();
+    renderRuleColumnOptions(Array.isArray(columns) ? columns : fallbackColumns);
+  } catch (error) {
+    renderRuleColumnOptions(fallbackColumns);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

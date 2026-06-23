@@ -12,6 +12,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -26,6 +27,34 @@ public class PermissionController {
   ) {
     this.permissionService = permissionService;
     this.protectedObjectService = protectedObjectService;
+  }
+
+  @GetMapping("/permissions/object-columns")
+  @ResponseBody
+  public List<String> objectColumns(@RequestParam String objectRef) {
+    if (objectRef == null || objectRef.isBlank()) {
+      return List.of();
+    }
+    if (objectRef.startsWith("protected:")) {
+      long objectId;
+      try {
+        objectId = Long.parseLong(objectRef.substring("protected:".length()));
+      } catch (NumberFormatException exception) {
+        return List.of();
+      }
+      return protectedObjectService.findColumns(objectId).stream()
+          .map(column -> column.columnName())
+          .toList();
+    }
+    if (objectRef.startsWith("db:")) {
+      String value = objectRef.substring("db:".length());
+      int dot = value.indexOf('.');
+      if (dot < 1 || dot == value.length() - 1) {
+        return List.of();
+      }
+      return protectedObjectService.findDatabaseColumns(value.substring(0, dot), value.substring(dot + 1));
+    }
+    return List.of();
   }
 
   @GetMapping("/permissions")
