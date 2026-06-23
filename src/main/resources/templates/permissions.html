@@ -79,6 +79,7 @@
           <th>테이블/뷰</th>
           <th>Action</th>
           <th>행 규칙</th>
+          <th>적용 필터</th>
           <th>NULL 제외 컬럼</th>
           <th></th>
         </tr>
@@ -90,6 +91,7 @@
           <td th:text="${permission.objectName()}">CB_V_SEARCH_DOCUMENTS</td>
           <td th:text="${permission.action()}">SELECT</td>
           <td th:text="${permission.rules()} ?: '-'">ALL</td>
+          <td><pre class="table-pre" th:text="${permission.filterPreview()} ?: '-'">ALL ROWS</pre></td>
           <td th:text="${permission.visibleColumns()} ?: '-'">CONTENTS</td>
           <td>
             <form method="post" action="/permissions/delete" class="inline-form">
@@ -100,7 +102,7 @@
           </td>
         </tr>
         <tr th:if="${#lists.isEmpty(permissions)}">
-          <td colspan="7" class="text-muted">등록된 권한이 없습니다.</td>
+          <td colspan="8" class="text-muted">등록된 권한이 없습니다.</td>
         </tr>
         </tbody>
       </table>

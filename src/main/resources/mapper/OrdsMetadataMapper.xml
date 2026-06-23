@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cloudhandson.vpdbackoffice.mapper.OrdsMetadataMapper">
+  <select id="findHandlers" resultType="com.cloudhandson.vpdbackoffice.domain.ords.OrdsHandlerView">
+    SELECT s.pattern AS schema_name,
+           m.name AS module_name,
+           m.uri_prefix AS base_path,
+           t.uri_template AS template,
+           h.method,
+           h.source_type,
+           DBMS_LOB.SUBSTR(h.source, 12000, 1) AS source,
+           (
+             SELECT LISTAGG(p.name || ' -> :' || p.bind_variable_name || ' (' || p.source_type || ')', CHR(10))
+                    WITHIN GROUP (ORDER BY p.name)
+             FROM dba_ords_parameters p
+             WHERE p.handler_id = h.id
+           ) AS parameters,
+           CAST(NULL AS VARCHAR2(1)) AS package_source
+    FROM dba_ords_schemas s
+    JOIN dba_ords_modules m ON m.schema_id = s.id
+    JOIN dba_ords_templates t ON t.module_id = m.id
+    JOIN dba_ords_handlers h ON h.template_id = t.id
+    WHERE s.parsing_schema = 'CB_ORDS'
+    ORDER BY m.name, t.uri_template, h.method
+  </select>
+
+  <select id="findHandlerPackageSource" resultType="string">
+    SELECT LISTAGG(text, '') WITHIN GROUP (ORDER BY line)
+    FROM all_source
+    WHERE owner = 'CB_ORDS'
+      AND name = 'CB_ORDS_HANDLER_PKG'
+      AND type = 'PACKAGE BODY'
+  </select>
+</mapper>

@@ -347,6 +347,14 @@ body {
   word-break: break-word;
 }
 
+.table-pre {
+  background: transparent;
+  color: inherit;
+  font-size: .78rem;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 640px) {
   .form-grid .span-2 {
     grid-column: span 1;

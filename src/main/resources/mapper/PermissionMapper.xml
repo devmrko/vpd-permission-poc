@@ -46,7 +46,28 @@
              SELECT LISTAGG(pc.column_name, ', ') WITHIN GROUP (ORDER BY pc.column_name)
              FROM cb_permission_column pc
              WHERE pc.permission_id = p.perm_id
-           ) AS visible_columns
+           ) AS visible_columns,
+           (
+             SELECT LISTAGG(
+                      CASE
+                        WHEN pr2.rule_type = 'ALL' THEN 'ALL ROWS'
+                        WHEN pr2.rule_type = 'MY_DEPT' THEN pr2.rule_column || ' = SYS_CONTEXT(CB_AGENT_CTX.DEPT_CODE)'
+                        WHEN pr2.rule_type = 'SELF' THEN pr2.rule_column || ' = SYS_CONTEXT(CB_AGENT_CTX.EMP_NO)'
+                        ELSE pr2.rule_column || ' ' || pr2.rule_type || ' ' || pr2.rule_value
+                      END,
+                      CHR(10) || 'AND '
+                    ) WITHIN GROUP (ORDER BY pr2.rule_id)
+             FROM cb_permission_rule pr2
+             WHERE pr2.perm_id = p.perm_id
+           ) AS filter_preview,
+           (
+             SELECT CASE
+                      WHEN COUNT(*) = 0 THEN '모든 민감 컬럼 NULL 처리'
+                      ELSE 'NULL 제외: ' || LISTAGG(pc2.column_name, ', ') WITHIN GROUP (ORDER BY pc2.column_name)
+                    END
+             FROM cb_permission_column pc2
+             WHERE pc2.permission_id = p.perm_id
+           ) AS null_policy_preview
     FROM cb_permission p
     JOIN cb_app_role r ON r.role_id = p.role_id
     LEFT JOIN cb_protected_object o ON o.object_name = p.target_name

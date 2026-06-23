@@ -8,6 +8,8 @@ public record PermissionView(
     String objectName,
     String action,
     String rules,
-    String visibleColumns
+    String visibleColumns,
+    String filterPreview,
+    String nullPolicyPreview
 ) {
 }

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('ORDS 핸들러')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container py-4">
+  <div class="page-title">
+    <h1>ORDS 핸들러</h1>
+    <p>Bearer Token을 DB 컨텍스트로 변환하는 ORDS Handler와 PL/SQL 흐름을 확인합니다.</p>
+  </div>
+
+  <section class="content-band" th:each="handler : ${handlers}">
+    <div class="section-heading">
+      <h2 th:text="${handler.method() + ' ' + handler.fullPath()}">POST /ords/...</h2>
+      <span class="badge text-bg-secondary" th:text="${handler.sourceType()}">plsql</span>
+    </div>
+    <div class="meta-row">
+      <span>Schema: <strong th:text="${handler.schemaName()}">CB_ORDS</strong></span>
+      <span>Module: <strong th:text="${handler.moduleName()}">cb.agent.security</strong></span>
+      <span>Template: <strong th:text="${handler.template()}">vpd/documents</strong></span>
+    </div>
+    <div class="probe-exchange-grid">
+      <section class="probe-exchange">
+        <h3>Header Bindings</h3>
+        <pre th:text="${handler.parameters()} ?: 'No parameters'"></pre>
+      </section>
+      <section class="probe-exchange">
+        <h3>Handler Source</h3>
+        <pre th:text="${handler.source()}"></pre>
+      </section>
+      <section class="probe-exchange span-2">
+        <h3>Bearer Token -> User Context Package</h3>
+        <pre th:text="${handler.packageSource()}"></pre>
+      </section>
+    </div>
+  </section>
+</main>
+</body>
+</html>
