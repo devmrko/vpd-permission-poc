@@ -48,7 +48,7 @@
       </thead>
       <tbody>
       <tr th:each="row : ${result.rows()}">
-        <td th:each="column : ${result.columns()}" th:text="${row[column]}">value</td>
+        <td th:each="column : ${result.columns()}" th:text="${row.get(column)}">value</td>
       </tr>
       </tbody>
     </table>
