@@ -71,6 +71,7 @@ CREATE TABLE cb_permission (
 CREATE TABLE cb_permission_rule (
   rule_id     NUMBER PRIMARY KEY,
   perm_id     NUMBER NOT NULL REFERENCES cb_permission(perm_id),
+  rule_column VARCHAR2(128),
   rule_type   VARCHAR2(30) NOT NULL,
   rule_value  VARCHAR2(100)
 );
@@ -292,6 +293,24 @@ BEGIN
                OR (
                     r.rule_type = ''EMP_NO''
                     AND r.rule_value = owner_emp_no
+                  )
+               OR (
+                    r.rule_type = ''=''
+                    AND (
+                         (r.rule_column = ''DOC_ID'' AND TO_CHAR(doc_id) = r.rule_value)
+                         OR (r.rule_column = ''TITLE'' AND title = r.rule_value)
+                         OR (r.rule_column = ''OWNER_EMP_NO'' AND owner_emp_no = r.rule_value)
+                         OR (r.rule_column = ''DEPT_CODE'' AND dept_code = r.rule_value)
+                    )
+                  )
+               OR (
+                    r.rule_type = ''!=''
+                    AND (
+                         (r.rule_column = ''DOC_ID'' AND TO_CHAR(doc_id) != r.rule_value)
+                         OR (r.rule_column = ''TITLE'' AND title != r.rule_value)
+                         OR (r.rule_column = ''OWNER_EMP_NO'' AND owner_emp_no != r.rule_value)
+                         OR (r.rule_column = ''DEPT_CODE'' AND dept_code != r.rule_value)
+                    )
                   )
              )
      )';

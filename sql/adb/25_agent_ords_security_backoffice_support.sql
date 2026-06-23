@@ -42,6 +42,16 @@ END;
 /
 
 PROMPT === Creating protected object whitelist ===
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE cb_permission_rule ADD (rule_column VARCHAR2(128))';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -1430 THEN
+      RAISE;
+    END IF;
+END;
+/
+
 CREATE TABLE cb_protected_object (
   object_id    NUMBER PRIMARY KEY,
   owner        VARCHAR2(128) NOT NULL,

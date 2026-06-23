@@ -35,7 +35,10 @@ class PermissionServiceTest {
 
       @Override
       public List<ProtectedColumn> findColumns(long objectId) {
-        return List.of();
+        return List.of(
+            new ProtectedColumn(1L, 1L, "DEPT_CODE", "N", null),
+            new ProtectedColumn(2L, 1L, "OWNER_EMP_NO", "N", null)
+        );
       }
     };
     permissionService = new PermissionService(permissionMapper, protectedObjectService, auditService);
@@ -47,7 +50,7 @@ class PermissionServiceTest {
         10L,
         1L,
         "SELECT",
-        List.of(new RuleCommand("ALL", null), new RuleCommand("REGION", "APAC")),
+        List.of(new RuleCommand(null, "ALL", null), new RuleCommand("DEPT_CODE", "=", "APAC")),
         List.of()
     );
 
@@ -62,7 +65,7 @@ class PermissionServiceTest {
         10L,
         1L,
         "SELECT",
-        List.of(new RuleCommand("CUSTOM_PREDICATE", "1=1")),
+        List.of(new RuleCommand("DEPT_CODE", "CUSTOM_PREDICATE", "1=1")),
         List.of()
     );
 

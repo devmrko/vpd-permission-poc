@@ -35,7 +35,12 @@
            o.object_id,
            p.target_name AS object_name,
            p.action_name AS action,
-           LISTAGG(pr.rule_type || NVL2(pr.rule_value, ':' || pr.rule_value, ''), ', ')
+           LISTAGG(
+             NVL2(pr.rule_column, pr.rule_column || ' ', '') ||
+             pr.rule_type ||
+             NVL2(pr.rule_value, ' ' || pr.rule_value, ''),
+             ', '
+           )
              WITHIN GROUP (ORDER BY pr.rule_id) AS rules,
            (
              SELECT LISTAGG(pc.column_name, ', ') WITHIN GROUP (ORDER BY pc.column_name)
@@ -96,8 +101,14 @@
   </delete>
 
   <insert id="insertRule" parameterType="com.cloudhandson.vpdbackoffice.domain.permission.PermissionRule">
-    INSERT INTO cb_permission_rule (rule_id, perm_id, rule_type, rule_value)
-    VALUES (#{ruleId}, #{permissionId}, #{ruleType}, #{ruleValue})
+    INSERT INTO cb_permission_rule (rule_id, perm_id, rule_column, rule_type, rule_value)
+    VALUES (
+      #{ruleId,jdbcType=NUMERIC},
+      #{permissionId,jdbcType=NUMERIC},
+      #{ruleColumn,jdbcType=VARCHAR},
+      #{ruleType,jdbcType=VARCHAR},
+      #{ruleValue,jdbcType=VARCHAR}
+    )
   </insert>
 
   <delete id="deleteVisibleColumns">

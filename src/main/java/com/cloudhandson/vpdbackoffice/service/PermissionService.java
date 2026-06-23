@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PermissionService {
 
-  private static final Set<String> RULE_TYPES = Set.of("ALL", "MY_DEPT", "SELF", "REGION");
+  private static final Set<String> RULE_TYPES = Set.of("ALL", "=", "!=", "MY_DEPT", "SELF");
 
   private final PermissionMapper permissionMapper;
   private final ProtectedObjectService protectedObjectService;
@@ -72,7 +72,7 @@ public class PermissionService {
       throw new AppException("역할을 찾을 수 없습니다.");
     }
     protectedObjectService.assertEnabled(command.objectId());
-    validateRules(command.rules());
+    validateRules(command.objectId(), command.rules());
     validateVisibleColumns(command.objectId(), command.visibleColumns());
 
     Long existingId = permissionMapper.findPermissionId(command.roleId(), command.objectId());
@@ -88,6 +88,7 @@ public class PermissionService {
       permissionMapper.insertRule(new PermissionRule(
           permissionMapper.nextRuleId(),
           permissionId,
+          normalizeNullable(rule.ruleColumn()),
           normalize(rule.ruleType()),
           clean(rule.ruleValue())
       ));
@@ -119,28 +120,44 @@ public class PermissionService {
         "permissionId=" + permissionId));
   }
 
-  private void validateRules(List<RuleCommand> rules) {
+  private void validateRules(long objectId, List<RuleCommand> rules) {
     if (rules == null || rules.isEmpty()) {
       throw new AppException("행 규칙은 하나 이상 필요합니다.");
     }
     Set<String> seen = new HashSet<>();
     boolean hasAll = false;
+    Set<String> allowedColumns = allowedColumns(objectId);
     for (RuleCommand rule : rules) {
       String type = normalize(rule.ruleType());
       if (!RULE_TYPES.contains(type)) {
         throw new AppException("허용되지 않은 행 규칙입니다: " + type);
       }
-      if (!seen.add(type + ":" + clean(rule.ruleValue()))) {
+      String column = normalizeNullable(rule.ruleColumn());
+      if (!"ALL".equals(type) && !allowedColumns.contains(column)) {
+        throw new AppException("행 규칙 컬럼은 보호 객체 컬럼이어야 합니다: " + column);
+      }
+      if (!seen.add(column + ":" + type + ":" + clean(rule.ruleValue()))) {
         throw new AppException("중복된 행 규칙이 있습니다.");
       }
       hasAll = hasAll || "ALL".equals(type);
-      if (!"ALL".equals(type) && clean(rule.ruleValue()).isBlank()) {
+      if (!"ALL".equals(type) && column.isBlank()) {
+        throw new AppException(type + " 규칙에는 컬럼이 필요합니다.");
+      }
+      if (("=".equals(type) || "!=".equals(type)) && clean(rule.ruleValue()).isBlank()) {
         throw new AppException(type + " 규칙에는 값이 필요합니다.");
       }
     }
     if (hasAll && rules.size() > 1) {
       throw new AppException("ALL 규칙은 다른 규칙과 함께 저장할 수 없습니다.");
     }
+  }
+
+  private Set<String> allowedColumns(long objectId) {
+    Set<String> allowed = new HashSet<>();
+    for (ProtectedColumn column : protectedObjectService.findColumns(objectId)) {
+      allowed.add(column.columnName().toUpperCase(Locale.ROOT));
+    }
+    return allowed;
   }
 
   private void validateVisibleColumns(long objectId, List<String> visibleColumns) {
@@ -160,6 +177,11 @@ public class PermissionService {
 
   private String normalize(String value) {
     return clean(value).toUpperCase(Locale.ROOT);
+  }
+
+  private String normalizeNullable(String value) {
+    String cleaned = clean(value);
+    return cleaned.isBlank() ? null : cleaned.toUpperCase(Locale.ROOT);
   }
 
   private String clean(String value) {

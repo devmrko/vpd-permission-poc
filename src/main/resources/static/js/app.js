@@ -28,10 +28,49 @@ function filterUserRoleDetail() {
   empty.hidden = shown !== 0;
 }
 
+function syncRuleColumnOptions() {
+  const objectSelect = document.querySelector('select[name="objectRef"]');
+  if (!objectSelect) {
+    return;
+  }
+  const selectedOption = objectSelect.options[objectSelect.selectedIndex];
+  const columns = (selectedOption?.dataset.columns || '').split(',').filter(Boolean);
+  document.querySelectorAll('.rule-column-select').forEach((select) => {
+    const current = select.value;
+    select.innerHTML = '<option value="">전체 행</option>' + columns
+        .map((column) => `<option value="${column}">${column}</option>`)
+        .join('');
+    if (columns.includes(current)) {
+      select.value = current;
+    }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const master = document.getElementById('userRoleMaster');
   if (master) {
     master.addEventListener('change', filterUserRoleDetail);
     filterUserRoleDetail();
   }
+  const objectSelect = document.querySelector('select[name="objectRef"]');
+  if (objectSelect) {
+    objectSelect.addEventListener('change', syncRuleColumnOptions);
+    syncRuleColumnOptions();
+  }
+  document.querySelectorAll('[data-rule-add]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const row = button.closest('.rule-row');
+      const list = document.getElementById('rowRuleList');
+      if (!row || !list) {
+        return;
+      }
+      const clone = row.cloneNode(true);
+      clone.querySelectorAll('input').forEach((input) => input.value = '');
+      const cloneButton = clone.querySelector('[data-rule-add]');
+      cloneButton.textContent = '삭제';
+      cloneButton.addEventListener('click', () => clone.remove());
+      list.appendChild(clone);
+      syncRuleColumnOptions();
+    });
+  });
 });

@@ -27,6 +27,7 @@
           <optgroup label="등록된 보호 객체">
             <option th:each="object : ${objects}"
                     th:value="${'protected:' + object.objectId()}"
+                    th:attr="data-columns=${#strings.listJoin(columnsByObject[object.objectId()], ',')}"
                     th:text="${object.displayName()}"></option>
           </optgroup>
           <optgroup label="DB 스키마 객체">
@@ -36,23 +37,33 @@
           </optgroup>
         </select>
       </label>
-      <label>
-        행 규칙
-        <select class="form-select" name="ruleType">
-          <option value="ALL">ALL</option>
-          <option value="REGION">REGION</option>
-          <option value="MY_DEPT">MY_DEPT</option>
-          <option value="SELF">SELF</option>
-        </select>
-      </label>
-      <label>
-        규칙 값
-        <input class="form-control" name="ruleValue" placeholder="APAC 또는 HR">
-      </label>
-      <label>
-        NULL 제외 컬럼
+      <div class="span-2">
+        <div class="field-block-title">행 규칙</div>
+        <div id="rowRuleList" class="rule-list">
+          <div class="rule-row">
+            <select class="form-select rule-column-select" name="ruleColumn">
+              <option value="">전체 행</option>
+              <option value="DEPT_CODE">DEPT_CODE</option>
+              <option value="OWNER_EMP_NO">OWNER_EMP_NO</option>
+              <option value="DOC_ID">DOC_ID</option>
+              <option value="TITLE">TITLE</option>
+            </select>
+            <select class="form-select" name="ruleType">
+              <option value="ALL">ALL</option>
+              <option value="=">=</option>
+              <option value="!=">!=</option>
+              <option value="MY_DEPT">현재 사용자 부서</option>
+              <option value="SELF">현재 사용자 사번</option>
+            </select>
+            <input class="form-control" name="ruleValue" placeholder="비교 값">
+            <button class="btn btn-outline-secondary" type="button" data-rule-add>추가</button>
+          </div>
+        </div>
+      </div>
+      <div class="span-2">
+        <div class="field-block-title">컬럼 NULL 처리 예외</div>
         <input class="form-control" name="visibleColumns" placeholder="CONTENTS">
-      </label>
+      </div>
       <button class="btn btn-primary" type="submit">저장</button>
     </form>
   </section>

@@ -6,6 +6,7 @@ import com.cloudhandson.vpdbackoffice.service.PermissionService;
 import com.cloudhandson.vpdbackoffice.service.ProtectedObjectService;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,8 +30,16 @@ public class PermissionController {
 
   @GetMapping("/permissions")
   public String permissions(Model model) {
+    var objects = protectedObjectService.findEnabled();
     model.addAttribute("roles", permissionService.findRoles());
-    model.addAttribute("objects", protectedObjectService.findEnabled());
+    model.addAttribute("objects", objects);
+    model.addAttribute("columnsByObject", objects.stream()
+        .collect(Collectors.toMap(
+            object -> object.objectId(),
+            object -> protectedObjectService.findColumns(object.objectId()).stream()
+                .map(column -> column.columnName())
+                .toList()
+        )));
     model.addAttribute("dbObjects", protectedObjectService.findDatabaseObjects());
     model.addAttribute("permissions", permissionService.findPermissionViews());
     return "permissions";
@@ -40,8 +49,9 @@ public class PermissionController {
   public String save(
       @RequestParam long roleId,
       @RequestParam String objectRef,
-      @RequestParam String ruleType,
-      @RequestParam(required = false) String ruleValue,
+      @RequestParam(required = false) List<String> ruleColumn,
+      @RequestParam List<String> ruleType,
+      @RequestParam(required = false) List<String> ruleValue,
       @RequestParam(required = false) String visibleColumns,
       RedirectAttributes redirectAttributes
   ) {
@@ -50,11 +60,32 @@ public class PermissionController {
         roleId,
         objectId,
         "SELECT",
-        List.of(new RuleCommand(ruleType, ruleValue)),
+        buildRules(ruleColumn, ruleType, ruleValue),
         splitColumns(visibleColumns)
     ));
     redirectAttributes.addFlashAttribute("message", "권한을 저장했습니다.");
     return "redirect:/permissions";
+  }
+
+  private List<RuleCommand> buildRules(
+      List<String> ruleColumns,
+      List<String> ruleTypes,
+      List<String> ruleValues
+  ) {
+    if (ruleTypes == null || ruleTypes.isEmpty()) {
+      return List.of();
+    }
+    return java.util.stream.IntStream.range(0, ruleTypes.size())
+        .mapToObj(index -> new RuleCommand(
+            valueAt(ruleColumns, index),
+            valueAt(ruleTypes, index),
+            valueAt(ruleValues, index)
+        ))
+        .toList();
+  }
+
+  private String valueAt(List<String> values, int index) {
+    return values == null || index >= values.size() ? null : values.get(index);
   }
 
   private long resolveObjectId(String objectRef) {

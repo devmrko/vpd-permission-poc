@@ -168,6 +168,24 @@ body {
   padding-bottom: 1rem;
 }
 
+.field-block-title {
+  color: var(--rw-muted);
+  font-size: .875rem;
+  font-weight: 700;
+  margin-bottom: .35rem;
+}
+
+.rule-list {
+  display: grid;
+  gap: .5rem;
+}
+
+.rule-row {
+  display: grid;
+  gap: .5rem;
+  grid-template-columns: 1fr 1fr 1fr auto;
+}
+
 .rw-btn,
 .btn {
   border-radius: 999px;
