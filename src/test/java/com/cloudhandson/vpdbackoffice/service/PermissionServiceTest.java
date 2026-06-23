@@ -89,6 +89,20 @@ class PermissionServiceTest {
     }
 
     @Override
+    public long nextRoleId() {
+      return 40L;
+    }
+
+    @Override
+    public void insertRole(long roleId, String roleName, String description) {
+    }
+
+    @Override
+    public int deleteRole(long roleId) {
+      return 1;
+    }
+
+    @Override
     public List<PermissionView> findPermissionViews() {
       return List.of();
     }

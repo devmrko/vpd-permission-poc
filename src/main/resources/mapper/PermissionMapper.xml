@@ -14,6 +14,20 @@
     WHERE role_id = #{roleId}
   </select>
 
+  <select id="nextRoleId" resultType="long">
+    SELECT NVL(MAX(role_id), 0) + 1 FROM cb_app_role
+  </select>
+
+  <insert id="insertRole">
+    INSERT INTO cb_app_role (role_id, role_name)
+    VALUES (#{roleId,jdbcType=NUMERIC}, UPPER(#{roleName,jdbcType=VARCHAR}))
+  </insert>
+
+  <delete id="deleteRole">
+    DELETE FROM cb_app_role
+    WHERE role_id = #{roleId,jdbcType=NUMERIC}
+  </delete>
+
   <select id="findPermissionViews" resultType="com.cloudhandson.vpdbackoffice.domain.permission.PermissionView">
     SELECT p.perm_id AS permission_id,
            r.role_id,

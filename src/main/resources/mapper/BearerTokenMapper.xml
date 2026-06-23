@@ -18,6 +18,14 @@
     WHERE k.key_id = #{keyId}
   </select>
 
+  <select id="findByHash" resultType="com.cloudhandson.vpdbackoffice.domain.token.BearerTokenRecord">
+    SELECT k.key_id, k.user_id, u.user_name AS username, k.key_prefix, k.key_hash,
+           k.expires_at, k.revoked_at, k.description
+    FROM cb_agent_bearer_key k
+    JOIN cb_app_user u ON u.user_id = k.user_id
+    WHERE k.key_hash = #{keyHash,jdbcType=VARCHAR}
+  </select>
+
   <select id="nextKeyId" resultType="long">
     SELECT cb_agent_bearer_key_seq.NEXTVAL FROM dual
   </select>

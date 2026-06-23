@@ -1,6 +1,7 @@
 package com.cloudhandson.vpdbackoffice.service;
 
 import com.cloudhandson.vpdbackoffice.domain.audit.AuditEvent;
+import com.cloudhandson.vpdbackoffice.domain.protectedobject.DatabaseObjectOption;
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedColumn;
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedObject;
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedObjectCreateCommand;
@@ -28,6 +29,10 @@ public class ProtectedObjectService {
     return mapper.findEnabled();
   }
 
+  public List<DatabaseObjectOption> findDatabaseObjects() {
+    return mapper.findDatabaseObjects();
+  }
+
   public ProtectedObject assertEnabled(long objectId) {
     ProtectedObject object = mapper.findById(objectId);
     if (object == null || !object.enabled()) {
@@ -50,6 +55,37 @@ public class ProtectedObjectService {
     }
     auditService.record(new AuditEvent("PROTECTED_OBJECT_CREATED", null, objectId, "SUCCESS", null, null,
         command.objectName()));
+  }
+
+  @Transactional
+  public ProtectedObject ensureProtectedObject(String owner, String objectName) {
+    ProtectedObject existing = mapper.findByOwnerAndName(owner, objectName);
+    if (existing != null) {
+      return existing;
+    }
+    List<String> columns = mapper.findDatabaseColumns(owner, objectName);
+    if (columns.isEmpty()) {
+      throw new AppException("DB 객체 컬럼을 찾을 수 없습니다: " + owner + "." + objectName);
+    }
+    long objectId = mapper.nextObjectId();
+    mapper.insertObject(objectId, new ProtectedObjectCreateCommand(
+        owner,
+        objectName,
+        defaultOrdsPath(owner, objectName),
+        String.join(",", columns),
+        ""
+    ));
+    for (String column : columns) {
+      mapper.insertColumn(mapper.nextColumnId(), objectId, column, "N");
+    }
+    auditService.record(new AuditEvent("PROTECTED_OBJECT_CREATED", null, objectId, "SUCCESS", null, null,
+        owner + "." + objectName));
+    return mapper.findById(objectId);
+  }
+
+  private String defaultOrdsPath(String owner, String objectName) {
+    String schemaPath = owner.equalsIgnoreCase("CB_ORDS") ? "cb-ords" : owner.toLowerCase(Locale.ROOT);
+    return schemaPath + "/" + objectName.toLowerCase(Locale.ROOT);
   }
 
   @Transactional

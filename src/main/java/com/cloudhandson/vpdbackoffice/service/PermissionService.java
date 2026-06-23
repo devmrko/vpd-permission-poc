@@ -44,6 +44,25 @@ public class PermissionService {
   }
 
   @Transactional
+  public void createRole(String roleName, String description) {
+    if (roleName == null || roleName.isBlank()) {
+      throw new AppException("역할명은 필수입니다.");
+    }
+    long roleId = permissionMapper.nextRoleId();
+    permissionMapper.insertRole(roleId, roleName.trim(), description);
+    auditService.record(new AuditEvent("ROLE_CREATED", null, null, "SUCCESS", null, null, roleName));
+  }
+
+  @Transactional
+  public void deleteRole(long roleId) {
+    int deleted = permissionMapper.deleteRole(roleId);
+    if (deleted == 0) {
+      throw new AppException("삭제할 역할을 찾을 수 없습니다.");
+    }
+    auditService.record(new AuditEvent("ROLE_DELETED", null, null, "SUCCESS", null, null, "roleId=" + roleId));
+  }
+
+  @Transactional
   public PermissionSet savePermissionSet(PermissionSetCommand command) {
     if (!"SELECT".equalsIgnoreCase(command.action())) {
       throw new AppException("초기 구현에서는 SELECT 권한만 저장할 수 있습니다.");

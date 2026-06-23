@@ -15,6 +15,31 @@
     WHERE object_id = #{objectId}
   </select>
 
+  <select id="findByOwnerAndName" resultType="com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedObject">
+    SELECT object_id, owner, object_name, ords_path, enabled_yn
+    FROM cb_protected_object
+    WHERE owner = UPPER(#{owner,jdbcType=VARCHAR})
+      AND object_name = UPPER(#{objectName,jdbcType=VARCHAR})
+  </select>
+
+  <select id="findDatabaseObjects" resultType="com.cloudhandson.vpdbackoffice.domain.protectedobject.DatabaseObjectOption">
+    SELECT owner, object_name, object_type
+    FROM all_objects
+    WHERE object_type IN ('TABLE', 'VIEW')
+      AND owner NOT IN ('SYS', 'SYSTEM', 'ORDS_METADATA', 'ORDS_PUBLIC_USER')
+      AND object_name NOT LIKE 'BIN$%'
+    ORDER BY owner, object_type, object_name
+    FETCH FIRST 500 ROWS ONLY
+  </select>
+
+  <select id="findDatabaseColumns" resultType="string">
+    SELECT column_name
+    FROM all_tab_columns
+    WHERE owner = UPPER(#{owner,jdbcType=VARCHAR})
+      AND table_name = UPPER(#{objectName,jdbcType=VARCHAR})
+    ORDER BY column_id
+  </select>
+
   <select id="findColumns" resultType="com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedColumn">
     SELECT column_id, object_id, column_name, sensitive_yn, visible_role_id
     FROM cb_protected_column

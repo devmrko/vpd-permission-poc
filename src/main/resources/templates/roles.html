@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('역할 관리')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container py-4">
+  <div class="page-title">
+    <h1>역할 관리</h1>
+    <p>사용자에게 부여할 역할을 관리합니다.</p>
+  </div>
+
+  <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
+
+  <section class="content-band">
+    <h2>역할 추가</h2>
+    <form method="post" action="/roles" class="form-grid">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <label>
+        역할명
+        <input class="form-control" name="roleName" placeholder="HR_DEPT_ROLE" required>
+      </label>
+      <label>
+        설명
+        <input class="form-control" name="description" maxlength="200">
+      </label>
+      <button class="btn rw-btn-primary" type="submit">추가</button>
+    </form>
+  </section>
+
+  <section class="content-band">
+    <h2>역할 목록</h2>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+        <tr>
+          <th>ID</th>
+          <th>역할명</th>
+          <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="role : ${roles}">
+          <td th:text="${role.roleId()}">10</td>
+          <td th:text="${role.roleName()}">HR_DEPT_ROLE</td>
+          <td>
+            <form method="post" action="/roles/delete" class="inline-form">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+              <input type="hidden" name="roleId" th:value="${role.roleId()}">
+              <button class="btn btn-sm btn-outline-danger" type="submit">삭제</button>
+            </form>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(roles)}">
+          <td colspan="3" class="text-muted">등록된 역할이 없습니다.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

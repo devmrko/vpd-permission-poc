@@ -23,8 +23,17 @@
       </label>
       <label>
         보호 객체
-        <select class="form-select" name="objectId" required>
-          <option th:each="object : ${objects}" th:value="${object.objectId()}" th:text="${object.displayName()}"></option>
+        <select class="form-select" name="objectRef" required>
+          <optgroup label="등록된 보호 객체">
+            <option th:each="object : ${objects}"
+                    th:value="${'protected:' + object.objectId()}"
+                    th:text="${object.displayName()}"></option>
+          </optgroup>
+          <optgroup label="DB 스키마 객체">
+            <option th:each="dbObject : ${dbObjects}"
+                    th:value="${'db:' + dbObject.value()}"
+                    th:text="${dbObject.label()}"></option>
+          </optgroup>
         </select>
       </label>
       <label>
@@ -41,7 +50,7 @@
         <input class="form-control" name="ruleValue" placeholder="APAC 또는 HR">
       </label>
       <label>
-        표시 컬럼
+        NULL 제외 컬럼
         <input class="form-control" name="visibleColumns" placeholder="CONTENTS">
       </label>
       <button class="btn btn-primary" type="submit">저장</button>
@@ -59,7 +68,7 @@
           <th>테이블/뷰</th>
           <th>Action</th>
           <th>행 규칙</th>
-          <th>표시 컬럼</th>
+          <th>NULL 제외 컬럼</th>
           <th></th>
         </tr>
         </thead>

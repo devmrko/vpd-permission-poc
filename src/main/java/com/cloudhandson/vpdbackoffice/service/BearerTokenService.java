@@ -53,6 +53,13 @@ public class BearerTokenService {
     return tokenMapper.findById(keyId);
   }
 
+  public BearerTokenRecord findByPlainToken(String plainToken) {
+    if (plainToken == null || plainToken.isBlank()) {
+      return null;
+    }
+    return tokenMapper.findByHash(tokenHasher.sha256(plainToken));
+  }
+
   public boolean matches(BearerTokenRecord record, String plainToken) {
     if (record == null || plainToken == null || plainToken.isBlank()) {
       return false;

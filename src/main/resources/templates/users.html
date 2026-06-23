@@ -69,30 +69,30 @@
     </div>
   </section>
 
-  <section class="content-band">
-    <h2>역할 부여</h2>
-    <form method="post" action="/users/roles" class="form-grid">
-      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-      <label>
-        사용자
-        <select class="form-select" name="userId" required>
-          <option th:each="user : ${users}" th:value="${user.userId()}" th:text="${user.username()}"></option>
-        </select>
-      </label>
-      <label>
-        역할
-        <select class="form-select" name="roleId" required>
-          <option th:each="role : ${roles}" th:value="${role.roleId()}" th:text="${role.roleName()}"></option>
-        </select>
-      </label>
-      <button class="btn btn-primary" type="submit">부여</button>
-    </form>
-  </section>
+  <section class="content-band user-role-master">
+    <h2>사용자 역할 부여</h2>
+    <div class="master-detail">
+      <form method="post" action="/users/roles" class="form-grid">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <label>
+          사용자
+          <select class="form-select" id="userRoleMaster" name="userId" required>
+            <option th:each="user : ${users}" th:value="${user.userId()}" th:text="${user.username()}"></option>
+          </select>
+        </label>
+        <label>
+          부여할 역할
+          <select class="form-select" name="roleId" required>
+            <option th:each="role : ${roles}" th:value="${role.roleId()}" th:text="${role.roleName()}"></option>
+          </select>
+        </label>
+        <button class="btn rw-btn-primary" type="submit">부여</button>
+      </form>
+    </div>
 
-  <section class="content-band">
-    <h2>사용자 역할 목록</h2>
+    <h2 class="mt-4">선택 사용자 역할</h2>
     <div class="table-responsive">
-      <table class="table table-sm align-middle">
+      <table class="table table-sm align-middle" id="userRoleDetail">
         <thead>
         <tr>
           <th>사용자</th>
@@ -101,7 +101,7 @@
         </tr>
         </thead>
         <tbody>
-        <tr th:each="mapping : ${userRoles}">
+        <tr th:each="mapping : ${userRoles}" th:attr="data-user-id=${mapping.userId()}">
           <td th:text="${mapping.username()}">agent_hr</td>
           <td th:text="${mapping.roleName()}">HR_DEPT_ROLE</td>
           <td>
@@ -113,7 +113,7 @@
             </form>
           </td>
         </tr>
-        <tr th:if="${#lists.isEmpty(userRoles)}">
+        <tr class="empty-user-role-row" th:if="${#lists.isEmpty(userRoles)}">
           <td colspan="3" class="text-muted">부여된 역할이 없습니다.</td>
         </tr>
         </tbody>

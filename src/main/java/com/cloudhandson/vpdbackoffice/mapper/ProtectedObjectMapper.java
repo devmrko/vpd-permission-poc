@@ -1,5 +1,6 @@
 package com.cloudhandson.vpdbackoffice.mapper;
 
+import com.cloudhandson.vpdbackoffice.domain.protectedobject.DatabaseObjectOption;
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedColumn;
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedObjectCreateCommand;
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedObject;
@@ -14,7 +15,13 @@ public interface ProtectedObjectMapper {
 
   ProtectedObject findById(@Param("objectId") long objectId);
 
+  ProtectedObject findByOwnerAndName(@Param("owner") String owner, @Param("objectName") String objectName);
+
   List<ProtectedColumn> findColumns(@Param("objectId") long objectId);
+
+  List<DatabaseObjectOption> findDatabaseObjects();
+
+  List<String> findDatabaseColumns(@Param("owner") String owner, @Param("objectName") String objectName);
 
   long nextObjectId();
 

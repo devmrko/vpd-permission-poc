@@ -15,6 +15,14 @@ public interface PermissionMapper {
 
   AppRole findRole(@Param("roleId") long roleId);
 
+  long nextRoleId();
+
+  void insertRole(@Param("roleId") long roleId,
+                  @Param("roleName") String roleName,
+                  @Param("description") String description);
+
+  int deleteRole(@Param("roleId") long roleId);
+
   List<PermissionView> findPermissionViews();
 
   PermissionSet findPermissionSet(@Param("roleId") long roleId, @Param("objectId") long objectId);

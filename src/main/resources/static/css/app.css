@@ -163,6 +163,11 @@ body {
   margin-bottom: .75rem;
 }
 
+.master-detail {
+  border-bottom: 1px solid var(--rw-border);
+  padding-bottom: 1rem;
+}
+
 .rw-btn,
 .btn {
   border-radius: 999px;

@@ -31,6 +31,7 @@ public class PermissionController {
   public String permissions(Model model) {
     model.addAttribute("roles", permissionService.findRoles());
     model.addAttribute("objects", protectedObjectService.findEnabled());
+    model.addAttribute("dbObjects", protectedObjectService.findDatabaseObjects());
     model.addAttribute("permissions", permissionService.findPermissionViews());
     return "permissions";
   }
@@ -38,12 +39,13 @@ public class PermissionController {
   @PostMapping("/permissions")
   public String save(
       @RequestParam long roleId,
-      @RequestParam long objectId,
+      @RequestParam String objectRef,
       @RequestParam String ruleType,
       @RequestParam(required = false) String ruleValue,
       @RequestParam(required = false) String visibleColumns,
       RedirectAttributes redirectAttributes
   ) {
+    long objectId = resolveObjectId(objectRef);
     permissionService.savePermissionSet(new PermissionSetCommand(
         roleId,
         objectId,
@@ -53,6 +55,24 @@ public class PermissionController {
     ));
     redirectAttributes.addFlashAttribute("message", "권한을 저장했습니다.");
     return "redirect:/permissions";
+  }
+
+  private long resolveObjectId(String objectRef) {
+    if (objectRef == null || objectRef.isBlank()) {
+      throw new IllegalArgumentException("보호 객체를 선택하세요.");
+    }
+    if (objectRef.startsWith("protected:")) {
+      return Long.parseLong(objectRef.substring("protected:".length()));
+    }
+    if (objectRef.startsWith("db:")) {
+      String value = objectRef.substring("db:".length());
+      int dot = value.indexOf('.');
+      if (dot < 1 || dot == value.length() - 1) {
+        throw new IllegalArgumentException("DB 객체 형식이 올바르지 않습니다.");
+      }
+      return protectedObjectService.ensureProtectedObject(value.substring(0, dot), value.substring(dot + 1)).objectId();
+    }
+    throw new IllegalArgumentException("보호 객체 형식이 올바르지 않습니다.");
   }
 
   private List<String> splitColumns(String visibleColumns) {

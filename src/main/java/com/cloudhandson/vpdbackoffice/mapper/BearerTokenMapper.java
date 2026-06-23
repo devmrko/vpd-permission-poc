@@ -13,6 +13,8 @@ public interface BearerTokenMapper {
 
   BearerTokenRecord findById(@Param("keyId") long keyId);
 
+  BearerTokenRecord findByHash(@Param("keyHash") String keyHash);
+
   long nextKeyId();
 
   void insertToken(BearerTokenRecord token);

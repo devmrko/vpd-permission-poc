@@ -75,7 +75,7 @@ public class OrdsProbeService {
       ));
     }
 
-    BearerTokenRecord token = tokenService.findById(command.keyId());
+    BearerTokenRecord token = tokenService.findByPlainToken(command.bearerToken());
     if (token == null) {
       return auditAndReturn(command, ProbeResult.blocked(
           ProbeStatus.TOKEN_NOT_FOUND, "TOKEN_NOT_FOUND", "토큰을 찾을 수 없습니다."));
@@ -84,11 +84,6 @@ public class OrdsProbeService {
       return auditAndReturn(command, ProbeResult.blocked(
           ProbeStatus.TOKEN_INACTIVE, "TOKEN_INACTIVE", "만료되었거나 회수된 토큰입니다."));
     }
-    if (!tokenService.matches(token, command.bearerToken())) {
-      return auditAndReturn(command, ProbeResult.blocked(
-          ProbeStatus.INVALID_TOKEN, "INVALID_TOKEN", "입력한 Bearer Token이 선택한 key와 일치하지 않습니다."));
-    }
-
     ProtectedObject object;
     try {
       object = protectedObjectService.assertEnabled(command.objectId());
@@ -227,7 +222,7 @@ public class OrdsProbeService {
   private ProbeResult auditAndReturn(ProbeCommand command, ProbeResult result) {
     auditService.record(new AuditEvent(
         "ORDS_PROBE",
-        command.keyId(),
+        tokenKeyId(command),
         command.objectId(),
         result.status().name(),
         result.rowCount(),
@@ -235,6 +230,11 @@ public class OrdsProbeService {
         result.errorMessage()
     ));
     return result;
+  }
+
+  private Long tokenKeyId(ProbeCommand command) {
+    BearerTokenRecord token = tokenService.findByPlainToken(command.bearerToken());
+    return token == null ? null : token.keyId();
   }
 
   private ProbeStatus classifyResourceAccess(ResourceAccessException exception) {
