@@ -166,19 +166,10 @@ public class OrdsMetadataService {
     String selectColumns = String.join(", ", columns);
     return """
         DECLARE
-          v_auth VARCHAR2(4000);
-          v_bearer_key VARCHAR2(4000);
           v_limit NUMBER := LEAST(GREATEST(NVL(:row_limit, 50), 1), 500);
           v_rows_json CLOB;
         BEGIN
-          v_auth := TRIM(:auth_header);
-          IF v_auth IS NULL OR LOWER(SUBSTR(v_auth, 1, 7)) != 'bearer ' THEN
-            RAISE_APPLICATION_ERROR(-20101, 'Authorization header must be Bearer <key>');
-          END IF;
-          v_bearer_key := TRIM(SUBSTR(v_auth, 8));
-
-          admin.cb_agent_ctx_pkg.clear_user;
-          admin.cb_agent_ctx_pkg.set_user_by_bearer(v_bearer_key);
+          cb_ords_handler_pkg.set_vpd_context(:auth_header);
 
           SELECT JSON_ARRAYAGG(
                    JSON_OBJECT(
@@ -201,10 +192,10 @@ public class OrdsMetadataService {
           :status_code := 200;
           OWA_UTIL.MIME_HEADER('application/json', TRUE);
           HTP.P(JSON_OBJECT('rows' VALUE v_rows_json FORMAT JSON RETURNING CLOB));
-          admin.cb_agent_ctx_pkg.clear_user;
+          cb_ords_handler_pkg.clear_vpd_context;
         EXCEPTION
           WHEN OTHERS THEN
-            admin.cb_agent_ctx_pkg.clear_user;
+            cb_ords_handler_pkg.clear_vpd_context;
             :status_code := 403;
             OWA_UTIL.MIME_HEADER('application/json', TRUE);
             HTP.P(JSON_OBJECT('error' VALUE SQLERRM RETURNING CLOB));

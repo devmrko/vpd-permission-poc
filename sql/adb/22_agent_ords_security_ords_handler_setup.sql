@@ -8,10 +8,13 @@
 --   * ADMIN ORDS schema enablement
 --
 -- Purpose:
---   * VPD path: Authorization header -> Bearer key -> SYS_CONTEXT -> VPD.
+--   * Common package: Authorization header -> Bearer key -> SYS_CONTEXT.
+--   * Object query handlers: call the common package, then query their
+--     own protected table/view.
+--   * VPD demo path: a fixed demo handler for ADMIN.CB_V_SEARCH_DOCUMENTS.
 --   * DDS probe: Authorization header -> local mapping only. This does not
 --     attach a DDS EndUserSecurityContext, so DDS cannot treat the request
---     as the mapped END USER.
+--     as the mapped END USER. It is not a protected object query handler.
 -- ============================================================
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 SET ECHO OFF
@@ -19,6 +22,8 @@ SET FEEDBACK ON
 
 PROMPT === Creating CB_ORDS handler package ===
 CREATE OR REPLACE PACKAGE cb_ords_handler_pkg AUTHID DEFINER AS
+  PROCEDURE set_vpd_context(p_authorization IN VARCHAR2);
+  PROCEDURE clear_vpd_context;
   FUNCTION vpd_search_json(p_authorization IN VARCHAR2) RETURN CLOB;
   FUNCTION dds_bearer_probe_json(p_authorization IN VARCHAR2) RETURN CLOB;
 END;
@@ -47,15 +52,25 @@ CREATE OR REPLACE PACKAGE BODY cb_ords_handler_pkg AS
     END CASE;
   END;
 
-  FUNCTION vpd_search_json(p_authorization IN VARCHAR2) RETURN CLOB AS
+  PROCEDURE set_vpd_context(p_authorization IN VARCHAR2) AS
     v_bearer_key VARCHAR2(4000);
-    v_rows_json  CLOB;
-    v_response   CLOB;
-    v_context_read_contents VARCHAR2(1);
   BEGIN
     admin.cb_agent_ctx_pkg.clear_user;
     v_bearer_key := extract_bearer_key(p_authorization);
     admin.cb_agent_ctx_pkg.set_user_by_bearer(v_bearer_key);
+  END;
+
+  PROCEDURE clear_vpd_context AS
+  BEGIN
+    admin.cb_agent_ctx_pkg.clear_user;
+  END;
+
+  FUNCTION vpd_search_json(p_authorization IN VARCHAR2) RETURN CLOB AS
+    v_rows_json  CLOB;
+    v_response   CLOB;
+    v_context_read_contents VARCHAR2(1);
+  BEGIN
+    set_vpd_context(p_authorization);
 
     SELECT JSON_ARRAYAGG(
              JSON_OBJECT(
@@ -91,11 +106,11 @@ CREATE OR REPLACE PACKAGE BODY cb_ords_handler_pkg AS
     INTO   v_response
     FROM   dual;
 
-    admin.cb_agent_ctx_pkg.clear_user;
+    clear_vpd_context;
     RETURN v_response;
   EXCEPTION
     WHEN OTHERS THEN
-      admin.cb_agent_ctx_pkg.clear_user;
+      clear_vpd_context;
       RAISE;
   END;
 
@@ -182,14 +197,36 @@ BEGIN
     p_source_type    => ORDS.source_type_plsql,
     p_source         => q'[
 DECLARE
-  v_response CLOB;
+  v_rows_json CLOB;
 BEGIN
-  v_response := cb_ords_handler_pkg.vpd_search_json(:auth_header);
+  cb_ords_handler_pkg.set_vpd_context(:auth_header);
+
+  SELECT JSON_ARRAYAGG(
+           JSON_OBJECT(
+             'doc_id'       VALUE doc_id,
+             'title'        VALUE title,
+             'owner_emp_no' VALUE owner_emp_no,
+             'dept_code'    VALUE dept_code,
+             'contents'     VALUE contents
+             RETURNING CLOB
+           )
+           ORDER BY doc_id
+           RETURNING CLOB
+         )
+  INTO   v_rows_json
+  FROM   admin.cb_v_search_documents;
+
+  IF v_rows_json IS NULL THEN
+    v_rows_json := '[]';
+  END IF;
+
   :status_code := 200;
   OWA_UTIL.MIME_HEADER('application/json', TRUE);
-  HTP.P(v_response);
+  HTP.P(JSON_OBJECT('rows' VALUE v_rows_json FORMAT JSON RETURNING CLOB));
+  cb_ords_handler_pkg.clear_vpd_context;
 EXCEPTION
   WHEN OTHERS THEN
+    cb_ords_handler_pkg.clear_vpd_context;
     :status_code := 403;
     OWA_UTIL.MIME_HEADER('application/json', TRUE);
     HTP.P('{"error":"' || REPLACE(SQLERRM, '"', '\"') || '"}');
