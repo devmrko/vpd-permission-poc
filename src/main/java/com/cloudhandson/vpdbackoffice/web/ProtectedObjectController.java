@@ -21,6 +21,7 @@ public class ProtectedObjectController {
   @GetMapping("/objects")
   public String objects(Model model) {
     model.addAttribute("objects", protectedObjectService.findEnabled());
+    model.addAttribute("dbObjects", protectedObjectService.findDatabaseObjects());
     return "objects";
   }
 

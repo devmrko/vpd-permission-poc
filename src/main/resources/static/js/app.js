@@ -60,6 +60,43 @@ async function syncRuleColumnOptions() {
   }
 }
 
+async function syncObjectCatalogSelection() {
+  const catalog = document.getElementById('objectCatalogSelect');
+  if (!catalog || !catalog.value) {
+    return;
+  }
+  const selected = catalog.options[catalog.selectedIndex];
+  const ownerInput = document.querySelector('input[name="owner"]');
+  const objectInput = document.querySelector('input[name="objectName"]');
+  const ordsPathInput = document.querySelector('input[name="ordsPath"]');
+  const columnsInput = document.querySelector('input[name="columns"]');
+  if (ownerInput) {
+    ownerInput.value = selected.dataset.owner || '';
+  }
+  if (objectInput) {
+    objectInput.value = selected.dataset.objectName || '';
+  }
+  if (ordsPathInput) {
+    ordsPathInput.value = selected.dataset.defaultPath || '';
+  }
+  if (!columnsInput) {
+    return;
+  }
+  columnsInput.value = '';
+  try {
+    const response = await fetch(`/permissions/object-columns?objectRef=${encodeURIComponent(`db:${catalog.value}`)}`);
+    if (!response.ok) {
+      return;
+    }
+    const columns = await response.json();
+    if (Array.isArray(columns)) {
+      columnsInput.value = columns.join(',');
+    }
+  } catch (error) {
+    columnsInput.value = '';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const master = document.getElementById('userRoleMaster');
   if (master) {
@@ -70,6 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (objectSelect) {
     objectSelect.addEventListener('change', syncRuleColumnOptions);
     syncRuleColumnOptions();
+  }
+  const catalog = document.getElementById('objectCatalogSelect');
+  if (catalog) {
+    catalog.addEventListener('change', syncObjectCatalogSelection);
   }
   document.querySelectorAll('[data-rule-add]').forEach((button) => {
     button.addEventListener('click', () => {

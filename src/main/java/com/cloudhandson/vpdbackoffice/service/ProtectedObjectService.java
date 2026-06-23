@@ -51,14 +51,15 @@ public class ProtectedObjectService {
 
   @Transactional
   public void createObject(ProtectedObjectCreateCommand command) {
+    ProtectedObjectCreateCommand normalized = normalizeCreateCommand(command);
     long objectId = mapper.nextObjectId();
-    mapper.insertObject(objectId, command);
-    Set<String> sensitive = splitCsv(command.sensitiveColumns());
-    for (String column : splitCsv(command.columns())) {
+    mapper.insertObject(objectId, normalized);
+    Set<String> sensitive = splitCsv(normalized.sensitiveColumns());
+    for (String column : splitCsv(normalized.columns())) {
       mapper.insertColumn(mapper.nextColumnId(), objectId, column, sensitive.contains(column) ? "Y" : "N");
     }
     auditService.record(new AuditEvent("PROTECTED_OBJECT_CREATED", null, objectId, "SUCCESS", null, null,
-        command.objectName()));
+        normalized.objectName()));
   }
 
   @Transactional
@@ -90,6 +91,20 @@ public class ProtectedObjectService {
   private String defaultOrdsPath(String owner, String objectName) {
     String schemaPath = owner.equalsIgnoreCase("CB_ORDS") ? "cb-ords" : owner.toLowerCase(Locale.ROOT);
     return schemaPath + "/" + objectName.toLowerCase(Locale.ROOT);
+  }
+
+  private ProtectedObjectCreateCommand normalizeCreateCommand(ProtectedObjectCreateCommand command) {
+    String owner = command.owner().trim().toUpperCase(Locale.ROOT);
+    String objectName = command.objectName().trim().toUpperCase(Locale.ROOT);
+    String ordsPath = command.ordsPath();
+    if (ordsPath == null || ordsPath.isBlank()) {
+      ordsPath = defaultOrdsPath(owner, objectName);
+    }
+    String columns = command.columns();
+    if (columns == null || columns.isBlank()) {
+      columns = String.join(",", mapper.findDatabaseColumns(owner, objectName));
+    }
+    return new ProtectedObjectCreateCommand(owner, objectName, ordsPath.trim(), columns, command.sensitiveColumns());
   }
 
   @Transactional
