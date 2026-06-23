@@ -347,6 +347,32 @@ body {
   word-break: break-word;
 }
 
+.code-editor {
+  background: #211f1d;
+  border: 0;
+  border-radius: 0;
+  color: #fbf9f7;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: .78rem;
+  line-height: 1.45;
+  min-height: 320px;
+  resize: vertical;
+}
+
+.code-editor:focus {
+  background: #211f1d;
+  color: #fbf9f7;
+}
+
+.form-actions {
+  align-items: center;
+  background: var(--rw-surface-muted);
+  border-top: 1px solid var(--rw-border);
+  display: flex;
+  justify-content: flex-end;
+  padding: .55rem .75rem;
+}
+
 .table-pre {
   background: transparent;
   color: inherit;

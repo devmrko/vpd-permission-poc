@@ -2,27 +2,43 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.cloudhandson.vpdbackoffice.mapper.OrdsMetadataMapper">
+  <sql id="handlerColumns">
+    h.id AS handler_id,
+    s.pattern AS schema_name,
+    s.parsing_schema,
+    m.name AS module_name,
+    m.uri_prefix AS base_path,
+    t.uri_template AS template,
+    h.method,
+    h.source_type,
+    DBMS_LOB.SUBSTR(h.source, 12000, 1) AS source,
+    (
+      SELECT LISTAGG(p.name || ' -> :' || p.bind_variable_name || ' (' || p.source_type || ')', CHR(10))
+             WITHIN GROUP (ORDER BY p.name)
+      FROM dba_ords_parameters p
+      WHERE p.handler_id = h.id
+    ) AS parameters,
+    CAST(NULL AS VARCHAR2(1)) AS package_source
+  </sql>
+
   <select id="findHandlers" resultType="com.cloudhandson.vpdbackoffice.domain.ords.OrdsHandlerView">
-    SELECT s.pattern AS schema_name,
-           m.name AS module_name,
-           m.uri_prefix AS base_path,
-           t.uri_template AS template,
-           h.method,
-           h.source_type,
-           DBMS_LOB.SUBSTR(h.source, 12000, 1) AS source,
-           (
-             SELECT LISTAGG(p.name || ' -> :' || p.bind_variable_name || ' (' || p.source_type || ')', CHR(10))
-                    WITHIN GROUP (ORDER BY p.name)
-             FROM dba_ords_parameters p
-             WHERE p.handler_id = h.id
-           ) AS parameters,
-           CAST(NULL AS VARCHAR2(1)) AS package_source
+    SELECT <include refid="handlerColumns"/>
     FROM dba_ords_schemas s
     JOIN dba_ords_modules m ON m.schema_id = s.id
     JOIN dba_ords_templates t ON t.module_id = m.id
     JOIN dba_ords_handlers h ON h.template_id = t.id
     WHERE s.parsing_schema = 'CB_ORDS'
     ORDER BY m.name, t.uri_template, h.method
+  </select>
+
+  <select id="findHandler" resultType="com.cloudhandson.vpdbackoffice.domain.ords.OrdsHandlerView">
+    SELECT <include refid="handlerColumns"/>
+    FROM dba_ords_schemas s
+    JOIN dba_ords_modules m ON m.schema_id = s.id
+    JOIN dba_ords_templates t ON t.module_id = m.id
+    JOIN dba_ords_handlers h ON h.template_id = t.id
+    WHERE s.parsing_schema = 'CB_ORDS'
+      AND h.id = #{handlerId,jdbcType=NUMERIC}
   </select>
 
   <select id="findHandlerPackageSource" resultType="string">
