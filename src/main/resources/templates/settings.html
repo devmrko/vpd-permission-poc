@@ -10,6 +10,10 @@
   </div>
 
   <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
+  <div class="alert alert-warning" th:if="${runtimeErrorMessage}">
+    <strong th:text="${runtimeErrorTitle}">DB 준비 필요</strong>
+    <div th:text="${runtimeErrorMessage}">지원 테이블을 생성하세요.</div>
+  </div>
 
   <section class="content-band">
     <h2>ORDS</h2>
@@ -21,6 +25,41 @@
       </label>
       <button class="btn rw-btn-primary" type="submit">저장</button>
     </form>
+  </section>
+
+  <section class="content-band mt-3">
+    <h2>DB 스키마 초기화</h2>
+    <p class="text-muted mb-3">
+      현재 연결된 DB에 백오피스가 사용하는 지원 테이블과 시퀀스를 생성하거나 보강합니다.
+    </p>
+    <form method="post" action="/settings/schema/initialize" class="inline-form">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <button class="btn btn-outline-primary" type="submit">지원 테이블 생성/확인</button>
+    </form>
+    <div class="table-responsive mt-3" th:if="${schemaResults}">
+      <table class="table table-sm align-middle">
+        <thead>
+        <tr>
+          <th>Object</th>
+          <th>Action</th>
+          <th>Status</th>
+          <th>Message</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="result : ${schemaResults}">
+          <td><code th:text="${result.objectName()}">object</code></td>
+          <td th:text="${result.action()}">TABLE</td>
+          <td>
+            <span class="badge"
+                  th:classappend="${result.status() == 'CREATED' || result.status() == 'MERGED'} ? ' text-bg-success' : (${result.status() == 'EXISTS'} ? ' text-bg-secondary' : ' text-bg-danger')"
+                  th:text="${result.status()}">CREATED</span>
+          </td>
+          <td th:text="${result.message()}">생성했습니다.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 </main>
 </body>
