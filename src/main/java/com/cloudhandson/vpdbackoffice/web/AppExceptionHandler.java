@@ -17,13 +17,17 @@ public class AppExceptionHandler {
 
   @ExceptionHandler(DataAccessException.class)
   public String handleDataAccessException(DataAccessException exception, Model model) {
-    String detail = exception.getMostSpecificCause() == null
-        ? exception.getMessage()
-        : exception.getMostSpecificCause().getMessage();
-    model.addAttribute("errorTitle", "ADB 연결 설정이 필요합니다.");
-    model.addAttribute("errorMessage",
-        "BACKOFFICE_DB_URL, BACKOFFICE_DB_USERNAME, BACKOFFICE_DB_PASSWORD를 실제 ADB 값으로 설정하고 "
-            + "./run.sh backoffice-support를 실행한 뒤 다시 시도하세요. 상세: " + detail);
+    RuntimeErrorMessage error = RuntimeErrorMessages.dataAccess(exception);
+    model.addAttribute("errorTitle", error.title());
+    model.addAttribute("errorMessage", error.message());
+    return "error";
+  }
+
+  @ExceptionHandler(Exception.class)
+  public String handleUnexpectedException(Exception exception, Model model) {
+    RuntimeErrorMessage error = RuntimeErrorMessages.unexpected(exception);
+    model.addAttribute("errorTitle", error.title());
+    model.addAttribute("errorMessage", error.message());
     return "error";
   }
 }

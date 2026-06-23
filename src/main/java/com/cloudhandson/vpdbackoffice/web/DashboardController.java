@@ -33,18 +33,14 @@ public class DashboardController {
       model.addAttribute("roles", permissionService.findRoles());
       model.addAttribute("tokens", bearerTokenService.findAll());
     } catch (DataAccessException e) {
+      RuntimeErrorMessage error = RuntimeErrorMessages.dataAccess(e);
       model.addAttribute("objects", List.of());
       model.addAttribute("roles", List.of());
       model.addAttribute("tokens", List.of());
-      model.addAttribute("setupError", dbSetupMessage(e));
+      model.addAttribute("runtimeErrorTitle", error.title());
+      model.addAttribute("runtimeErrorMessage", error.message());
+      model.addAttribute("showSupportCommand", error.showSupportCommand());
     }
     return "dashboard";
-  }
-
-  private String dbSetupMessage(DataAccessException e) {
-    String detail = e.getMostSpecificCause() == null ? e.getMessage() : e.getMostSpecificCause().getMessage();
-    return "ADB 연결을 확인할 수 없습니다. BACKOFFICE_DB_URL, BACKOFFICE_DB_USERNAME, "
-        + "BACKOFFICE_DB_PASSWORD를 설정하고 ./run.sh backoffice-support를 먼저 실행하세요. 상세: "
-        + detail;
   }
 }

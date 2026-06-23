@@ -13,7 +13,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.time.Clock;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -71,7 +72,7 @@ public class OrdsProbeService {
       return auditAndReturn(command, ProbeResult.blocked(
           ProbeStatus.TOKEN_NOT_FOUND, "TOKEN_NOT_FOUND", "토큰을 찾을 수 없습니다."));
     }
-    if (!token.active(OffsetDateTime.now(clock))) {
+    if (!token.active(LocalDateTime.now(clock.withZone(ZoneId.systemDefault())))) {
       return auditAndReturn(command, ProbeResult.blocked(
           ProbeStatus.TOKEN_INACTIVE, "TOKEN_INACTIVE", "만료되었거나 회수된 토큰입니다."));
     }

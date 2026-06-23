@@ -9,7 +9,9 @@ import com.cloudhandson.vpdbackoffice.domain.user.AppUser;
 import com.cloudhandson.vpdbackoffice.mapper.BearerTokenMapper;
 import com.cloudhandson.vpdbackoffice.mapper.UserMapper;
 import java.time.Clock;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,6 +83,9 @@ public class BearerTokenService {
     String prefix = tokenGenerator.prefix(plainToken);
     String hash = tokenHasher.sha256(plainToken);
     long keyId = tokenMapper.nextKeyId();
+    LocalDateTime expiresAt = command.expiresAt()
+        .atZoneSameInstant(ZoneId.systemDefault())
+        .toLocalDateTime();
 
     tokenMapper.insertToken(new BearerTokenRecord(
         keyId,
@@ -88,7 +93,7 @@ public class BearerTokenService {
         user.username(),
         prefix,
         hash,
-        command.expiresAt(),
+        expiresAt,
         null,
         command.description()
     ));
@@ -98,7 +103,11 @@ public class BearerTokenService {
 
   @Transactional
   public void revokeToken(long keyId, String reason) {
-    int updated = tokenMapper.revokeToken(keyId, OffsetDateTime.now(clock), reason);
+    int updated = tokenMapper.revokeToken(
+        keyId,
+        LocalDateTime.now(clock.withZone(ZoneId.systemDefault())),
+        reason
+    );
     if (updated == 0) {
       throw new AppException("회수할 활성 토큰을 찾을 수 없습니다.");
     }

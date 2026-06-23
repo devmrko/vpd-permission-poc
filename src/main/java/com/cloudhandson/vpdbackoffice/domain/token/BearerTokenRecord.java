@@ -1,6 +1,6 @@
 package com.cloudhandson.vpdbackoffice.domain.token;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 public record BearerTokenRecord(
     long keyId,
@@ -8,12 +8,12 @@ public record BearerTokenRecord(
     String username,
     String keyPrefix,
     String keyHash,
-    OffsetDateTime expiresAt,
-    OffsetDateTime revokedAt,
+    LocalDateTime expiresAt,
+    LocalDateTime revokedAt,
     String description
 ) {
 
-  public boolean active(OffsetDateTime now) {
+  public boolean active(LocalDateTime now) {
     return revokedAt == null && expiresAt != null && expiresAt.isAfter(now);
   }
 }

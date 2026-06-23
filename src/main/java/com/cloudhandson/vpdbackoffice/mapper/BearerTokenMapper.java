@@ -1,7 +1,7 @@
 package com.cloudhandson.vpdbackoffice.mapper;
 
 import com.cloudhandson.vpdbackoffice.domain.token.BearerTokenRecord;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -19,7 +19,7 @@ public interface BearerTokenMapper {
 
   int revokeToken(
       @Param("keyId") long keyId,
-      @Param("revokedAt") OffsetDateTime revokedAt,
+      @Param("revokedAt") LocalDateTime revokedAt,
       @Param("reason") String reason
   );
 }
