@@ -168,13 +168,14 @@ public class OrdsMetadataService {
         DECLARE
           v_limit NUMBER := LEAST(GREATEST(NVL(:row_limit, 50), 1), 500);
           v_rows_json CLOB;
+          v_offset NUMBER := 1;
         BEGIN
           cb_ords_handler_pkg.set_vpd_context(:auth_header);
 
           SELECT JSON_ARRAYAGG(
                    JSON_OBJECT(
                      %s
-                     RETURNING CLOB
+                     RETURNING VARCHAR2(32767)
                    )
                    RETURNING CLOB
                  )
@@ -191,14 +192,19 @@ public class OrdsMetadataService {
 
           :status_code := 200;
           OWA_UTIL.MIME_HEADER('application/json', TRUE);
-          HTP.P(JSON_OBJECT('rows' VALUE v_rows_json FORMAT JSON RETURNING CLOB));
+          HTP.P('{"rows":');
+          WHILE v_offset <= DBMS_LOB.GETLENGTH(v_rows_json) LOOP
+            HTP.P(DBMS_LOB.SUBSTR(v_rows_json, 32767, v_offset));
+            v_offset := v_offset + 32767;
+          END LOOP;
+          HTP.P('}');
           cb_ords_handler_pkg.clear_vpd_context;
         EXCEPTION
           WHEN OTHERS THEN
             cb_ords_handler_pkg.clear_vpd_context;
             :status_code := 403;
             OWA_UTIL.MIME_HEADER('application/json', TRUE);
-            HTP.P(JSON_OBJECT('error' VALUE SQLERRM RETURNING CLOB));
+            HTP.P(JSON_OBJECT('error' VALUE SQLERRM RETURNING VARCHAR2(4000)));
         END;
         """.formatted(jsonEntries, selectColumns, object.owner(), object.objectName());
   }
