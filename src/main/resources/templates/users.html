@@ -27,10 +27,6 @@
         부서코드
         <input class="form-control" name="deptCode" required>
       </label>
-      <label class="form-check form-switch switch-field">
-        <input class="form-check-input" name="canReadContents" type="checkbox" value="true">
-        <span class="form-check-label">민감 컬럼 표시</span>
-      </label>
       <button class="btn btn-primary" type="submit">추가</button>
     </form>
   </section>
@@ -45,7 +41,6 @@
           <th>사용자명</th>
           <th>사번</th>
           <th>부서</th>
-          <th>민감 컬럼</th>
           <th>상태</th>
           <th></th>
         </tr>
@@ -56,7 +51,6 @@
           <td th:text="${user.username()}">agent_hr</td>
           <td th:text="${user.empNo()}">E10234</td>
           <td th:text="${user.deptCode()}">HR</td>
-          <td><span class="badge" th:classappend="${user.canReadContents() == 'Y'} ? ' text-bg-success' : ' text-bg-secondary'" th:text="${user.canReadContents()}">N</span></td>
           <td><span class="badge" th:classappend="${user.active()} ? ' text-bg-success' : ' text-bg-secondary'" th:text="${user.activeYn()}">Y</span></td>
           <td>
             <form method="post" action="/users/active" class="inline-form">
@@ -68,7 +62,7 @@
           </td>
         </tr>
         <tr th:if="${#lists.isEmpty(users)}">
-          <td colspan="7" class="text-muted">등록된 사용자가 없습니다.</td>
+          <td colspan="6" class="text-muted">등록된 사용자가 없습니다.</td>
         </tr>
         </tbody>
       </table>

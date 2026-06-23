@@ -22,7 +22,12 @@
            p.target_name AS object_name,
            p.action_name AS action,
            LISTAGG(pr.rule_type || NVL2(pr.rule_value, ':' || pr.rule_value, ''), ', ')
-             WITHIN GROUP (ORDER BY pr.rule_id) AS rules
+             WITHIN GROUP (ORDER BY pr.rule_id) AS rules,
+           (
+             SELECT LISTAGG(pc.column_name, ', ') WITHIN GROUP (ORDER BY pc.column_name)
+             FROM cb_permission_column pc
+             WHERE pc.permission_id = p.perm_id
+           ) AS visible_columns
     FROM cb_permission p
     JOIN cb_app_role r ON r.role_id = p.role_id
     LEFT JOIN cb_protected_object o ON o.object_name = p.target_name

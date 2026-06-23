@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 public record UserCreateCommand(
     @NotBlank String username,
     @NotBlank String empNo,
-    @NotBlank String deptCode,
-    boolean canReadContents
+    @NotBlank String deptCode
 ) {
 }

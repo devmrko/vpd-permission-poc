@@ -7,6 +7,7 @@ public record PermissionView(
     long objectId,
     String objectName,
     String action,
-    String rules
+    String rules,
+    String visibleColumns
 ) {
 }

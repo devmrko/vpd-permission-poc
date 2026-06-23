@@ -40,6 +40,10 @@
         규칙 값
         <input class="form-control" name="ruleValue" placeholder="APAC 또는 HR">
       </label>
+      <label>
+        표시 컬럼
+        <input class="form-control" name="visibleColumns" placeholder="CONTENTS">
+      </label>
       <button class="btn btn-primary" type="submit">저장</button>
     </form>
   </section>
@@ -55,6 +59,7 @@
           <th>테이블/뷰</th>
           <th>Action</th>
           <th>행 규칙</th>
+          <th>표시 컬럼</th>
           <th></th>
         </tr>
         </thead>
@@ -65,6 +70,7 @@
           <td th:text="${permission.objectName()}">CB_V_SEARCH_DOCUMENTS</td>
           <td th:text="${permission.action()}">SELECT</td>
           <td th:text="${permission.rules()} ?: '-'">ALL</td>
+          <td th:text="${permission.visibleColumns()} ?: '-'">CONTENTS</td>
           <td>
             <form method="post" action="/permissions/delete" class="inline-form">
               <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -74,7 +80,7 @@
           </td>
         </tr>
         <tr th:if="${#lists.isEmpty(permissions)}">
-          <td colspan="6" class="text-muted">등록된 권한이 없습니다.</td>
+          <td colspan="7" class="text-muted">등록된 권한이 없습니다.</td>
         </tr>
         </tbody>
       </table>

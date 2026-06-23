@@ -4,6 +4,7 @@ import com.cloudhandson.vpdbackoffice.domain.permission.PermissionSetCommand;
 import com.cloudhandson.vpdbackoffice.domain.permission.RuleCommand;
 import com.cloudhandson.vpdbackoffice.service.PermissionService;
 import com.cloudhandson.vpdbackoffice.service.ProtectedObjectService;
+import java.util.Arrays;
 import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -40,7 +41,7 @@ public class PermissionController {
       @RequestParam long objectId,
       @RequestParam String ruleType,
       @RequestParam(required = false) String ruleValue,
-      @RequestParam(required = false) List<String> visibleColumns,
+      @RequestParam(required = false) String visibleColumns,
       RedirectAttributes redirectAttributes
   ) {
     permissionService.savePermissionSet(new PermissionSetCommand(
@@ -48,10 +49,20 @@ public class PermissionController {
         objectId,
         "SELECT",
         List.of(new RuleCommand(ruleType, ruleValue)),
-        visibleColumns == null ? List.of() : visibleColumns
+        splitColumns(visibleColumns)
     ));
     redirectAttributes.addFlashAttribute("message", "권한을 저장했습니다.");
     return "redirect:/permissions";
+  }
+
+  private List<String> splitColumns(String visibleColumns) {
+    if (visibleColumns == null || visibleColumns.isBlank()) {
+      return List.of();
+    }
+    return Arrays.stream(visibleColumns.split(","))
+        .map(String::trim)
+        .filter(value -> !value.isBlank())
+        .toList();
   }
 
   @PostMapping("/permissions/delete")

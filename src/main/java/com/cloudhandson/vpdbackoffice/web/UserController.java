@@ -34,10 +34,9 @@ public class UserController {
       @RequestParam String username,
       @RequestParam String empNo,
       @RequestParam String deptCode,
-      @RequestParam(defaultValue = "false") boolean canReadContents,
       RedirectAttributes redirectAttributes
   ) {
-    userService.createUser(new UserCreateCommand(username, empNo, deptCode, canReadContents));
+    userService.createUser(new UserCreateCommand(username, empNo, deptCode));
     redirectAttributes.addFlashAttribute("message", "사용자를 추가했습니다.");
     return "redirect:/users";
   }

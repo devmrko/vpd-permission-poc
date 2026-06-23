@@ -47,10 +47,7 @@
       #{command.username},
       #{command.empNo},
       #{command.deptCode},
-      <choose>
-        <when test="command.canReadContents"> 'Y' </when>
-        <otherwise> 'N' </otherwise>
-      </choose>,
+      'N',
       'Y'
     )
   </insert>

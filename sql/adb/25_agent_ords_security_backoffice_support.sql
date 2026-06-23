@@ -137,6 +137,68 @@ WHEN MATCHED THEN UPDATE SET dst.sensitive_yn = src.sensitive_yn
 WHEN NOT MATCHED THEN INSERT (column_id, object_id, column_name, sensitive_yn)
 VALUES (src.column_id, src.object_id, src.column_name, src.sensitive_yn);
 
+MERGE INTO cb_permission_column dst
+USING (
+  SELECT 300 permission_id, 'CONTENTS' column_name FROM dual
+) src
+ON (dst.permission_id = src.permission_id AND dst.column_name = src.column_name)
+WHEN NOT MATCHED THEN INSERT (permission_id, column_name)
+VALUES (src.permission_id, src.column_name);
+
+PROMPT === Replacing CONTENTS redaction with role column permission check ===
+CREATE OR REPLACE FUNCTION cb_agent_can_read_column(
+  p_target_name IN VARCHAR2,
+  p_column_name IN VARCHAR2
+) RETURN VARCHAR2
+AUTHID DEFINER
+AS
+  v_allowed NUMBER;
+BEGIN
+  IF SYS_CONTEXT('CB_AGENT_CTX', 'USER_ID') IS NULL THEN
+    RETURN 'N';
+  END IF;
+
+  SELECT COUNT(*)
+  INTO   v_allowed
+  FROM   cb_user_role ur
+  JOIN   cb_permission p
+  ON     p.role_id = ur.role_id
+  JOIN   cb_permission_column pc
+  ON     pc.permission_id = p.perm_id
+  WHERE  ur.user_id = TO_NUMBER(SYS_CONTEXT('CB_AGENT_CTX', 'USER_ID'))
+  AND    p.target_name = UPPER(p_target_name)
+  AND    p.action_name = 'SELECT'
+  AND    pc.column_name = UPPER(p_column_name);
+
+  RETURN CASE WHEN v_allowed > 0 THEN 'Y' ELSE 'N' END;
+END;
+/
+
+BEGIN
+  DBMS_REDACT.DROP_POLICY(
+    object_schema => USER,
+    object_name   => 'CB_V_SEARCH_DOCUMENTS',
+    policy_name   => 'CB_CONTENTS_REDACT'
+  );
+EXCEPTION
+  WHEN OTHERS THEN NULL;
+END;
+/
+
+BEGIN
+  DBMS_REDACT.ADD_POLICY(
+    object_schema => USER,
+    object_name   => 'CB_V_SEARCH_DOCUMENTS',
+    column_name   => 'CONTENTS',
+    policy_name   => 'CB_CONTENTS_REDACT',
+    function_type => DBMS_REDACT.NULLIFY,
+    expression    => 'SYS_CONTEXT(''CB_AGENT_CTX'', ''CAN_READ_CONTENTS'') IS NULL OR SYS_CONTEXT(''CB_AGENT_CTX'', ''CAN_READ_CONTENTS'') != ''Y'''
+  );
+END;
+/
+
+GRANT EXECUTE ON cb_agent_can_read_column TO cb_ords;
+
 COMMIT;
 
 PROMPT === Backoffice support setup complete ===
