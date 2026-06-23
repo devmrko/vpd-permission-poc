@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cloudhandson.vpdbackoffice.mapper.AuditMapper">
+  <insert id="insert" parameterType="com.cloudhandson.vpdbackoffice.domain.audit.AuditEvent">
+    INSERT INTO cb_ords_probe_audit (
+      audit_id, event_type, key_id, object_id, status, row_count, error_code, message, created_at
+    ) VALUES (
+      cb_ords_probe_audit_seq.NEXTVAL,
+      #{eventType}, #{keyId}, #{objectId}, #{status}, #{rowCount}, #{errorCode}, #{message}, SYSTIMESTAMP
+    )
+  </insert>
+</mapper>

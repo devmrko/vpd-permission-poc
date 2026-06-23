@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cloudhandson.vpdbackoffice.mapper.PermissionMapper">
+  <select id="findRoles" resultType="com.cloudhandson.vpdbackoffice.domain.permission.AppRole">
+    SELECT role_id, role_name, CAST(NULL AS VARCHAR2(200)) AS description
+    FROM cb_app_role
+    ORDER BY role_name
+  </select>
+
+  <select id="findRole" resultType="com.cloudhandson.vpdbackoffice.domain.permission.AppRole">
+    SELECT role_id, role_name, CAST(NULL AS VARCHAR2(200)) AS description
+    FROM cb_app_role
+    WHERE role_id = #{roleId}
+  </select>
+
+  <select id="findPermissionId" resultType="long">
+    SELECT p.perm_id
+    FROM cb_permission p
+    JOIN cb_protected_object o ON o.object_name = p.target_name
+    WHERE p.role_id = #{roleId}
+      AND o.object_id = #{objectId}
+  </select>
+
+  <select id="findPermissionSet" resultType="com.cloudhandson.vpdbackoffice.domain.permission.PermissionSet">
+    SELECT p.perm_id AS permission_id,
+           p.role_id,
+           o.object_id,
+           p.action_name AS action
+    FROM cb_permission p
+    JOIN cb_protected_object o ON o.object_name = p.target_name
+    WHERE p.role_id = #{roleId}
+      AND o.object_id = #{objectId}
+  </select>
+
+  <select id="nextPermissionId" resultType="long">
+    SELECT cb_permission_seq.NEXTVAL FROM dual
+  </select>
+
+  <select id="nextRuleId" resultType="long">
+    SELECT cb_permission_rule_seq.NEXTVAL FROM dual
+  </select>
+
+  <insert id="insertPermission">
+    INSERT INTO cb_permission (perm_id, role_id, target_name, action_name)
+    SELECT #{permissionId}, #{roleId}, object_name, #{action}
+    FROM cb_protected_object
+    WHERE object_id = #{objectId}
+  </insert>
+
+  <update id="updatePermissionAction">
+    UPDATE cb_permission
+    SET action_name = #{action}
+    WHERE perm_id = #{permissionId}
+  </update>
+
+  <delete id="deleteRules">
+    DELETE FROM cb_permission_rule
+    WHERE perm_id = #{permissionId}
+  </delete>
+
+  <insert id="insertRule" parameterType="com.cloudhandson.vpdbackoffice.domain.permission.PermissionRule">
+    INSERT INTO cb_permission_rule (rule_id, perm_id, rule_type, rule_value)
+    VALUES (#{ruleId}, #{permissionId}, #{ruleType}, #{ruleValue})
+  </insert>
+
+  <delete id="deleteVisibleColumns">
+    DELETE FROM cb_permission_column
+    WHERE permission_id = #{permissionId}
+  </delete>
+
+  <insert id="insertVisibleColumn">
+    INSERT INTO cb_permission_column (permission_id, column_name)
+    VALUES (#{permissionId}, #{columnName})
+  </insert>
+</mapper>

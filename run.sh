@@ -9,6 +9,7 @@
 #   ./run.sh adb          # ADB 측 cleanup → dblinks → perm/ctx/view/policy → end_users
 #   ./run.sh tests        # 4-user (my/pg/both/none) 로 접속해서 행 필터 검증
 #   ./run.sh audit        # admin 으로 정책/뷰/유저 상태 점검
+#   ./run.sh backoffice-support # Spring Boot 백오피스 보조 객체 생성
 #   ./run.sh all          # source → adb → tests → audit
 #   ./run.sh teardown     # ADB 측 객체 + 원격 link/cred 만 정리 (원격 PG/MySQL 데이터는 보존)
 #
@@ -167,6 +168,12 @@ do_audit() {
   ok "audit 완료"
 }
 
+do_backoffice_support() {
+  log "=== backoffice-support: Spring Boot 백오피스 보조 객체 생성 ==="
+  run_sqlplus_file "$ROOT/sql/adb/25_agent_ords_security_backoffice_support.sql"
+  ok "backoffice-support 완료"
+}
+
 do_teardown() {
   log "=== teardown: ADB 측 객체 + dblink/credential 정리 ==="
   warn "원격 PG/MySQL 의 customers 테이블은 건드리지 않습니다 (수동으로 DROP 하세요)"
@@ -218,6 +225,7 @@ case "$CMD" in
   adb)          do_prereq; do_adb ;;
   tests)        do_prereq; do_tests ;;
   audit)        do_prereq; do_audit ;;
+  backoffice-support) do_prereq; do_backoffice_support ;;
   teardown)     do_prereq; do_teardown ;;
   all)
     do_prereq
@@ -237,6 +245,6 @@ case "$CMD" in
     ok "=== DDS DONE — Deep Data Security 변형 셋업 + 검증 통과 ==="
     ;;
   *)
-    die "알 수 없는 명령: $CMD  (사용: prereq|source|adb|tests|audit|all|teardown | dds|dds-setup|dds-tests|dds-teardown)"
+    die "알 수 없는 명령: $CMD  (사용: prereq|source|adb|tests|audit|backoffice-support|all|teardown | dds|dds-setup|dds-tests|dds-teardown)"
     ;;
 esac

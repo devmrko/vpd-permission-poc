@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cloudhandson.vpdbackoffice.mapper.UserMapper">
+  <select id="findAll" resultType="com.cloudhandson.vpdbackoffice.domain.user.AppUser">
+    SELECT user_id,
+           user_name AS username,
+           employee_no AS emp_no,
+           dept_code,
+           active AS active_yn
+    FROM cb_app_user
+    ORDER BY username
+  </select>
+
+  <select id="findById" resultType="com.cloudhandson.vpdbackoffice.domain.user.AppUser">
+    SELECT user_id,
+           user_name AS username,
+           employee_no AS emp_no,
+           dept_code,
+           active AS active_yn
+    FROM cb_app_user
+    WHERE user_id = #{userId}
+  </select>
+</mapper>

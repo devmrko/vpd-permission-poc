@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="result">
+  <div class="section-heading">
+    <h2>검증 결과</h2>
+    <span class="badge" th:classappend="${result.status().name() == 'SUCCESS'} ? ' text-bg-success' : ' text-bg-warning'"
+          th:text="${result.status()}">SUCCESS</span>
+  </div>
+
+  <div class="alert alert-warning" th:if="${result.errorCode()}">
+    <strong th:text="${result.errorCode()}">ERROR</strong>
+    <span th:text="${result.errorMessage()}">message</span>
+  </div>
+
+  <div class="meta-row">
+    <span>Rows: <strong th:text="${result.rowCount()}">0</strong></span>
+    <span th:if="${!#lists.isEmpty(result.maskedColumns())}">
+      Masked: <code th:text="${#strings.listJoin(result.maskedColumns(), ', ')}"></code>
+    </span>
+  </div>
+
+  <div class="table-responsive" th:if="${!#lists.isEmpty(result.rows())}">
+    <table class="table table-sm table-striped align-middle">
+      <thead>
+      <tr>
+        <th th:each="column : ${result.columns()}" th:text="${column}">column</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="row : ${result.rows()}">
+        <td th:each="column : ${result.columns()}" th:text="${row[column]}">value</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>

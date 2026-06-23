@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('오류')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container py-4">
+  <div class="alert alert-danger">
+    <strong>처리할 수 없습니다.</strong>
+    <span th:text="${errorMessage} ?: '요청 처리 중 오류가 발생했습니다.'"></span>
+  </div>
+  <a class="btn btn-outline-primary" href="/">대시보드</a>
+</main>
+</body>
+</html>

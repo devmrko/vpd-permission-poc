@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: vpd-permission-backoffice
+  datasource:
+    url: ${BACKOFFICE_DB_URL:jdbc:oracle:thin:@localhost:1521/FREEPDB1}
+    username: ${BACKOFFICE_DB_USERNAME:backoffice}
+    password: ${BACKOFFICE_DB_PASSWORD:backoffice}
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      pool-name: vpd-backoffice-pool
+      maximum-pool-size: ${BACKOFFICE_DB_POOL_MAX:5}
+      minimum-idle: ${BACKOFFICE_DB_POOL_MIN:1}
+      connection-timeout: 10000
+  thymeleaf:
+    cache: false
+
+mybatis:
+  mapper-locations: classpath:/mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+server:
+  port: ${BACKOFFICE_PORT:8080}
+
+backoffice:
+  security:
+    admin-user: ${BACKOFFICE_ADMIN_USER:admin}
+    admin-password: ${BACKOFFICE_ADMIN_PASSWORD:admin}
+  token:
+    max-days: ${BACKOFFICE_TOKEN_MAX_DAYS:365}
+  ords:
+    base-url: ${BACKOFFICE_ORDS_BASE_URL:http://localhost:8081/ords}
+    timeout-seconds: ${BACKOFFICE_ORDS_TIMEOUT_SECONDS:10}

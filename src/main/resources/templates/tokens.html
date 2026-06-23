@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Bearer Token')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container py-4">
+  <div class="page-title">
+    <h1>Bearer Token</h1>
+    <p>토큰은 발급 직후 한 번만 원문을 표시합니다.</p>
+  </div>
+
+  <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
+  <div class="alert alert-warning" th:if="${issued}">
+    <div class="fw-semibold">새 토큰이 발급되었습니다. 이 값은 다시 표시되지 않습니다.</div>
+    <code class="token-value" th:text="${issued.plainToken()}"></code>
+  </div>
+
+  <section class="content-band">
+    <h2>토큰 발급</h2>
+    <form method="post" action="/tokens" class="form-grid">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <label>
+        사용자
+        <select class="form-select" name="userId" required>
+          <option th:each="user : ${users}" th:value="${user.userId()}" th:text="${user.username()}"></option>
+        </select>
+      </label>
+      <label>
+        만료 시각
+        <input class="form-control" name="expiresAt" placeholder="2026-12-31T23:59:59+09:00" required>
+      </label>
+      <label>
+        설명
+        <input class="form-control" name="description" maxlength="200">
+      </label>
+      <button class="btn btn-primary" type="submit">발급</button>
+    </form>
+  </section>
+
+  <section class="content-band">
+    <h2>토큰 목록</h2>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+        <tr>
+          <th>ID</th>
+          <th>User</th>
+          <th>Prefix</th>
+          <th>Expires</th>
+          <th>Revoked</th>
+          <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="token : ${tokens}">
+          <td th:text="${token.keyId()}">1</td>
+          <td th:text="${token.username()}">user</td>
+          <td><code th:text="${token.keyPrefix()}">vpd_live_x</code></td>
+          <td th:text="${token.expiresAt()}">2026</td>
+          <td th:text="${token.revokedAt()} ?: '-'">-</td>
+          <td>
+            <form method="post" action="/tokens/revoke" class="inline-form">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+              <input type="hidden" name="keyId" th:value="${token.keyId()}">
+              <input type="hidden" name="reason" value="manual">
+              <button class="btn btn-sm btn-outline-danger" type="submit" th:disabled="${token.revokedAt() != null}">회수</button>
+            </form>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(tokens)}">
+          <td colspan="6" class="text-muted">등록된 토큰이 없습니다.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

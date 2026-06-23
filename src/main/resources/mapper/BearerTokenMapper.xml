@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cloudhandson.vpdbackoffice.mapper.BearerTokenMapper">
+  <select id="findAll" resultType="com.cloudhandson.vpdbackoffice.domain.token.BearerTokenRecord">
+    SELECT k.key_id, k.user_id, u.user_name AS username, k.key_prefix, k.key_hash,
+           k.expires_at, k.revoked_at, k.description
+    FROM cb_agent_bearer_key k
+    JOIN cb_app_user u ON u.user_id = k.user_id
+    ORDER BY k.key_id DESC
+  </select>
+
+  <select id="findById" resultType="com.cloudhandson.vpdbackoffice.domain.token.BearerTokenRecord">
+    SELECT k.key_id, k.user_id, u.user_name AS username, k.key_prefix, k.key_hash,
+           k.expires_at, k.revoked_at, k.description
+    FROM cb_agent_bearer_key k
+    JOIN cb_app_user u ON u.user_id = k.user_id
+    WHERE k.key_id = #{keyId}
+  </select>
+
+  <select id="nextKeyId" resultType="long">
+    SELECT cb_agent_bearer_key_seq.NEXTVAL FROM dual
+  </select>
+
+  <insert id="insertToken" parameterType="com.cloudhandson.vpdbackoffice.domain.token.BearerTokenRecord">
+    INSERT INTO cb_agent_bearer_key (
+      key_id, user_id, key_prefix, key_hash, expires_at, revoked_at, description
+    ) VALUES (
+      #{keyId}, #{userId}, #{keyPrefix}, #{keyHash}, #{expiresAt}, #{revokedAt}, #{description}
+    )
+  </insert>
+
+  <update id="revokeToken">
+    UPDATE cb_agent_bearer_key
+    SET revoked_at = #{revokedAt},
+        description = CASE
+          WHEN #{reason} IS NULL THEN description
+          ELSE SUBSTR(COALESCE(description, '') || ' revoked: ' || #{reason}, 1, 200)
+        END
+    WHERE key_id = #{keyId}
+      AND revoked_at IS NULL
+  </update>
+</mapper>

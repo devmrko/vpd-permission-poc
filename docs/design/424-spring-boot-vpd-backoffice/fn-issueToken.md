@@ -37,7 +37,7 @@ IssuedToken issueToken(TokenIssueCommand command)
 3. 정책상 최대 유효 기간을 넘으면 실패한다.
 4. `vpd_live_` prefix와 256bit 이상 난수 body를 생성한다.
 5. 원문 token을 조합한다.
-6. server-side pepper를 읽어 HMAC-SHA256 hash를 만든다.
+6. 기존 ORDS 패키지의 `STANDARD_HASH(..., 'SHA256')` 검증과 호환되는 SHA-256 hash를 만든다.
 7. `key_prefix`, `key_hash`, `expires_at`, `created_by`를 저장한다.
 8. audit log를 저장한다.
 9. 원문 token을 포함한 `IssuedToken`을 반환한다.
@@ -49,7 +49,6 @@ IssuedToken issueToken(TokenIssueCommand command)
 | 사용자가 없음 | 발급 중단 | `UserNotFoundException` |
 | 비활성 사용자 | 발급 중단 | `InactiveUserException` |
 | 만료일이 과거 | 발급 중단 | `InvalidTokenExpiryException` |
-| pepper 설정 없음 | 발급 중단 | `TokenConfigurationException` |
 | DB 저장 실패 | transaction rollback | `DataAccessException` |
 
 ## 7. 엣지케이스
@@ -78,7 +77,7 @@ IssuedToken issueToken(TokenIssueCommand command)
 - [ ] 정상: 저장된 값에 원문 token이 포함되지 않음
 - [ ] 실패: 비활성 사용자 입력 시 예외
 - [ ] 실패: 과거 만료일 입력 시 예외
-- [ ] 실패: pepper 설정 없음
+- [ ] 정상: `cb_hr_key` hash가 Oracle `STANDARD_HASH('cb_hr_key', 'SHA256')`와 같은 값
 
 ## 11. 추적성
 

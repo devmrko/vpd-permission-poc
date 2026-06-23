@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('VPD 백오피스')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container py-4">
+  <div class="page-title">
+    <h1>VPD 권한 백오피스</h1>
+    <p>보호 객체, Bearer Token, ORDS 검증 상태를 확인합니다.</p>
+  </div>
+
+  <section class="summary-grid">
+    <a class="summary-tile" href="/permissions">
+      <span class="label">보호 객체</span>
+      <strong th:text="${#lists.size(objects)}">0</strong>
+    </a>
+    <a class="summary-tile" href="/permissions">
+      <span class="label">역할</span>
+      <strong th:text="${#lists.size(roles)}">0</strong>
+    </a>
+    <a class="summary-tile" href="/tokens">
+      <span class="label">토큰</span>
+      <strong th:text="${#lists.size(tokens)}">0</strong>
+    </a>
+  </section>
+
+  <section class="content-band">
+    <div class="section-heading">
+      <h2>최근 보호 객체</h2>
+      <a class="btn btn-sm btn-outline-primary" href="/probe">검증 실행</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+        <tr>
+          <th>Owner</th>
+          <th>Object</th>
+          <th>ORDS Path</th>
+          <th>Status</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="object : ${objects}">
+          <td th:text="${object.owner()}">ADMIN</td>
+          <td th:text="${object.objectName()}">CB_V_SEARCH_DOCUMENTS</td>
+          <td><code th:text="${object.ordsPath()}">search/documents</code></td>
+          <td><span class="badge text-bg-success">enabled</span></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(objects)}">
+          <td colspan="4" class="text-muted">등록된 보호 객체가 없습니다.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

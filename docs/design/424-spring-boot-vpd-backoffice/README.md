@@ -144,6 +144,7 @@ src/test/java/com/cloudhandson/vpdbackoffice/
 - `owner`, `object_name`, `column_name`은 Oracle identifier 허용 문자로 검증하되, 검증 후에도 SQL 문자열 직접 조합에 사용하지 않는다.
 - ORDS 검증 대상은 `CB_PROTECTED_OBJECT.enabled_yn = 'Y'`인 행만 허용한다.
 - Token 원문은 발급 응답 화면에서만 사용하고 DB, log, audit에는 저장하지 않는다.
+- 기존 ORDS 패키지가 `STANDARD_HASH(p_bearer_key, 'SHA256')`로 Bearer Key를 검증하므로 `key_hash`는 SHA-256으로 저장한다. HMAC 또는 pepper 적용은 DB 패키지 검증 방식까지 함께 바꾸는 후속 작업으로 둔다.
 - `rule_type`은 `ALL`, `MY_DEPT`, `SELF`, `REGION`, `CUSTOM_PREDICATE` 중 허용 값만 저장한다.
 - `CUSTOM_PREDICATE`는 초기 구현에서 비활성화한다.
 
@@ -182,7 +183,7 @@ src/test/java/com/cloudhandson/vpdbackoffice/
 1. 관리자가 사용자와 만료일을 선택한다.
 2. Service가 사용자 활성 상태와 만료일을 검증한다.
 3. `vpd_live_` prefix와 충분한 난수 token body를 생성한다.
-4. server-side pepper를 사용해 hash를 만든다.
+4. 기존 ORDS 패키지와 호환되는 SHA-256 hash를 만든다.
 5. prefix, hash, 만료일만 저장한다.
 6. 원문 token은 발급 완료 화면에 한 번만 표시한다.
 

@@ -1,0 +1,14 @@
+package com.cloudhandson.vpdbackoffice.domain.probe;
+
+public enum ProbeStatus {
+  SUCCESS,
+  VPD_DENY_EMPTY_RESULT,
+  TOKEN_NOT_FOUND,
+  TOKEN_INACTIVE,
+  OBJECT_DISABLED,
+  INVALID_TOKEN,
+  OBJECT_NOT_ACCESSIBLE,
+  ORDS_TIMEOUT,
+  INVALID_ORDS_RESPONSE,
+  UNKNOWN_ERROR
+}
