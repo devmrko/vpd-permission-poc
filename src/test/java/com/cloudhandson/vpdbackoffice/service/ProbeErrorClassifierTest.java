@@ -3,8 +3,11 @@ package com.cloudhandson.vpdbackoffice.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.cloudhandson.vpdbackoffice.domain.probe.ProbeStatus;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.client.ResourceAccessException;
 
 class ProbeErrorClassifierTest {
 
@@ -26,5 +29,21 @@ class ProbeErrorClassifierTest {
   void classifiesHttpUnauthorizedAsInvalidToken() {
     assertThat(classifier.classify(HttpStatus.UNAUTHORIZED, "unauthorized"))
         .isEqualTo(ProbeStatus.INVALID_TOKEN);
+  }
+
+  @Test
+  void detectsOrdsConnectionRefused() {
+    assertThat(classifier.isUnavailable(new ResourceAccessException(
+        "I/O error",
+        new ConnectException("Connection refused")
+    ))).isTrue();
+  }
+
+  @Test
+  void detectsOrdsTimeout() {
+    assertThat(classifier.isTimeout(new ResourceAccessException(
+        "I/O error",
+        new SocketTimeoutException("Read timed out")
+    ))).isTrue();
   }
 }

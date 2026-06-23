@@ -67,6 +67,14 @@ public class OrdsProbeService {
   }
 
   public ProbeResult runProbe(ProbeCommand command) {
+    if (properties.ords().baseUrl() == null || properties.ords().baseUrl().isBlank()) {
+      return auditAndReturn(command, ProbeResult.blocked(
+          ProbeStatus.ORDS_NOT_CONFIGURED,
+          ProbeStatus.ORDS_NOT_CONFIGURED.name(),
+          "ORDS base URL이 설정되지 않았습니다. 실제 ORDS 도메인을 BACKOFFICE_ORDS_BASE_URL에 설정한 뒤 백오피스를 재시작하세요."
+      ));
+    }
+
     BearerTokenRecord token = tokenService.findById(command.keyId());
     if (token == null) {
       return auditAndReturn(command, ProbeResult.blocked(
@@ -102,8 +110,8 @@ public class OrdsProbeService {
       return auditAndReturn(command, ProbeResult.blocked(
           status, status.name(), trimMessage(e.getResponseBodyAsString())));
     } catch (ResourceAccessException e) {
-      ProbeStatus status = errorClassifier.isTimeout(e) ? ProbeStatus.ORDS_TIMEOUT : ProbeStatus.UNKNOWN_ERROR;
-      return auditAndReturn(command, ProbeResult.blocked(status, status.name(), e.getMessage()));
+      ProbeStatus status = classifyResourceAccess(e);
+      return auditAndReturn(command, ProbeResult.blocked(status, status.name(), resourceAccessMessage(status, e)));
     } catch (Exception e) {
       return auditAndReturn(command, ProbeResult.blocked(
           ProbeStatus.INVALID_ORDS_RESPONSE, "INVALID_ORDS_RESPONSE", e.getMessage()));
@@ -191,6 +199,29 @@ public class OrdsProbeService {
         result.errorMessage()
     ));
     return result;
+  }
+
+  private ProbeStatus classifyResourceAccess(ResourceAccessException exception) {
+    if (errorClassifier.isTimeout(exception)) {
+      return ProbeStatus.ORDS_TIMEOUT;
+    }
+    if (errorClassifier.isUnavailable(exception)) {
+      return ProbeStatus.ORDS_UNAVAILABLE;
+    }
+    return ProbeStatus.UNKNOWN_ERROR;
+  }
+
+  private String resourceAccessMessage(ProbeStatus status, ResourceAccessException exception) {
+    String detail = trimMessage(exception.getMessage());
+    if (status == ProbeStatus.ORDS_UNAVAILABLE) {
+      return "ORDS 서버에 연결할 수 없습니다. BACKOFFICE_ORDS_BASE_URL의 실제 ORDS 도메인, ORDS 실행 상태, 네트워크 접근을 확인하세요. 상세: "
+          + detail;
+    }
+    if (status == ProbeStatus.ORDS_TIMEOUT) {
+      return "ORDS 응답 시간이 초과되었습니다. ORDS 상태와 BACKOFFICE_ORDS_TIMEOUT_SECONDS 설정을 확인하세요. 상세: "
+          + detail;
+    }
+    return detail;
   }
 
   private String trimMessage(String body) {

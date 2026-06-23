@@ -1,7 +1,10 @@
 package com.cloudhandson.vpdbackoffice.service;
 
 import com.cloudhandson.vpdbackoffice.domain.probe.ProbeStatus;
+import java.net.ConnectException;
+import java.net.NoRouteToHostException;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
@@ -24,9 +27,19 @@ public class ProbeErrorClassifier {
   }
 
   public boolean isTimeout(ResourceAccessException exception) {
-    Throwable cause = exception;
+    return hasCause(exception, SocketTimeoutException.class);
+  }
+
+  public boolean isUnavailable(ResourceAccessException exception) {
+    return hasCause(exception, ConnectException.class)
+        || hasCause(exception, NoRouteToHostException.class)
+        || hasCause(exception, UnknownHostException.class);
+  }
+
+  private boolean hasCause(Throwable throwable, Class<? extends Throwable> type) {
+    Throwable cause = throwable;
     while (cause != null) {
-      if (cause instanceof SocketTimeoutException) {
+      if (type.isInstance(cause)) {
         return true;
       }
       cause = cause.getCause();

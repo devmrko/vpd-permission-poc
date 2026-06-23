@@ -29,5 +29,5 @@ backoffice:
   token:
     max-days: ${BACKOFFICE_TOKEN_MAX_DAYS:365}
   ords:
-    base-url: ${BACKOFFICE_ORDS_BASE_URL:http://localhost:8081/ords}
+    base-url: ${BACKOFFICE_ORDS_BASE_URL:}
     timeout-seconds: ${BACKOFFICE_ORDS_TIMEOUT_SECONDS:10}
