@@ -77,6 +77,34 @@ CREATE TABLE cb_ords_probe_audit (
   created_at  TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL
 );
 
+PROMPT === Creating backoffice settings ===
+BEGIN
+  EXECUTE IMMEDIATE '
+    CREATE TABLE cb_backoffice_setting (
+      setting_key    VARCHAR2(100) PRIMARY KEY,
+      setting_value  VARCHAR2(1000),
+      updated_at     TIMESTAMP DEFAULT SYSTIMESTAMP NOT NULL
+    )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+MERGE INTO cb_backoffice_setting dst
+USING (
+  SELECT 'ORDS_BASE_URL' setting_key,
+         'https://yh0olybn5pqce4n-d8aukro81636mon0.adb.ap-seoul-1.oraclecloudapps.com/ords' setting_value
+  FROM dual
+) src
+ON (dst.setting_key = src.setting_key)
+WHEN MATCHED THEN UPDATE SET dst.setting_value = src.setting_value
+WHERE dst.setting_value IS NULL OR TRIM(dst.setting_value) IS NULL
+WHEN NOT MATCHED THEN INSERT (setting_key, setting_value, updated_at)
+VALUES (src.setting_key, src.setting_value, SYSTIMESTAMP);
+
 PROMPT === Seeding default VPD ORDS protected object ===
 MERGE INTO cb_protected_object dst
 USING (

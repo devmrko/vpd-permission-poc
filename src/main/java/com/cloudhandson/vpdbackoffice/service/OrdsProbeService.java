@@ -1,6 +1,5 @@
 package com.cloudhandson.vpdbackoffice.service;
 
-import com.cloudhandson.vpdbackoffice.config.BackofficeProperties;
 import com.cloudhandson.vpdbackoffice.domain.audit.AuditEvent;
 import com.cloudhandson.vpdbackoffice.domain.probe.ProbeCommand;
 import com.cloudhandson.vpdbackoffice.domain.probe.ProbeResult;
@@ -43,7 +42,7 @@ public class OrdsProbeService {
   private final ProbeErrorClassifier errorClassifier;
   private final RestTemplate ordsRestTemplate;
   private final ObjectMapper objectMapper;
-  private final BackofficeProperties properties;
+  private final SettingService settingService;
   private final Clock clock;
 
   public OrdsProbeService(
@@ -53,7 +52,7 @@ public class OrdsProbeService {
       ProbeErrorClassifier errorClassifier,
       RestTemplate ordsRestTemplate,
       ObjectMapper objectMapper,
-      BackofficeProperties properties,
+      SettingService settingService,
       Clock clock
   ) {
     this.tokenService = tokenService;
@@ -62,12 +61,13 @@ public class OrdsProbeService {
     this.errorClassifier = errorClassifier;
     this.ordsRestTemplate = ordsRestTemplate;
     this.objectMapper = objectMapper;
-    this.properties = properties;
+    this.settingService = settingService;
     this.clock = clock;
   }
 
   public ProbeResult runProbe(ProbeCommand command) {
-    if (properties.ords().baseUrl() == null || properties.ords().baseUrl().isBlank()) {
+    String ordsBaseUrl = settingService.ordsBaseUrl();
+    if (ordsBaseUrl == null || ordsBaseUrl.isBlank()) {
       return auditAndReturn(command, ProbeResult.blocked(
           ProbeStatus.ORDS_NOT_CONFIGURED,
           ProbeStatus.ORDS_NOT_CONFIGURED.name(),
@@ -100,7 +100,7 @@ public class OrdsProbeService {
     String requestHeaders = null;
     String requestPayload = null;
     try {
-      URI uri = buildUri(object.ordsPath(), command.limit());
+      URI uri = buildUri(ordsBaseUrl, object.ordsPath(), command.limit());
       HttpHeaders headers = new HttpHeaders();
       headers.setBearerAuth(command.bearerToken());
       requestHeaders = prettyHeaders(maskedRequestHeaders(headers));
@@ -144,8 +144,7 @@ public class OrdsProbeService {
     }
   }
 
-  private URI buildUri(String ordsPath, int limit) {
-    String baseUrl = properties.ords().baseUrl();
+  private URI buildUri(String baseUrl, String ordsPath, int limit) {
     String path = ordsPath.startsWith("/") ? ordsPath.substring(1) : ordsPath;
     return UriComponentsBuilder.fromUriString(baseUrl)
         .path("/")

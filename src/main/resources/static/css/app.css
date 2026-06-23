@@ -82,6 +82,10 @@ body {
   font-weight: 600;
 }
 
+.form-grid .span-2 {
+  grid-column: span 2;
+}
+
 .inline-form {
   display: inline;
 }

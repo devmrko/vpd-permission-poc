@@ -29,5 +29,5 @@ backoffice:
   token:
     max-days: ${BACKOFFICE_TOKEN_MAX_DAYS:365}
   ords:
-    base-url: ${BACKOFFICE_ORDS_BASE_URL:}
+    base-url: ${BACKOFFICE_ORDS_BASE_URL:https://yh0olybn5pqce4n-d8aukro81636mon0.adb.ap-seoul-1.oraclecloudapps.com/ords}
     timeout-seconds: ${BACKOFFICE_ORDS_TIMEOUT_SECONDS:10}

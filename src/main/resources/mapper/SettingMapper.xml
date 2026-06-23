@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cloudhandson.vpdbackoffice.mapper.SettingMapper">
+  <select id="findByKey" resultType="com.cloudhandson.vpdbackoffice.domain.setting.BackofficeSetting">
+    SELECT setting_key, setting_value
+    FROM cb_backoffice_setting
+    WHERE setting_key = #{settingKey,jdbcType=VARCHAR}
+  </select>
+
+  <update id="upsert">
+    MERGE INTO cb_backoffice_setting dst
+    USING (
+      SELECT #{settingKey,jdbcType=VARCHAR} setting_key,
+             #{settingValue,jdbcType=VARCHAR} setting_value
+      FROM dual
+    ) src
+    ON (dst.setting_key = src.setting_key)
+    WHEN MATCHED THEN UPDATE SET
+      dst.setting_value = src.setting_value,
+      dst.updated_at = SYSTIMESTAMP
+    WHEN NOT MATCHED THEN INSERT (setting_key, setting_value, updated_at)
+      VALUES (src.setting_key, src.setting_value, SYSTIMESTAMP)
+  </update>
+</mapper>
