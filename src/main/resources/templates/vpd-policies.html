@@ -30,10 +30,27 @@
     <div class="section-heading">
       <div>
         <h2>VPD 적용 대상 TABLE/VIEW</h2>
-        <p class="section-subtitle">Oracle DB catalog 기준의 TABLE/VIEW 목록입니다. ORDS는 이 객체를 HTTP로 서빙하는 별도 레이어입니다.</p>
+        <p class="section-subtitle">Oracle DB catalog 기준의 TABLE/VIEW 목록입니다. Schema를 선택하면 해당 스키마 객체를 조회합니다.</p>
       </div>
       <span class="badge text-bg-secondary" th:text="${#lists.size(vpdTargets)}">0</span>
     </div>
+    <form method="get" action="/vpd-policies" class="inline-form mb-3">
+      <label>
+        Schema
+        <select class="form-select form-select-sm" name="schemaOwner" onchange="this.form.submit()">
+          <option value="" th:selected="${selectedSchemaOwner == null || selectedSchemaOwner == ''}">관리 대상 스키마</option>
+          <option th:each="owner : ${formOptions.schemaOwners()}"
+                  th:value="${owner}"
+                  th:text="${owner}"
+                  th:selected="${owner == selectedSchemaOwner}"></option>
+          <option th:if="${selectedSchemaOwner != null && selectedSchemaOwner != '' && !#lists.contains(formOptions.schemaOwners(), selectedSchemaOwner)}"
+                  th:value="${selectedSchemaOwner}"
+                  th:text="${selectedSchemaOwner + ' / 조회 가능한 객체 없음'}"
+                  selected></option>
+        </select>
+      </label>
+      <button class="btn btn-sm rw-btn-secondary" type="submit">조회</button>
+    </form>
     <div class="table-responsive">
       <table class="table table-sm align-middle">
         <thead>

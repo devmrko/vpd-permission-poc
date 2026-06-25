@@ -13,7 +13,7 @@ public interface VpdPolicyMapper {
 
   List<VpdPolicyView> findPolicies();
 
-  List<VpdTargetView> findVpdTargets();
+  List<VpdTargetView> findVpdTargets(@Param("owner") String owner);
 
   List<String> findPolicyNameOptions();
 

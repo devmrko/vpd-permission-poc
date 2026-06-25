@@ -22,27 +22,42 @@ public class VpdPolicyController {
   }
 
   @GetMapping("/vpd-policies")
-  public String policies(Model model) {
-    populatePolicyModel(model);
+  public String policies(
+      @RequestParam(required = false) String schemaOwner,
+      Model model
+  ) {
+    populatePolicyModel(schemaOwner, model);
     return "vpd-policies";
   }
 
   @GetMapping("/vpd-filter-policies")
-  public String filterPolicies(Model model) {
-    populatePolicyModel(model);
+  public String filterPolicies(
+      @RequestParam(required = false) String schemaOwner,
+      Model model
+  ) {
+    populatePolicyModel(schemaOwner, model);
     return "vpd-filter-policies";
   }
 
-  private void populatePolicyModel(Model model) {
+  private void populatePolicyModel(String schemaOwner, Model model) {
     try {
+      String selectedSchemaOwner = schemaOwner == null ? "" : schemaOwner.trim().toUpperCase();
       model.addAttribute("policies", vpdPolicyService.findPolicies());
-      model.addAttribute("vpdTargets", vpdPolicyService.findVpdTargets());
+      model.addAttribute("vpdTargets", vpdPolicyService.findVpdTargets(selectedSchemaOwner));
+      model.addAttribute("selectedSchemaOwner", selectedSchemaOwner);
       model.addAttribute("formOptions", vpdPolicyService.formOptions());
     } catch (DataAccessException exception) {
       RuntimeErrorMessage message = RuntimeErrorMessages.dataAccess(exception);
       model.addAttribute("runtimeError", message);
       model.addAttribute("policies", List.of());
       model.addAttribute("vpdTargets", List.of());
+      model.addAttribute("selectedSchemaOwner", "");
+      model.addAttribute("formOptions", vpdPolicyService.emptyFormOptions());
+    } catch (AppException exception) {
+      model.addAttribute("errorMessage", exception.getMessage());
+      model.addAttribute("policies", List.of());
+      model.addAttribute("vpdTargets", List.of());
+      model.addAttribute("selectedSchemaOwner", "");
       model.addAttribute("formOptions", vpdPolicyService.emptyFormOptions());
     }
   }

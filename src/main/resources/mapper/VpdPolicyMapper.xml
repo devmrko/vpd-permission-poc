@@ -48,7 +48,10 @@
       SELECT owner, object_name, object_type
       FROM all_objects
       WHERE object_type IN ('TABLE', 'VIEW')
-        AND owner IN (SELECT owner FROM managed_owners)
+        AND (
+          (#{owner,jdbcType=VARCHAR} IS NULL AND owner IN (SELECT owner FROM managed_owners))
+          OR owner = UPPER(#{owner,jdbcType=VARCHAR})
+        )
         AND owner NOT IN ('SYS', 'SYSTEM', 'ORDS_METADATA', 'ORDS_PUBLIC_USER')
         AND owner NOT LIKE 'APEX\_%' ESCAPE '\'
         AND owner NOT LIKE 'C##%'

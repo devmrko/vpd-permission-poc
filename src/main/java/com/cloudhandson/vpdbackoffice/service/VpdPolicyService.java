@@ -12,7 +12,9 @@ import com.cloudhandson.vpdbackoffice.domain.vpd.VpdTargetView;
 import com.cloudhandson.vpdbackoffice.mapper.VpdPolicyMapper;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -27,7 +29,7 @@ public class VpdPolicyService {
   private final VpdPolicyMapper mapper;
   private final JdbcTemplate jdbcTemplate;
   private final OpenAiCompatibleClient aiClient;
-  private volatile CacheEntry<List<VpdTargetView>> vpdTargetsCache;
+  private final Map<String, CacheEntry<List<VpdTargetView>>> vpdTargetsCache = new ConcurrentHashMap<>();
   private volatile CacheEntry<VpdPolicyFormOptions> formOptionsCache;
 
   public VpdPolicyService(VpdPolicyMapper mapper, JdbcTemplate jdbcTemplate, OpenAiCompatibleClient aiClient) {
@@ -41,12 +43,18 @@ public class VpdPolicyService {
   }
 
   public List<VpdTargetView> findVpdTargets() {
-    CacheEntry<List<VpdTargetView>> cached = vpdTargetsCache;
+    return findVpdTargets(null);
+  }
+
+  public List<VpdTargetView> findVpdTargets(String owner) {
+    String normalizedOwner = normalizeOptionalIdentifier(owner);
+    String cacheKey = normalizedOwner == null ? "__MANAGED__" : normalizedOwner;
+    CacheEntry<List<VpdTargetView>> cached = vpdTargetsCache.get(cacheKey);
     if (cached != null && !cached.expired()) {
       return cached.value();
     }
-    List<VpdTargetView> targets = List.copyOf(mapper.findVpdTargets());
-    vpdTargetsCache = new CacheEntry<>(targets, System.currentTimeMillis() + CATALOG_CACHE_MILLIS);
+    List<VpdTargetView> targets = List.copyOf(mapper.findVpdTargets(normalizedOwner));
+    vpdTargetsCache.put(cacheKey, new CacheEntry<>(targets, System.currentTimeMillis() + CATALOG_CACHE_MILLIS));
     return targets;
   }
 
@@ -273,7 +281,7 @@ public class VpdPolicyService {
   }
 
   public void clearCatalogCache() {
-    vpdTargetsCache = null;
+    vpdTargetsCache.clear();
     formOptionsCache = null;
   }
 

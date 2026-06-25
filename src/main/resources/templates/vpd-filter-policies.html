@@ -18,6 +18,33 @@
 
   <section class="content-band">
     <div class="section-heading">
+      <div>
+        <h2>VPD 적용 대상 Schema</h2>
+        <p class="section-subtitle">개별 적용 드롭다운에 표시할 TABLE/VIEW 스키마를 선택합니다.</p>
+      </div>
+      <span class="badge text-bg-secondary" th:text="${#lists.size(vpdTargets)}">0</span>
+    </div>
+    <form method="get" action="/vpd-filter-policies" class="inline-form">
+      <label>
+        Schema
+        <select class="form-select form-select-sm" name="schemaOwner" onchange="this.form.submit()">
+          <option value="" th:selected="${selectedSchemaOwner == null || selectedSchemaOwner == ''}">관리 대상 스키마</option>
+          <option th:each="owner : ${formOptions.schemaOwners()}"
+                  th:value="${owner}"
+                  th:text="${owner}"
+                  th:selected="${owner == selectedSchemaOwner}"></option>
+          <option th:if="${selectedSchemaOwner != null && selectedSchemaOwner != '' && !#lists.contains(formOptions.schemaOwners(), selectedSchemaOwner)}"
+                  th:value="${selectedSchemaOwner}"
+                  th:text="${selectedSchemaOwner + ' / 조회 가능한 객체 없음'}"
+                  selected></option>
+        </select>
+      </label>
+      <button class="btn btn-sm rw-btn-secondary" type="submit">조회</button>
+    </form>
+  </section>
+
+  <section class="content-band">
+    <div class="section-heading">
       <h2>Filter 등록/수정</h2>
       <a class="btn btn-sm rw-btn-secondary" href="/vpd-policies">적용 현황 보기</a>
     </div>
