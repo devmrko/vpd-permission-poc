@@ -3,40 +3,54 @@
     "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.cloudhandson.vpdbackoffice.mapper.VpdPolicyMapper">
   <sql id="policyColumns">
-    object_owner,
-    object_name,
-    policy_group,
-    policy_name,
-    pf_owner AS function_owner,
-    package AS package_name,
-    function AS function_name,
+    ${alias}object_owner,
+    ${alias}object_name,
+    ${alias}policy_group,
+    ${alias}policy_name,
+    ${alias}pf_owner AS function_owner,
+    ${alias}package AS package_name,
+    ${alias}function AS function_name,
     RTRIM(
-      CASE WHEN sel = 'YES' THEN 'SELECT,' ELSE '' END ||
-      CASE WHEN ins = 'YES' THEN 'INSERT,' ELSE '' END ||
-      CASE WHEN upd = 'YES' THEN 'UPDATE,' ELSE '' END ||
-      CASE WHEN del = 'YES' THEN 'DELETE,' ELSE '' END ||
-      CASE WHEN idx = 'YES' THEN 'INDEX,' ELSE '' END,
+      CASE WHEN ${alias}sel = 'YES' THEN 'SELECT,' ELSE '' END ||
+      CASE WHEN ${alias}ins = 'YES' THEN 'INSERT,' ELSE '' END ||
+      CASE WHEN ${alias}upd = 'YES' THEN 'UPDATE,' ELSE '' END ||
+      CASE WHEN ${alias}del = 'YES' THEN 'DELETE,' ELSE '' END ||
+      CASE WHEN ${alias}idx = 'YES' THEN 'INDEX,' ELSE '' END,
       ','
     ) AS statement_types,
-    chk_option AS check_option,
-    enable AS enabled,
-    static_policy,
-    policy_type,
-    long_predicate
+    ${alias}chk_option AS check_option,
+    ${alias}enable AS enabled,
+    ${alias}static_policy,
+    ${alias}policy_type,
+    ${alias}long_predicate
   </sql>
 
   <select id="findPolicies" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView">
-    SELECT <include refid="policyColumns"/>
-    FROM all_policies
-    ORDER BY object_owner, object_name, policy_name
+    SELECT <include refid="policyColumns"><property name="alias" value="p."/></include>
+    FROM all_policies p
+    WHERE EXISTS (
+      SELECT 1
+      FROM cb_protected_object o
+      WHERE o.enabled_yn = 'Y'
+        AND o.owner = p.object_owner
+        AND o.object_name = p.object_name
+    )
+    ORDER BY p.object_owner, p.object_name, p.policy_name
   </select>
 
   <select id="findPolicy" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView">
-    SELECT <include refid="policyColumns"/>
-    FROM all_policies
-    WHERE object_owner = UPPER(#{objectOwner,jdbcType=VARCHAR})
-      AND object_name = UPPER(#{objectName,jdbcType=VARCHAR})
-      AND policy_name = UPPER(#{policyName,jdbcType=VARCHAR})
+    SELECT <include refid="policyColumns"><property name="alias" value="p."/></include>
+    FROM all_policies p
+    WHERE p.object_owner = UPPER(#{objectOwner,jdbcType=VARCHAR})
+      AND p.object_name = UPPER(#{objectName,jdbcType=VARCHAR})
+      AND p.policy_name = UPPER(#{policyName,jdbcType=VARCHAR})
+      AND EXISTS (
+        SELECT 1
+        FROM cb_protected_object o
+        WHERE o.enabled_yn = 'Y'
+          AND o.owner = p.object_owner
+          AND o.object_name = p.object_name
+      )
   </select>
 
   <select id="findFunctionSource" resultType="string">
