@@ -449,6 +449,12 @@ body {
   margin: 0;
 }
 
+.bulk-apply-summary {
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 2rem;
+}
+
 .question-presets {
   display: flex;
   flex-wrap: wrap;
