@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="explanation">
+  <div class="alert alert-warning mb-0" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+  <div th:if="${explanation}">
+    <div class="section-heading mb-2">
+      <h2>LLM 설명</h2>
+      <span class="badge"
+            th:classappend="${explanation.status() == 'SUCCESS'} ? ' text-bg-success' : ' text-bg-warning'"
+            th:text="${explanation.status()}">SUCCESS</span>
+    </div>
+    <section class="ai-answer">
+      <h3>Answer</h3>
+      <pre th:text="${explanation.answer()}">answer</pre>
+    </section>
+    <div class="probe-exchange-grid">
+      <section class="probe-exchange">
+        <h3>Policy / Filter Prompt</h3>
+        <pre th:text="${explanation.prompt()}">prompt</pre>
+      </section>
+      <section class="probe-exchange">
+        <h3>Policy Function Source</h3>
+        <pre th:if="${explanation.functionSource().found()}" th:text="${explanation.functionSource().source()}"></pre>
+        <pre th:unless="${explanation.functionSource().found()}">ALL_SOURCE에서 조회 가능한 source가 없습니다.</pre>
+      </section>
+    </div>
+  </div>
+</div>
+</body>
+</html>

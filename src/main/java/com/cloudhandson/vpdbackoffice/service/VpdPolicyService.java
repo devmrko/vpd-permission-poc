@@ -2,6 +2,7 @@ package com.cloudhandson.vpdbackoffice.service;
 
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdFunctionSource;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyDetail;
+import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyExplanation;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView;
 import com.cloudhandson.vpdbackoffice.mapper.VpdPolicyMapper;
 import java.util.List;
@@ -12,9 +13,11 @@ import org.springframework.stereotype.Service;
 public class VpdPolicyService {
 
   private final VpdPolicyMapper mapper;
+  private final OpenAiCompatibleClient aiClient;
 
-  public VpdPolicyService(VpdPolicyMapper mapper) {
+  public VpdPolicyService(VpdPolicyMapper mapper, OpenAiCompatibleClient aiClient) {
     this.mapper = mapper;
+    this.aiClient = aiClient;
   }
 
   public List<VpdPolicyView> findPolicies() {
@@ -40,6 +43,90 @@ public class VpdPolicyService {
       throw new AppException("VPD policy를 찾을 수 없습니다.");
     }
     return new VpdPolicyDetail(policy, buildAddPolicyBlock(policy));
+  }
+
+  public VpdPolicyExplanation explainPolicy(String objectOwner, String objectName, String policyName) {
+    VpdPolicyDetail detail = findPolicyDetail(objectOwner, objectName, policyName);
+    VpdPolicyView policy = detail.policy();
+    VpdFunctionSource functionSource = findFunctionSource(
+        policy.functionOwner(),
+        policy.packageName(),
+        policy.functionName()
+    );
+    String prompt = buildExplanationPrompt(detail, functionSource);
+    if (!aiClient.configured()) {
+      return new VpdPolicyExplanation(
+          "AI_NOT_CONFIGURED",
+          "AI base URL/API Key 설정이 없어 모델 호출은 건너뛰었습니다. 아래 Prompt와 function source를 기준으로 policy/filter 내용을 확인하세요.",
+          prompt,
+          detail,
+          functionSource
+      );
+    }
+    try {
+      String answer = aiClient.chat(vpdSystemPrompt(), prompt);
+      return new VpdPolicyExplanation("SUCCESS", answer, prompt, detail, functionSource);
+    } catch (Exception e) {
+      return new VpdPolicyExplanation(
+          "AI_CALL_FAILED",
+          "AI 호출은 실패했지만 policy/filter 근거는 수집했습니다. 상세: " + e.getMessage(),
+          prompt,
+          detail,
+          functionSource
+      );
+    }
+  }
+
+  private String buildExplanationPrompt(VpdPolicyDetail detail, VpdFunctionSource functionSource) {
+    VpdPolicyView policy = detail.policy();
+    return """
+        다음 Oracle VPD policy와 policy function source를 근거로 설명해줘.
+
+        Policy Metadata:
+        - Object: %s
+        - Policy Group: %s
+        - Policy Name: %s
+        - Function: %s
+        - Statement Types: %s
+        - Enabled: %s
+        - Policy Type: %s
+        - Check Option: %s
+        - Static Policy: %s
+        - Long Predicate: %s
+
+        DBMS_RLS.ADD_POLICY:
+        %s
+
+        Policy Function Source:
+        %s
+
+        답변 요구사항:
+        - 한국어로 답변한다.
+        - 이 policy가 어느 객체의 어떤 SQL 동작에 적용되는지 설명한다.
+        - filter predicate가 어떤 조건을 만들고 어떤 행이 보이거나 제외되는지 설명한다.
+        - source에 명시되지 않은 동작은 추측하지 않는다.
+        - 운영자가 확인할 포인트를 짧게 정리한다.
+        """.formatted(
+        policy.objectDisplayName(),
+        policy.policyGroup(),
+        policy.policyName(),
+        policy.functionDisplayName(),
+        blankToDefault(policy.statementTypes(), "-"),
+        policy.enabled(),
+        policy.policyType(),
+        policy.checkOption(),
+        policy.staticPolicy(),
+        policy.longPredicate(),
+        detail.ddl(),
+        functionSource.found() ? functionSource.source() : "ALL_SOURCE에서 조회 가능한 source가 없습니다."
+    );
+  }
+
+  private String vpdSystemPrompt() {
+    return """
+        당신은 Oracle ADB VPD(DBMS_RLS), RLS policy function, ORDS 권한 검증을 설명하는 보조자입니다.
+        제공된 policy metadata와 source만 근거로 설명하고, 없는 정보를 추측하지 마세요.
+        """;
   }
 
   private String buildAddPolicyBlock(VpdPolicyView policy) {

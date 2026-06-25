@@ -31,6 +31,7 @@
           <th>Status</th>
           <th>Type</th>
           <th>Options</th>
+          <th>Explain</th>
         </tr>
         </thead>
         <tbody>
@@ -70,17 +71,26 @@
             <span class="ms-2">Static: <strong th:text="${policy.staticPolicy()}">NO</strong></span>
             <span class="ms-2">Long: <strong th:text="${policy.longPredicate()}">NO</strong></span>
           </td>
+          <td>
+            <button class="btn btn-sm rw-btn-primary"
+                    type="button"
+                    th:hx-get="@{/vpd-policies/policy-explanation(objectOwner=${policy.objectOwner()},objectName=${policy.objectName()},policyName=${policy.policyName()})}"
+                    th:hx-target="${'#policy-source-' + iter.index}"
+                    hx-swap="innerHTML">
+              LLM 설명
+            </button>
+          </td>
         </tr>
         <tr>
-          <td colspan="7" class="policy-source-cell">
+          <td colspan="8" class="policy-source-cell">
             <div th:id="${'policy-source-' + iter.index}" class="text-muted small">
-              Policy 또는 policy function을 클릭하면 상세 내역이 표시됩니다.
+              Policy, policy function, LLM 설명을 클릭하면 상세 내역이 표시됩니다.
             </div>
           </td>
         </tr>
         </th:block>
         <tr th:if="${#lists.isEmpty(policies)}">
-          <td colspan="7" class="text-muted">
+          <td colspan="8" class="text-muted">
             등록된 보호 객체에 적용된 VPD policy가 없습니다. 테이블/뷰 관리의 보호 객체 등록 상태와 DB policy 적용 상태를 확인하세요.
           </td>
         </tr>
