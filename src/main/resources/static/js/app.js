@@ -5,6 +5,29 @@ document.body.addEventListener('htmx:responseError', (event) => {
   }
 });
 
+function resetFilterToggle(button, target) {
+  if (!button || !target) {
+    return;
+  }
+  button.setAttribute('aria-expanded', 'false');
+  button.classList.remove('active');
+  target.innerHTML = button.dataset.toggleDefaultText || 'Filter 이름을 클릭하면 policy/filter source가 표시됩니다.';
+}
+
+function setFilterToggleLoading(button, target) {
+  if (!button || !target) {
+    return;
+  }
+  button.setAttribute('aria-expanded', 'true');
+  button.classList.add('active');
+  target.innerHTML = button.dataset.toggleLoadingText || 'policy/filter source를 조회하는 중입니다.';
+}
+
+function findHtmxTarget(button) {
+  const selector = button?.getAttribute('hx-target') || button?.getAttribute('data-hx-target');
+  return selector ? document.querySelector(selector) : null;
+}
+
 function escapeHtml(value) {
   return value
       .replaceAll('&', '&amp;')
@@ -430,6 +453,25 @@ document.addEventListener('DOMContentLoaded', () => {
   updatePermissionWizardPreview(document);
 });
 
+document.body.addEventListener('htmx:beforeRequest', (event) => {
+  const button = event.detail.elt;
+  if (!button?.matches?.('[data-filter-toggle]')) {
+    return;
+  }
+  const target = findHtmxTarget(button);
+  if (button.getAttribute('aria-expanded') === 'true') {
+    event.preventDefault();
+    resetFilterToggle(button, target);
+    return;
+  }
+  setFilterToggleLoading(button, target);
+});
+
 document.body.addEventListener('htmx:afterSwap', (event) => {
+  const button = event.detail.elt;
+  if (button?.matches?.('[data-filter-toggle]')) {
+    button.setAttribute('aria-expanded', 'true');
+    button.classList.add('active');
+  }
   renderMarkdownViews(event.detail.target || document);
 });

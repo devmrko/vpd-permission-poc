@@ -854,6 +854,13 @@ body {
   text-align: left;
 }
 
+.policy-function-button.active,
+.policy-function-button[aria-expanded="true"] {
+  background: var(--rw-accent-soft);
+  border-color: var(--rw-accent);
+  color: var(--rw-accent-strong);
+}
+
 .policy-source-cell {
   background: var(--rw-surface) !important;
   padding: 0 0 .75rem !important;

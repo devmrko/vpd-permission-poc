@@ -77,6 +77,10 @@
             <button th:if="${target.vpdApplied()}"
                     class="btn btn-sm btn-outline-secondary policy-function-button"
                     type="button"
+                    aria-expanded="false"
+                    data-filter-toggle="true"
+                    data-toggle-default-text="Filter 이름을 클릭하면 policy/filter source가 표시됩니다."
+                    data-toggle-loading-text="policy/filter source를 조회하는 중입니다."
                     th:hx-get="@{/vpd-policies/object-filter-detail(objectOwner=${target.owner()},objectName=${target.objectName()})}"
                     th:hx-target="${'#target-filter-detail-' + iter.index}"
                     hx-swap="innerHTML">
