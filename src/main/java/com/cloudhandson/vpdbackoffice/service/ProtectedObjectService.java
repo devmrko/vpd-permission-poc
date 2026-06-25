@@ -35,6 +35,10 @@ public class ProtectedObjectService {
     return mapper.findEnabled();
   }
 
+  public List<ProtectedObject> findEnabledWithPermissions() {
+    return mapper.findEnabledWithPermissions();
+  }
+
   public List<DatabaseObjectOption> findDatabaseObjects() {
     CacheEntry<List<DatabaseObjectOption>> cached = databaseObjectsCache;
     if (cached != null && !cached.expired()) {
@@ -83,6 +87,7 @@ public class ProtectedObjectService {
     for (String column : splitCsv(normalized.columns())) {
       mapper.insertColumn(mapper.nextColumnId(), objectId, column, sensitive.contains(column) ? "Y" : "N");
     }
+    databaseObjectsCache = null;
     protectedColumnsCache.remove(objectId);
     auditService.record(new AuditEvent("PROTECTED_OBJECT_CREATED", null, objectId, "SUCCESS", null, null,
         normalized.objectName()));
@@ -96,6 +101,8 @@ public class ProtectedObjectService {
     if (existing != null) {
       if (!existing.enabled()) {
         mapper.enableObject(existing.objectId());
+        databaseObjectsCache = null;
+        protectedColumnsCache.remove(existing.objectId());
         auditService.record(new AuditEvent("PROTECTED_OBJECT_RE_ENABLED", null, existing.objectId(), "SUCCESS", null,
             null, existing.displayName()));
         return mapper.findById(existing.objectId());
@@ -119,6 +126,7 @@ public class ProtectedObjectService {
     for (String column : columns) {
       mapper.insertColumn(mapper.nextColumnId(), objectId, column, "N");
     }
+    databaseObjectsCache = null;
     protectedColumnsCache.remove(objectId);
     auditService.record(new AuditEvent("PROTECTED_OBJECT_AUTO_CREATED", null, objectId, "SUCCESS", null, null,
         command.objectName()));
@@ -162,6 +170,8 @@ public class ProtectedObjectService {
     if (updated == 0) {
       throw new AppException("보호 객체를 찾을 수 없습니다.");
     }
+    databaseObjectsCache = null;
+    protectedColumnsCache.remove(objectId);
     auditService.record(new AuditEvent("PROTECTED_OBJECT_DISABLED", null, objectId, "SUCCESS", null, null, null));
   }
 

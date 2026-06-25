@@ -110,11 +110,15 @@ public class PermissionService {
 
   @Transactional
   public void deletePermission(long permissionId) {
+    Long objectId = permissionMapper.findObjectIdByPermissionId(permissionId);
     permissionMapper.deleteRules(permissionId);
     permissionMapper.deleteVisibleColumns(permissionId);
     int deleted = permissionMapper.deletePermission(permissionId);
     if (deleted == 0) {
       throw new AppException("삭제할 권한을 찾을 수 없습니다.");
+    }
+    if (objectId != null && permissionMapper.countPermissionsByObjectId(objectId) == 0) {
+      protectedObjectService.disableObject(objectId);
     }
     auditService.record(new AuditEvent("PERMISSION_DELETED", null, null, "SUCCESS", null, null,
         "permissionId=" + permissionId));

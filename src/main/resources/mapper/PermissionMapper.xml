@@ -84,6 +84,20 @@
       AND o.object_id = #{objectId}
   </select>
 
+  <select id="findObjectIdByPermissionId" resultType="long">
+    SELECT o.object_id
+    FROM cb_permission p
+    JOIN cb_protected_object o ON o.object_name = p.target_name
+    WHERE p.perm_id = #{permissionId}
+  </select>
+
+  <select id="countPermissionsByObjectId" resultType="int">
+    SELECT COUNT(*)
+    FROM cb_permission p
+    JOIN cb_protected_object o ON o.object_name = p.target_name
+    WHERE o.object_id = #{objectId}
+  </select>
+
   <select id="findPermissionSet" resultType="com.cloudhandson.vpdbackoffice.domain.permission.PermissionSet">
     SELECT p.perm_id AS permission_id,
            p.role_id,

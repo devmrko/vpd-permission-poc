@@ -29,6 +29,10 @@ public interface PermissionMapper {
 
   Long findPermissionId(@Param("roleId") long roleId, @Param("objectId") long objectId);
 
+  Long findObjectIdByPermissionId(@Param("permissionId") long permissionId);
+
+  int countPermissionsByObjectId(@Param("objectId") long objectId);
+
   void insertPermission(@Param("permissionId") long permissionId,
                         @Param("roleId") long roleId,
                         @Param("objectId") long objectId,

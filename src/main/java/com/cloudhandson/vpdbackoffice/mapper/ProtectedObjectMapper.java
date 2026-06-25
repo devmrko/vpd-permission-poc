@@ -13,6 +13,8 @@ public interface ProtectedObjectMapper {
 
   List<ProtectedObject> findEnabled();
 
+  List<ProtectedObject> findEnabledWithPermissions();
+
   ProtectedObject findById(@Param("objectId") long objectId);
 
   ProtectedObject findByOwnerAndName(@Param("owner") String owner, @Param("objectName") String objectName);

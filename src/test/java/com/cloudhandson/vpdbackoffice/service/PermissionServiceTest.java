@@ -1,5 +1,6 @@
 package com.cloudhandson.vpdbackoffice.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.cloudhandson.vpdbackoffice.domain.audit.AuditEvent;
@@ -74,6 +75,24 @@ class PermissionServiceTest {
         .hasMessageContaining("허용되지 않은");
   }
 
+  @Test
+  void disablesProtectedObjectWhenLastPermissionIsDeleted() {
+    var mapper = new FakePermissionMapper();
+    boolean[] disabled = {false};
+    AuditService auditService = new AuditService(new NoopAuditMapper());
+    ProtectedObjectService objectService = new ProtectedObjectService(null, auditService) {
+      @Override
+      public void disableObject(long objectId) {
+        disabled[0] = objectId == 1L;
+      }
+    };
+    PermissionService service = new PermissionService(mapper, objectService, auditService);
+
+    service.deletePermission(1000L);
+
+    assertThat(disabled[0]).isTrue();
+  }
+
   private static class NoopAuditMapper implements AuditMapper {
     @Override
     public void insert(AuditEvent event) {
@@ -118,6 +137,16 @@ class PermissionServiceTest {
     @Override
     public Long findPermissionId(long roleId, long objectId) {
       return null;
+    }
+
+    @Override
+    public Long findObjectIdByPermissionId(long permissionId) {
+      return permissionId == 1000L ? 1L : null;
+    }
+
+    @Override
+    public int countPermissionsByObjectId(long objectId) {
+      return 0;
     }
 
     @Override

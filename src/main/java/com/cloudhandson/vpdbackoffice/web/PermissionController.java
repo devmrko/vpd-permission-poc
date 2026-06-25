@@ -63,7 +63,7 @@ public class PermissionController {
   @GetMapping("/permissions")
   public String permissions(Model model) {
     long started = System.nanoTime();
-    var objects = protectedObjectService.findEnabled();
+    var objects = protectedObjectService.findEnabledWithPermissions();
     long objectsAt = System.nanoTime();
     var roles = permissionService.findRoles();
     long rolesAt = System.nanoTime();

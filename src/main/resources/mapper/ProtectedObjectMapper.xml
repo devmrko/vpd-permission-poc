@@ -9,6 +9,14 @@
     ORDER BY owner, object_name
   </select>
 
+  <select id="findEnabledWithPermissions" resultType="com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedObject">
+    SELECT DISTINCT po.object_id, po.owner, po.object_name, po.ords_path, po.enabled_yn
+    FROM cb_protected_object po
+    JOIN cb_permission p ON p.target_name = po.object_name
+    WHERE po.enabled_yn = 'Y'
+    ORDER BY po.owner, po.object_name
+  </select>
+
   <select id="findById" resultType="com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedObject">
     SELECT object_id, owner, object_name, ords_path, enabled_yn
     FROM cb_protected_object
@@ -31,6 +39,7 @@
       AND NOT EXISTS (
         SELECT 1
         FROM cb_protected_object po
+        JOIN cb_permission p ON p.target_name = po.object_name
         WHERE po.owner = all_objects.owner
           AND po.object_name = all_objects.object_name
           AND po.enabled_yn = 'Y'
