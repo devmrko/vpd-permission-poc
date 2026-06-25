@@ -47,4 +47,22 @@ public class VpdPolicyController {
     }
     return "fragments/vpd-function-source :: source";
   }
+
+  @GetMapping("/vpd-policies/policy-detail")
+  public String policyDetail(
+      @RequestParam String objectOwner,
+      @RequestParam String objectName,
+      @RequestParam String policyName,
+      Model model
+  ) {
+    try {
+      model.addAttribute("detail", vpdPolicyService.findPolicyDetail(objectOwner, objectName, policyName));
+    } catch (AppException exception) {
+      model.addAttribute("errorMessage", exception.getMessage());
+    } catch (DataAccessException exception) {
+      RuntimeErrorMessage message = RuntimeErrorMessages.dataAccess(exception);
+      model.addAttribute("errorMessage", message.message());
+    }
+    return "fragments/vpd-policy-detail :: detail";
+  }
 }

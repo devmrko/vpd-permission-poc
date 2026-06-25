@@ -2,30 +2,41 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.cloudhandson.vpdbackoffice.mapper.VpdPolicyMapper">
+  <sql id="policyColumns">
+    object_owner,
+    object_name,
+    policy_group,
+    policy_name,
+    pf_owner AS function_owner,
+    package AS package_name,
+    function AS function_name,
+    RTRIM(
+      CASE WHEN sel = 'YES' THEN 'SELECT,' ELSE '' END ||
+      CASE WHEN ins = 'YES' THEN 'INSERT,' ELSE '' END ||
+      CASE WHEN upd = 'YES' THEN 'UPDATE,' ELSE '' END ||
+      CASE WHEN del = 'YES' THEN 'DELETE,' ELSE '' END ||
+      CASE WHEN idx = 'YES' THEN 'INDEX,' ELSE '' END,
+      ','
+    ) AS statement_types,
+    chk_option AS check_option,
+    enable AS enabled,
+    static_policy,
+    policy_type,
+    long_predicate
+  </sql>
+
   <select id="findPolicies" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView">
-    SELECT
-      object_owner,
-      object_name,
-      policy_group,
-      policy_name,
-      pf_owner AS function_owner,
-      package AS package_name,
-      function AS function_name,
-      RTRIM(
-        CASE WHEN sel = 'YES' THEN 'SELECT,' ELSE '' END ||
-        CASE WHEN ins = 'YES' THEN 'INSERT,' ELSE '' END ||
-        CASE WHEN upd = 'YES' THEN 'UPDATE,' ELSE '' END ||
-        CASE WHEN del = 'YES' THEN 'DELETE,' ELSE '' END ||
-        CASE WHEN idx = 'YES' THEN 'INDEX,' ELSE '' END,
-        ','
-      ) AS statement_types,
-      chk_option AS check_option,
-      enable AS enabled,
-      static_policy,
-      policy_type,
-      long_predicate
+    SELECT <include refid="policyColumns"/>
     FROM all_policies
     ORDER BY object_owner, object_name, policy_name
+  </select>
+
+  <select id="findPolicy" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView">
+    SELECT <include refid="policyColumns"/>
+    FROM all_policies
+    WHERE object_owner = UPPER(#{objectOwner,jdbcType=VARCHAR})
+      AND object_name = UPPER(#{objectName,jdbcType=VARCHAR})
+      AND policy_name = UPPER(#{policyName,jdbcType=VARCHAR})
   </select>
 
   <select id="findFunctionSource" resultType="string">

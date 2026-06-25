@@ -10,6 +10,12 @@ public interface VpdPolicyMapper {
 
   List<VpdPolicyView> findPolicies();
 
+  VpdPolicyView findPolicy(
+      @Param("objectOwner") String objectOwner,
+      @Param("objectName") String objectName,
+      @Param("policyName") String policyName
+  );
+
   String findFunctionSource(
       @Param("owner") String owner,
       @Param("objectName") String objectName,
