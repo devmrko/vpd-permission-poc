@@ -1,6 +1,7 @@
 package com.cloudhandson.vpdbackoffice.mapper;
 
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdFunctionOption;
+import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyTemplateOption;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdSchemaObjectOption;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdTargetView;
@@ -22,6 +23,8 @@ public interface VpdPolicyMapper {
   List<String> findOwnerOptions();
 
   List<VpdFunctionOption> findFunctionOptions();
+
+  List<VpdPolicyTemplateOption> findPolicyTemplateOptions();
 
   List<VpdSchemaObjectOption> findSchemaObjects(
       @Param("owner") String owner,

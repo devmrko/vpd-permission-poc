@@ -69,6 +69,7 @@ public class VpdPolicyService {
         mapper.findSchemaOwnerOptions(),
         mapper.findOwnerOptions(),
         mapper.findFunctionOptions(),
+        mapper.findPolicyTemplateOptions(),
         List.of("SELECT", "INSERT", "UPDATE", "DELETE", "INDEX")
     );
     formOptionsCache = new CacheEntry<>(options, System.currentTimeMillis() + CATALOG_CACHE_MILLIS);
@@ -77,6 +78,7 @@ public class VpdPolicyService {
 
   public VpdPolicyFormOptions emptyFormOptions() {
     return new VpdPolicyFormOptions(
+        List.of(),
         List.of(),
         List.of(),
         List.of(),

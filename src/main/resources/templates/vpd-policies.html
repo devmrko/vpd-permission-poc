@@ -136,72 +136,46 @@
                   th:text="${target.objectDisplayName() + ' / ' + target.objectType() + (target.vpdApplied() ? ' / VPD 적용됨' : ' / 미적용')}"></option>
         </select>
       </label>
-      <label>
-        Policy 이름
-        <input class="form-control" name="policyName" list="vpd-policy-names"
-               placeholder="예: CB_AGENT_DOC_POLICY" required>
-      </label>
       <label class="span-2">
-        VPD Filter Function
-        <select class="form-select" name="functionKey">
-          <option value="">기본 권한 함수가 없으면 Filter predicate로 새 function 자동 생성</option>
-          <option th:each="function : ${formOptions.functions()}"
-                  th:value="${function.value()}"
-                  th:text="${function.functionName() == 'CB_AGENT_DOC_VPD_FILTER' ? function.label() + ' / 기본 권한 테이블 필터' : function.label()}"
-                  th:selected="${function.value() == formOptions.defaultPermissionFunctionKey()}"></option>
+        적용할 Policy / Filter
+        <select class="form-select" data-policy-template-select required>
+          <option value="">등록된 policy/filter 조합 선택</option>
+          <option th:each="template : ${formOptions.policyTemplates()}"
+                  th:value="${template.label()}"
+                  th:data-policy-name="${template.policyName()}"
+                  th:data-function-key="${template.functionKey()}"
+                  th:data-statement-types="${template.statementTypes()}"
+                  th:data-enabled="${template.enabledValue()}"
+                  th:data-update-check="${template.updateCheckValue()}"
+                  th:text="${template.label()}"></option>
         </select>
       </label>
-      <label>
-        Function Owner
-        <select class="form-select" name="functionOwner">
-          <option value="">현재 연결 사용자</option>
-          <option th:each="owner : ${formOptions.owners()}"
-                  th:value="${owner}"
-                  th:text="${owner}"></option>
-        </select>
-      </label>
-      <label>
-        Function 이름
-        <input class="form-control" name="functionName" list="vpd-function-names"
-               placeholder="POLICY_NAME_FILTER 자동 생성">
-      </label>
+      <input type="hidden" name="policyName" data-policy-template-field="policyName">
+      <input type="hidden" name="functionKey" data-policy-template-field="functionKey">
       <div>
         Statement Types
         <div class="checkbox-row">
           <label class="form-check" th:each="statement : ${formOptions.statementTypes()}">
             <input class="form-check-input" type="checkbox" name="statementTypes"
-                   th:value="${statement}" th:checked="${statement == 'SELECT'}">
+                   th:value="${statement}" th:checked="${statement == 'SELECT'}"
+                   data-policy-template-statement>
             <span class="form-check-label" th:text="${statement}">SELECT</span>
           </label>
         </div>
       </div>
       <div class="form-check align-self-end">
-        <input class="form-check-input" id="vpd-enabled" type="checkbox" name="enabled" value="true" checked>
+        <input class="form-check-input" id="vpd-enabled" type="checkbox" name="enabled" value="true" checked
+               data-policy-template-field="enabled">
         <label class="form-check-label" for="vpd-enabled">등록 즉시 활성화</label>
       </div>
       <div class="form-check span-2">
-        <input class="form-check-input" id="vpd-update-check" type="checkbox" name="updateCheck" value="true">
+        <input class="form-check-input" id="vpd-update-check" type="checkbox" name="updateCheck" value="true"
+               data-policy-template-field="updateCheck">
         <label class="form-check-label" for="vpd-update-check">INSERT/UPDATE에도 predicate check 적용</label>
       </div>
-      <label class="span-2">
-        Filter predicate
-        <textarea class="form-control" id="vpd-filter-predicate" name="filterPredicate" rows="4"
-                  placeholder="예: dept_code = SYS_CONTEXT(''CB_AGENT_CTX'', ''DEPT_CODE'')&#10;비우면 기존 Function 이름으로 ADD_POLICY만 실행합니다."></textarea>
-      </label>
-      <div class="question-presets span-2" aria-label="Filter predicate 예시">
-        <button class="btn rw-btn-secondary question-preset" type="button" data-target="vpd-filter-predicate" data-question="1=0">전체 차단</button>
-        <button class="btn rw-btn-secondary question-preset" type="button" data-target="vpd-filter-predicate" data-question="1=1">전체 허용</button>
-        <button class="btn rw-btn-secondary question-preset" type="button" data-target="vpd-filter-predicate" data-question="dept_code = SYS_CONTEXT('CB_AGENT_CTX', 'DEPT_CODE')">부서 일치</button>
-        <button class="btn rw-btn-secondary question-preset" type="button" data-target="vpd-filter-predicate" data-question="owner_emp_no = SYS_CONTEXT('CB_AGENT_CTX', 'EMP_NO')">본인 소유</button>
-      </div>
+      <p class="text-muted small span-2 mb-0">Policy/Filter 조합은 Filter Policy 관리에서 등록/수정합니다. 여기서는 선택한 조합을 대상 TABLE/VIEW에 적용합니다.</p>
       <button class="btn rw-btn-primary" type="submit">개별 객체에 VPD 적용</button>
     </form>
-    <datalist id="vpd-policy-names">
-      <option th:each="policyName : ${formOptions.policyNames()}" th:value="${policyName}"></option>
-    </datalist>
-    <datalist id="vpd-function-names">
-      <option th:each="function : ${formOptions.functions()}" th:value="${function.functionName()}"></option>
-    </datalist>
   </section>
 
   <section class="content-band">

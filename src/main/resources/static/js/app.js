@@ -28,6 +28,37 @@ function findHtmxTarget(button) {
   return selector ? document.querySelector(selector) : null;
 }
 
+function syncPolicyTemplate(select) {
+  const form = select?.closest('form');
+  if (!form) {
+    return;
+  }
+  const option = select.options[select.selectedIndex];
+  const policyName = form.querySelector('[data-policy-template-field="policyName"]');
+  const functionKey = form.querySelector('[data-policy-template-field="functionKey"]');
+  const enabled = form.querySelector('[data-policy-template-field="enabled"]');
+  const updateCheck = form.querySelector('[data-policy-template-field="updateCheck"]');
+  if (policyName) {
+    policyName.value = option?.dataset.policyName || '';
+  }
+  if (functionKey) {
+    functionKey.value = option?.dataset.functionKey || '';
+  }
+  if (enabled) {
+    enabled.checked = option?.dataset.enabled === 'true';
+  }
+  if (updateCheck) {
+    updateCheck.checked = option?.dataset.updateCheck === 'true';
+  }
+  const selectedStatements = (option?.dataset.statementTypes || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+  form.querySelectorAll('[data-policy-template-statement]').forEach((checkbox) => {
+    checkbox.checked = selectedStatements.includes(checkbox.value);
+  });
+}
+
 function escapeHtml(value) {
   return value
       .replaceAll('&', '&amp;')
@@ -423,6 +454,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (catalog) {
     catalog.addEventListener('change', syncObjectCatalogSelection);
   }
+  document.querySelectorAll('[data-policy-template-select]').forEach((select) => {
+    select.addEventListener('change', () => syncPolicyTemplate(select));
+    syncPolicyTemplate(select);
+  });
   document.querySelectorAll('[data-rule-add]').forEach((button) => {
     button.addEventListener('click', () => {
       const row = button.closest('.rule-row');

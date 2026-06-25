@@ -189,6 +189,45 @@
     FETCH FIRST 300 ROWS ONLY
   </select>
 
+  <select id="findPolicyTemplateOptions" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyTemplateOption">
+    SELECT policy_name,
+           function_owner,
+           package_name,
+           function_name,
+           statement_types,
+           enabled,
+           check_option
+    FROM (
+      SELECT DISTINCT
+             p.policy_name,
+             p.pf_owner AS function_owner,
+             p.package AS package_name,
+             p.function AS function_name,
+             RTRIM(
+               CASE WHEN p.sel = 'YES' THEN 'SELECT,' ELSE '' END ||
+               CASE WHEN p.ins = 'YES' THEN 'INSERT,' ELSE '' END ||
+               CASE WHEN p.upd = 'YES' THEN 'UPDATE,' ELSE '' END ||
+               CASE WHEN p.del = 'YES' THEN 'DELETE,' ELSE '' END ||
+               CASE WHEN p.idx = 'YES' THEN 'INDEX,' ELSE '' END,
+               ','
+             ) AS statement_types,
+             p.enable AS enabled,
+             p.chk_option AS check_option
+      FROM all_policies p
+      WHERE p.policy_name IS NOT NULL
+        AND p.pf_owner IS NOT NULL
+        AND p.function IS NOT NULL
+        AND EXISTS (
+          SELECT 1
+          FROM cb_protected_object o
+          WHERE o.enabled_yn = 'Y'
+            AND o.owner = p.object_owner
+            AND o.object_name = p.object_name
+        )
+    )
+    ORDER BY policy_name, function_owner, package_name, function_name
+  </select>
+
   <select id="findSchemaObjects" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdSchemaObjectOption">
     SELECT owner, object_name, object_type
     FROM all_objects

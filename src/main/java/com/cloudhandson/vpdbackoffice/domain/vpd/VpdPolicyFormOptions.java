@@ -7,6 +7,7 @@ public record VpdPolicyFormOptions(
     List<String> schemaOwners,
     List<String> owners,
     List<VpdFunctionOption> functions,
+    List<VpdPolicyTemplateOption> policyTemplates,
     List<String> statementTypes
 ) {
 
