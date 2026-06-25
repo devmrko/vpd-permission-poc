@@ -14,8 +14,8 @@
       </div>
     </div>
     <section class="ai-answer">
-      <h3>Answer</h3>
-      <pre th:text="${explanation.answer()}">answer</pre>
+      <h3>분석 결과</h3>
+      <div class="markdown-view" data-markdown-view th:text="${explanation.answer()}">answer</div>
     </section>
     <div class="probe-exchange-grid">
       <section class="probe-exchange">

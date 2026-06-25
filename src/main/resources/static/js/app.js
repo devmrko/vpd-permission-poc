@@ -5,6 +5,125 @@ document.body.addEventListener('htmx:responseError', (event) => {
   }
 });
 
+function escapeHtml(value) {
+  return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+}
+
+function renderInlineMarkdown(value) {
+  return escapeHtml(value)
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+function isMarkdownTable(lines, index) {
+  if (index + 1 >= lines.length) {
+    return false;
+  }
+  return lines[index].trim().startsWith('|')
+      && lines[index + 1].trim().startsWith('|')
+      && /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(lines[index + 1].trim());
+}
+
+function splitMarkdownTableRow(line) {
+  return line.trim()
+      .replace(/^\|/, '')
+      .replace(/\|$/, '')
+      .split('|')
+      .map((cell) => cell.trim());
+}
+
+function renderMarkdownTable(lines, start) {
+  const headers = splitMarkdownTableRow(lines[start]);
+  let cursor = start + 2;
+  const rows = [];
+  while (cursor < lines.length && lines[cursor].trim().startsWith('|')) {
+    rows.push(splitMarkdownTableRow(lines[cursor]));
+    cursor += 1;
+  }
+  const headerHtml = headers.map((cell) => `<th>${renderInlineMarkdown(cell)}</th>`).join('');
+  const bodyHtml = rows.map((row) => {
+    const cells = headers.map((_, index) => `<td>${renderInlineMarkdown(row[index] || '')}</td>`).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+  return {
+    html: `<table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`,
+    next: cursor
+  };
+}
+
+function renderMarkdownText(markdown) {
+  const lines = markdown.replace(/\r\n/g, '\n').split('\n');
+  const html = [];
+  let listType = null;
+  const closeList = () => {
+    if (listType) {
+      html.push(`</${listType}>`);
+      listType = null;
+    }
+  };
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (!trimmed) {
+      closeList();
+      continue;
+    }
+    if (isMarkdownTable(lines, i)) {
+      closeList();
+      const table = renderMarkdownTable(lines, i);
+      html.push(table.html);
+      i = table.next - 1;
+      continue;
+    }
+    const heading = trimmed.match(/^(#{2,4})\s+(.+)$/);
+    if (heading) {
+      closeList();
+      const level = Math.min(heading[1].length, 3);
+      html.push(`<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`);
+      continue;
+    }
+    const unordered = trimmed.match(/^[-*]\s+(.+)$/);
+    if (unordered) {
+      if (listType !== 'ul') {
+        closeList();
+        listType = 'ul';
+        html.push('<ul>');
+      }
+      html.push(`<li>${renderInlineMarkdown(unordered[1])}</li>`);
+      continue;
+    }
+    const ordered = trimmed.match(/^\d+\.\s+(.+)$/);
+    if (ordered) {
+      if (listType !== 'ol') {
+        closeList();
+        listType = 'ol';
+        html.push('<ol>');
+      }
+      html.push(`<li>${renderInlineMarkdown(ordered[1])}</li>`);
+      continue;
+    }
+    closeList();
+    html.push(`<p>${renderInlineMarkdown(trimmed)}</p>`);
+  }
+  closeList();
+  return html.join('');
+}
+
+function renderMarkdownViews(root = document) {
+  root.querySelectorAll('[data-markdown-view]').forEach((view) => {
+    if (view.dataset.rendered === 'true') {
+      return;
+    }
+    view.innerHTML = renderMarkdownText(view.textContent || '');
+    view.dataset.rendered = 'true';
+  });
+}
+
 function filterUserRoleDetail() {
   const master = document.getElementById('userRoleMaster');
   const table = document.getElementById('userRoleDetail');
@@ -98,6 +217,7 @@ async function syncObjectCatalogSelection() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  renderMarkdownViews();
   const master = document.getElementById('userRoleMaster');
   if (master) {
     master.addEventListener('change', filterUserRoleDetail);
@@ -128,4 +248,8 @@ document.addEventListener('DOMContentLoaded', () => {
       syncRuleColumnOptions();
     });
   });
+});
+
+document.body.addEventListener('htmx:afterSwap', (event) => {
+  renderMarkdownViews(event.detail.target || document);
 });

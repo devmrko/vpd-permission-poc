@@ -104,27 +104,36 @@ public class VpdPolicyService {
         %s
 
         [출력 형식]
-        1. 정책 적용 범위
+        ## 요약
+        - 이 policy가 무엇을 허용/차단하는지 3줄 이내로 먼저 설명한다.
+        - fail-closed 조건이 있으면 요약에 포함한다.
+        - 컬럼 마스킹/NULL 처리 판단 가능 여부를 요약에 포함한다.
+
+        ## 상세
+
+        ### 1. 정책 적용 범위
         - 대상 객체, 적용 SQL, enabled 여부를 한 문단으로 설명한다.
 
-        2. 필터 함수 입력과 조회 값
+        ### 2. 필터 함수 입력과 조회 값
         - source에서 읽어오는 context/user/role/permission/rule 값을 bullet로 정리한다.
         - 각 항목 옆에 source 근거를 짧게 적는다. 예: "v_user_id: SYS_CONTEXT(...)"
 
-        3. Predicate 생성 분기
-        - source의 RETURN 값을 기준으로 분기별 표를 만든다.
+        ### 3. Predicate 생성 분기
+        - source의 RETURN 값을 기준으로 Markdown 표를 만든다.
         - 컬럼은 "조건", "반환 predicate", "의미", "보이는 행/차단되는 행"으로 한다.
+        - 표는 반드시 Markdown pipe table 형식으로 작성한다.
         - '1=0' 같은 fail-closed predicate가 있으면 반드시 명시한다.
 
-        4. 실제 접근 결과 해석
+        ### 4. 실제 접근 결과 해석
         - 이 policy가 행(row)을 허용하는 조건과 제외하는 조건을 구분한다.
         - 컬럼 마스킹/NULL 처리는 source에 직접 있지 않으면 "이 policy source만으로는 판단 불가"라고 쓴다.
 
-        5. 운영 확인 포인트
+        ### 5. 운영 확인 포인트
         - 운영자가 DB에서 확인할 테이블/컬럼/컨텍스트 값을 5개 이하로 적는다.
 
         [엄격한 규칙]
         - 한국어로 답변한다.
+        - Markdown 형식으로 답변한다.
         - source에 없는 테이블, 컬럼, role 이름을 만들지 않는다.
         - source 근거가 부족하면 추측하지 말고 "source만으로는 판단 불가"라고 쓴다.
         - "일반적으로", "보통", "아마" 같은 표현을 쓰지 않는다.

@@ -550,13 +550,82 @@ body {
   padding: .6rem .8rem;
 }
 
-.ai-answer pre {
+.ai-answer pre,
+.markdown-view {
   color: var(--rw-text);
   font-family: inherit;
   font-size: .95rem;
   margin: 0;
   padding: .85rem;
   white-space: pre-wrap;
+}
+
+.markdown-view {
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.markdown-view h2,
+.markdown-view h3 {
+  border: 0;
+  color: var(--rw-text);
+  margin: .9rem 0 .45rem;
+  padding: 0;
+}
+
+.markdown-view h2:first-child,
+.markdown-view h3:first-child {
+  margin-top: 0;
+}
+
+.markdown-view h2 {
+  font-size: 1.05rem;
+}
+
+.markdown-view h3 {
+  font-size: .98rem;
+}
+
+.markdown-view p {
+  margin: .45rem 0;
+}
+
+.markdown-view ul,
+.markdown-view ol {
+  margin: .45rem 0 .65rem 1.25rem;
+  padding: 0;
+}
+
+.markdown-view code {
+  background: rgba(49, 45, 42, .08);
+  border: 1px solid var(--rw-border);
+  border-radius: 4px;
+  color: var(--rw-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: .88em;
+  padding: .08rem .28rem;
+}
+
+.markdown-view table {
+  background: var(--rw-surface);
+  border-collapse: collapse;
+  font-size: .86rem;
+  margin: .7rem 0;
+  min-width: 760px;
+  width: 100%;
+}
+
+.markdown-view th,
+.markdown-view td {
+  border: 1px solid var(--rw-border);
+  padding: .55rem .65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-view th {
+  background: var(--rw-surface-muted);
+  font-weight: 800;
 }
 
 @media (max-width: 640px) {
