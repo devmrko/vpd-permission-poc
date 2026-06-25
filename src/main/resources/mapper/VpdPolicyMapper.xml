@@ -56,6 +56,20 @@
     ORDER BY 1
   </select>
 
+  <select id="findSchemaOwnerOptions" resultType="string">
+    SELECT DISTINCT o.owner
+    FROM all_objects o
+    JOIN all_users u ON u.username = o.owner
+    WHERE o.object_type IN ('TABLE', 'VIEW')
+      AND NVL(u.oracle_maintained, 'N') = 'N'
+      AND o.owner NOT IN ('SYS', 'SYSTEM', 'ORDS_METADATA', 'ORDS_PUBLIC_USER')
+      AND o.owner NOT LIKE 'APEX\_%' ESCAPE '\'
+      AND o.owner NOT LIKE 'C##%'
+      AND o.object_name NOT LIKE 'BIN$%'
+    ORDER BY o.owner
+    FETCH FIRST 200 ROWS ONLY
+  </select>
+
   <select id="findOwnerOptions" resultType="string">
     SELECT USER FROM dual
     UNION
@@ -127,6 +141,18 @@
     FETCH FIRST 300 ROWS ONLY
   </select>
 
+  <select id="findSchemaObjects" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdSchemaObjectOption">
+    SELECT owner, object_name, object_type
+    FROM all_objects
+    WHERE owner = UPPER(#{owner,jdbcType=VARCHAR})
+      AND object_name NOT LIKE 'BIN$%'
+      AND (
+        (#{includeTablesYn,jdbcType=VARCHAR} = 'Y' AND object_type = 'TABLE')
+        OR (#{includeViewsYn,jdbcType=VARCHAR} = 'Y' AND object_type = 'VIEW')
+      )
+    ORDER BY object_type, object_name
+  </select>
+
   <select id="findPolicy" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView">
     SELECT <include refid="policyColumns"><property name="alias" value="p."/></include>
     FROM all_policies p
@@ -140,6 +166,14 @@
           AND o.owner = p.object_owner
           AND o.object_name = p.object_name
       )
+  </select>
+
+  <select id="findAnyPolicy" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView">
+    SELECT <include refid="policyColumns"><property name="alias" value="p."/></include>
+    FROM all_policies p
+    WHERE p.object_owner = UPPER(#{objectOwner,jdbcType=VARCHAR})
+      AND p.object_name = UPPER(#{objectName,jdbcType=VARCHAR})
+      AND p.policy_name = UPPER(#{policyName,jdbcType=VARCHAR})
   </select>
 
   <select id="findFunctionSource" resultType="string">

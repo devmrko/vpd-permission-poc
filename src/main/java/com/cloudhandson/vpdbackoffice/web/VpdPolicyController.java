@@ -80,6 +80,43 @@ public class VpdPolicyController {
     return "redirect:/vpd-policies";
   }
 
+  @PostMapping("/vpd-policies/bulk")
+  public String bulkApplyPolicy(
+      @RequestParam String schemaOwner,
+      @RequestParam(defaultValue = "false") boolean includeTables,
+      @RequestParam(defaultValue = "false") boolean includeViews,
+      @RequestParam(required = false) String functionKey,
+      @RequestParam(required = false) String functionOwner,
+      @RequestParam(required = false) String functionName,
+      @RequestParam(defaultValue = "SELECT") List<String> statementTypes,
+      @RequestParam(defaultValue = "false") boolean enabled,
+      @RequestParam(defaultValue = "false") boolean updateCheck,
+      @RequestParam(required = false) String filterPredicate,
+      RedirectAttributes redirectAttributes
+  ) {
+    try {
+      var result = vpdPolicyService.bulkApplySchema(
+          schemaOwner,
+          includeTables,
+          includeViews,
+          functionKey,
+          functionOwner,
+          functionName,
+          String.join(",", statementTypes),
+          enabled,
+          updateCheck,
+          filterPredicate
+      );
+      redirectAttributes.addFlashAttribute("successMessage", result.summary());
+    } catch (AppException exception) {
+      redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+    } catch (DataAccessException exception) {
+      RuntimeErrorMessage message = RuntimeErrorMessages.dataAccess(exception);
+      redirectAttributes.addFlashAttribute("errorMessage", message.message());
+    }
+    return "redirect:/vpd-policies";
+  }
+
   @GetMapping("/vpd-policies/function-source")
   public String functionSource(
       @RequestParam String owner,

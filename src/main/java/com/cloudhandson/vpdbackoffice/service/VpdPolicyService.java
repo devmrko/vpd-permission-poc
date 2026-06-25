@@ -1,15 +1,18 @@
 package com.cloudhandson.vpdbackoffice.service;
 
+import com.cloudhandson.vpdbackoffice.domain.vpd.VpdBulkApplyResult;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdFunctionSource;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyCreateCommand;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyDetail;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyExplanation;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyFormOptions;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView;
+import com.cloudhandson.vpdbackoffice.domain.vpd.VpdSchemaObjectOption;
 import com.cloudhandson.vpdbackoffice.mapper.VpdPolicyMapper;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +39,7 @@ public class VpdPolicyService {
   public VpdPolicyFormOptions formOptions() {
     return new VpdPolicyFormOptions(
         mapper.findPolicyNameOptions(),
+        mapper.findSchemaOwnerOptions(),
         mapper.findOwnerOptions(),
         mapper.findFunctionOptions(),
         List.of("SELECT", "INSERT", "UPDATE", "DELETE", "INDEX")
@@ -47,8 +51,95 @@ public class VpdPolicyService {
         List.of(),
         List.of(),
         List.of(),
+        List.of(),
         List.of("SELECT", "INSERT", "UPDATE", "DELETE", "INDEX")
     );
+  }
+
+  public VpdBulkApplyResult bulkApplySchema(
+      String schemaOwner,
+      boolean includeTables,
+      boolean includeViews,
+      String functionKey,
+      String functionOwnerValue,
+      String functionNameValue,
+      String statementTypesValue,
+      boolean enabled,
+      boolean updateCheck,
+      String filterPredicateValue
+  ) {
+    String owner = requiredIdentifier(schemaOwner, "Schema");
+    if (!includeTables && !includeViews) {
+      throw new AppException("TABLE 또는 VIEW 중 하나 이상 선택해야 합니다.");
+    }
+    List<VpdSchemaObjectOption> targets = mapper.findSchemaObjects(
+        owner,
+        includeTables ? "Y" : "N",
+        includeViews ? "Y" : "N"
+    );
+    if (targets.isEmpty()) {
+      throw new AppException("선택한 스키마에서 VPD 적용 대상 TABLE/VIEW를 찾을 수 없습니다: " + owner);
+    }
+
+    FunctionRef functionRef = parseFunctionRef(functionKey);
+    String filterPredicate = filterPredicateValue == null ? "" : filterPredicateValue.trim();
+    if (functionRef == null && filterPredicate.isBlank()) {
+      throw new AppException("벌크 적용은 기존 Function을 선택하거나 Filter predicate를 입력해야 합니다.");
+    }
+
+    String currentUser = jdbcTemplate.queryForObject("SELECT USER FROM dual", String.class);
+    String functionOwner;
+    String packageName;
+    String functionName;
+    if (functionRef != null) {
+      functionOwner = functionRef.owner();
+      packageName = functionRef.packageName();
+      functionName = functionRef.functionName();
+    } else {
+      functionOwner = functionOwnerValue == null || functionOwnerValue.isBlank()
+          ? currentUser
+          : requiredIdentifier(functionOwnerValue, "Function owner");
+      packageName = null;
+      functionName = functionNameValue == null || functionNameValue.isBlank()
+          ? generatedFunctionName(owner + "_BULK_POLICY")
+          : requiredIdentifier(functionNameValue, "Function name");
+    }
+
+    if (!filterPredicate.isBlank()) {
+      if (currentUser == null || !currentUser.equalsIgnoreCase(functionOwner)) {
+        throw new AppException("필터 함수 자동 생성은 현재 연결 사용자 스키마에만 가능합니다. 현재 사용자: "
+            + currentUser + ", Function owner: " + functionOwner);
+      }
+      createFilterFunction(functionName, filterPredicate);
+    }
+
+    String statementTypes = normalizeStatementTypes(statementTypesValue);
+    int created = 0;
+    int skipped = 0;
+    int failed = 0;
+    for (VpdSchemaObjectOption target : targets) {
+      String policyName = generatedPolicyName(target.objectName());
+      if (mapper.findAnyPolicy(target.owner(), target.objectName(), policyName) != null) {
+        skipped++;
+        continue;
+      }
+      try {
+        addPolicy(
+            target.owner(),
+            target.objectName(),
+            policyName,
+            functionOwner,
+            packageName == null ? functionName : packageName + "." + functionName,
+            statementTypes,
+            enabled,
+            updateCheck
+        );
+        created++;
+      } catch (DataAccessException exception) {
+        failed++;
+      }
+    }
+    return new VpdBulkApplyResult(targets.size(), created, skipped, failed);
   }
 
   public VpdFunctionSource findFunctionSource(String owner, String packageName, String functionName) {
@@ -106,6 +197,28 @@ public class VpdPolicyService {
       createFilterFunction(functionName, filterPredicate);
     }
 
+    addPolicy(
+        objectOwner,
+        objectName,
+        policyName,
+        functionOwner,
+        packageName == null ? functionName : packageName + "." + functionName,
+        statementTypes,
+        command.enabled(),
+        command.updateCheck()
+    );
+  }
+
+  private void addPolicy(
+      String objectOwner,
+      String objectName,
+      String policyName,
+      String functionOwner,
+      String policyFunction,
+      String statementTypes,
+      boolean enabled,
+      boolean updateCheck
+  ) {
     jdbcTemplate.update("""
         BEGIN
           DBMS_RLS.ADD_POLICY(
@@ -120,12 +233,12 @@ public class VpdPolicyService {
             policy_type     => DBMS_RLS.DYNAMIC
           );
         END;
-        """.formatted(command.updateCheck() ? "TRUE" : "FALSE", command.enabled() ? "TRUE" : "FALSE"),
+        """.formatted(updateCheck ? "TRUE" : "FALSE", enabled ? "TRUE" : "FALSE"),
         objectOwner,
         objectName,
         policyName,
         functionOwner,
-        packageName == null ? functionName : packageName + "." + functionName,
+        policyFunction,
         statementTypes);
   }
 
@@ -299,6 +412,11 @@ public class VpdPolicyService {
         : policyName;
     String generated = base + "_FILTER";
     return generated.length() > 128 ? generated.substring(0, 128) : generated;
+  }
+
+  private String generatedPolicyName(String objectName) {
+    String name = objectName + "_POLICY";
+    return name.length() > 128 ? name.substring(0, 128) : name;
   }
 
   private FunctionRef parseFunctionRef(String functionKey) {
