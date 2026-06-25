@@ -27,7 +27,7 @@ public class McpSseService {
     this.objectMapper = objectMapper;
   }
 
-  public ObjectNode handle(JsonNode request) {
+  public ObjectNode handle(String contextPath, JsonNode request) {
     ObjectNode response = objectMapper.createObjectNode();
     response.put("jsonrpc", "2.0");
     if (request != null && request.has("id")) {
@@ -37,7 +37,7 @@ public class McpSseService {
     String method = request == null || !request.hasNonNull("method") ? "" : request.get("method").asText();
     try {
       response.set("result", switch (method) {
-        case "initialize" -> initializeResult();
+        case "initialize" -> initializeResult(contextPath);
         case "notifications/initialized" -> objectMapper.createObjectNode();
         case "tools/list" -> toolsListResult();
         case "tools/call" -> toolsCallResult(request.path("params"));
@@ -53,11 +53,11 @@ public class McpSseService {
     return response;
   }
 
-  private ObjectNode initializeResult() {
+  private ObjectNode initializeResult(String contextPath) {
     ObjectNode result = objectMapper.createObjectNode();
     result.put("protocolVersion", "2024-11-05");
     ObjectNode serverInfo = objectMapper.createObjectNode();
-    serverInfo.put("name", "vpd-ords-backoffice");
+    serverInfo.put("name", "vpd-ords-backoffice-" + contextPath);
     serverInfo.put("version", "0.1.0");
     result.set("serverInfo", serverInfo);
     ObjectNode capabilities = objectMapper.createObjectNode();

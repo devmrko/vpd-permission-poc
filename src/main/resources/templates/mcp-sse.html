@@ -6,7 +6,7 @@
 <main class="container page-shell">
   <section class="page-heading">
     <h1>MCP SSE</h1>
-    <p>보호 객체 ORDS 조회를 외부 MCP client에서 호출할 수 있도록 SSE transport로 제공합니다.</p>
+    <p>보호 객체 ORDS 조회를 외부 MCP client에서 호출할 수 있도록 context path별 SSE transport로 제공합니다.</p>
   </section>
 
   <section th:if="${runtimeError}" class="alert alert-warning">
@@ -20,12 +20,24 @@
       <table class="table align-middle">
         <tbody>
         <tr>
-          <th>SSE</th>
+          <th>Default SSE</th>
           <td><code>/mcp/sse</code></td>
         </tr>
         <tr>
-          <th>Message</th>
+          <th>Default Message</th>
           <td><code>/mcp/messages?sessionId={sessionId}</code></td>
+        </tr>
+        <tr>
+          <th>Context SSE</th>
+          <td><code>/mcp/{contextPath}/sse</code></td>
+        </tr>
+        <tr>
+          <th>Context Message</th>
+          <td><code>/mcp/{contextPath}/messages?sessionId={sessionId}</code></td>
+        </tr>
+        <tr>
+          <th>Context Path</th>
+          <td>영문/숫자로 시작하고 영문/숫자/<code>_</code>/<code>-</code>만 사용합니다. 예: <code>vpd</code>, <code>ords-prod</code></td>
         </tr>
         <tr>
           <th>Auth</th>
