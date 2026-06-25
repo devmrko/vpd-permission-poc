@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('운영 상태')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container py-4">
+  <div class="page-title">
+    <h1>운영 상태</h1>
+    <p>보호 객체별 ORDS handler, VPD policy, 권한 rule, 최근 검증 상태를 확인합니다.</p>
+  </div>
+
+  <section class="content-band">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+        <tr>
+          <th>Health</th>
+          <th>Object</th>
+          <th>ORDS</th>
+          <th>VPD</th>
+          <th>권한</th>
+          <th>최근 검증</th>
+          <th>조치</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="row : ${rows}">
+          <td>
+            <span class="badge"
+                  th:classappend="${row.healthLevel() == 'OK'} ? ' text-bg-success' : (${row.healthLevel() == 'ERROR'} ? ' text-bg-danger' : ' text-bg-warning')"
+                  th:text="${row.healthLevel()}">OK</span>
+          </td>
+          <td>
+            <strong th:text="${row.displayName()}">ADMIN.TABLE</strong>
+            <div class="text-muted small" th:text="${row.enabledYn()}">Y</div>
+          </td>
+          <td>
+            <code th:text="${row.ordsPath()}">cb-ords/path</code>
+            <div class="small mt-1">
+              <span th:if="${row.handlerId() != null}">
+                <span class="badge text-bg-secondary" th:text="${row.handlerMethod()}">POST</span>
+                <span th:text="${row.handlerSourceType()}">plsql/block</span>
+              </span>
+              <span th:unless="${row.handlerId() != null}" class="text-danger">handler 없음</span>
+            </div>
+          </td>
+          <td>
+            <div><code th:text="${row.policyNames()} ?: '-'">POLICY</code></div>
+            <div class="small">
+              <span th:text="${row.policyEnabled()} ?: '-'">YES</span>
+              <span> / </span>
+              <span th:text="${row.functionStatus()} ?: '-'">VALID</span>
+            </div>
+            <div class="text-muted small" th:text="${row.functionName()} ?: '-'">ADMIN.FILTER</div>
+          </td>
+          <td th:text="${row.permissionSummary()}">1 permissions / 1 rules</td>
+          <td>
+            <div th:text="${row.lastProbeStatus()} ?: '검증 이력 없음'">SUCCESS</div>
+            <div class="text-muted small">
+              <span th:text="${row.lastProbeRowCount()} ?: '-'">0</span>
+              <span> rows</span>
+              <span th:if="${row.lastProbeAt() != null}" th:text="${' / ' + row.lastProbeAt()}"></span>
+            </div>
+            <div class="text-danger small" th:if="${row.lastProbeErrorCode() != null}" th:text="${row.lastProbeErrorCode()}"></div>
+          </td>
+          <td class="small" th:text="${row.actionText()}">조치 없음</td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(rows)}">
+          <td colspan="7" class="text-muted">등록된 활성 보호 객체가 없습니다.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

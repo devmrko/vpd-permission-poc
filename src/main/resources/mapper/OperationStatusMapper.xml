@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cloudhandson.vpdbackoffice.mapper.OperationStatusMapper">
+  <select id="findRows" resultType="com.cloudhandson.vpdbackoffice.domain.operation.OperationStatusRow">
+    WITH permission_counts AS (
+      SELECT p.target_name,
+             COUNT(DISTINCT p.perm_id) AS permission_count,
+             COUNT(r.rule_id) AS rule_count
+      FROM cb_permission p
+      LEFT JOIN cb_permission_rule r ON r.perm_id = p.perm_id
+      GROUP BY p.target_name
+    ),
+    policy_status AS (
+      SELECT p.object_owner,
+             p.object_name,
+             LISTAGG(p.policy_name, ', ') WITHIN GROUP (ORDER BY p.policy_name) AS policy_names,
+             LISTAGG(p.enable, ', ') WITHIN GROUP (ORDER BY p.policy_name) AS policy_enabled,
+             LISTAGG(p.pf_owner || '.' || NVL2(p.package, p.package || '.', '') || p.function, ', ')
+               WITHIN GROUP (ORDER BY p.policy_name) AS function_name,
+             LISTAGG(NVL(o.status, 'UNKNOWN'), ', ') WITHIN GROUP (ORDER BY p.policy_name) AS function_status
+      FROM all_policies p
+      LEFT JOIN all_objects o
+        ON o.owner = p.pf_owner
+       AND o.object_name = NVL(p.package, p.function)
+       AND o.object_type IN ('FUNCTION', 'PACKAGE', 'PACKAGE BODY')
+      GROUP BY p.object_owner, p.object_name
+    ),
+    ords_handlers AS (
+      SELECT h.id AS handler_id,
+             h.method AS handler_method,
+             h.source_type AS handler_source_type,
+             TRIM(BOTH '/' FROM s.pattern) || '/' ||
+             TRIM(BOTH '/' FROM m.uri_prefix) || '/' ||
+             TRIM(BOTH '/' FROM t.uri_template) AS handler_full_path
+      FROM dba_ords_schemas s
+      JOIN dba_ords_modules m ON m.schema_id = s.id
+      JOIN dba_ords_templates t ON t.module_id = m.id
+      JOIN dba_ords_handlers h ON h.template_id = t.id
+      WHERE s.parsing_schema = 'CB_ORDS'
+    ),
+    latest_probe AS (
+      SELECT object_id,
+             status AS last_probe_status,
+             row_count AS last_probe_row_count,
+             error_code AS last_probe_error_code,
+             TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') AS last_probe_at
+      FROM (
+        SELECT a.*,
+               ROW_NUMBER() OVER (PARTITION BY a.object_id ORDER BY a.created_at DESC, a.audit_id DESC) AS rn
+        FROM cb_ords_probe_audit a
+        WHERE a.object_id IS NOT NULL
+      )
+      WHERE rn = 1
+    )
+    SELECT po.object_id,
+           po.owner,
+           po.object_name,
+           po.ords_path,
+           po.enabled_yn,
+           NVL(pc.permission_count, 0) AS permission_count,
+           NVL(pc.rule_count, 0) AS rule_count,
+           ps.policy_names,
+           ps.policy_enabled,
+           ps.function_name,
+           ps.function_status,
+           oh.handler_id,
+           oh.handler_method,
+           oh.handler_source_type,
+           oh.handler_full_path,
+           lp.last_probe_status,
+           lp.last_probe_row_count,
+           lp.last_probe_error_code,
+           lp.last_probe_at
+    FROM cb_protected_object po
+    LEFT JOIN permission_counts pc ON pc.target_name = po.object_name
+    LEFT JOIN policy_status ps ON ps.object_owner = po.owner AND ps.object_name = po.object_name
+    LEFT JOIN ords_handlers oh ON oh.handler_full_path = TRIM(BOTH '/' FROM po.ords_path)
+    LEFT JOIN latest_probe lp ON lp.object_id = po.object_id
+    WHERE po.enabled_yn = 'Y'
+    ORDER BY po.owner, po.object_name
+  </select>
+</mapper>
