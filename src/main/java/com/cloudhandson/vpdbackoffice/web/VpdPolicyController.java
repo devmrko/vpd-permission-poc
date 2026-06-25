@@ -86,6 +86,67 @@ public class VpdPolicyController {
     return "redirect:/vpd-filter-policies";
   }
 
+  @PostMapping("/vpd-filter-policies/filters")
+  public String saveFilter(
+      @RequestParam(required = false) String functionOwner,
+      @RequestParam String functionName,
+      @RequestParam String filterPredicate,
+      RedirectAttributes redirectAttributes
+  ) {
+    try {
+      vpdPolicyService.saveFilterFunction(functionOwner, functionName, filterPredicate);
+      redirectAttributes.addFlashAttribute("successMessage", "Filter function을 저장했습니다: " + functionName);
+    } catch (AppException exception) {
+      redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+    } catch (DataAccessException exception) {
+      RuntimeErrorMessage message = RuntimeErrorMessages.dataAccess(exception);
+      redirectAttributes.addFlashAttribute("errorMessage", message.message());
+    }
+    return "redirect:/vpd-filter-policies";
+  }
+
+  @PostMapping("/vpd-filter-policies/replace")
+  public String replaceFilterPolicy(
+      @RequestParam String oldObjectKey,
+      @RequestParam String oldPolicyName,
+      @RequestParam String objectKey,
+      @RequestParam String policyName,
+      @RequestParam(required = false) String functionKey,
+      @RequestParam(required = false) String functionOwner,
+      @RequestParam(required = false) String functionName,
+      @RequestParam(defaultValue = "SELECT") List<String> statementTypes,
+      @RequestParam(defaultValue = "false") boolean enabled,
+      @RequestParam(defaultValue = "false") boolean updateCheck,
+      @RequestParam(required = false) String filterPredicate,
+      RedirectAttributes redirectAttributes
+  ) {
+    try {
+      String[] objectParts = objectKey.split("\\.", 2);
+      if (objectParts.length != 2) {
+        throw new AppException("조회 대상 형식이 올바르지 않습니다: " + objectKey);
+      }
+      vpdPolicyService.replacePolicy(oldObjectKey, oldPolicyName, new VpdPolicyCreateCommand(
+          objectParts[0],
+          objectParts[1],
+          policyName,
+          functionKey,
+          functionOwner,
+          functionName,
+          String.join(",", statementTypes),
+          enabled,
+          updateCheck,
+          filterPredicate
+      ));
+      redirectAttributes.addFlashAttribute("successMessage", "Policy를 수정했습니다: " + policyName);
+    } catch (AppException exception) {
+      redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+    } catch (DataAccessException exception) {
+      RuntimeErrorMessage message = RuntimeErrorMessages.dataAccess(exception);
+      redirectAttributes.addFlashAttribute("errorMessage", message.message());
+    }
+    return "redirect:/vpd-filter-policies";
+  }
+
   private void createPolicyInternal(
       String objectKey,
       String policyName,

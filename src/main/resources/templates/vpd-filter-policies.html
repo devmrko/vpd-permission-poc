@@ -18,8 +18,80 @@
 
   <section class="content-band">
     <div class="section-heading">
-      <h2>Filter Policy 등록</h2>
+      <h2>Filter 등록/수정</h2>
       <a class="btn btn-sm rw-btn-secondary" href="/vpd-policies">적용 현황 보기</a>
+    </div>
+    <form method="post" action="/vpd-filter-policies/filters" class="form-grid">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <label>
+        Function Owner
+        <select class="form-select" name="functionOwner">
+          <option value="">현재 연결 사용자</option>
+          <option th:each="owner : ${formOptions.owners()}" th:value="${owner}" th:text="${owner}"></option>
+        </select>
+      </label>
+      <label>
+        Function 이름
+        <input class="form-control" name="functionName" list="filter-function-names"
+               placeholder="예: BOARD_POSTS_FILTER" required>
+      </label>
+      <label class="span-2">
+        Filter predicate
+        <textarea class="form-control" id="filter-only-predicate" name="filterPredicate" rows="4"
+                  placeholder="예: dept_code = SYS_CONTEXT(''CB_AGENT_CTX'', ''DEPT_CODE'')" required></textarea>
+      </label>
+      <div class="question-presets span-2" aria-label="Filter predicate 예시">
+        <button class="btn rw-btn-secondary question-preset" type="button" data-target="filter-only-predicate" data-question="1=0">전체 차단</button>
+        <button class="btn rw-btn-secondary question-preset" type="button" data-target="filter-only-predicate" data-question="1=1">전체 허용</button>
+        <button class="btn rw-btn-secondary question-preset" type="button" data-target="filter-only-predicate" data-question="dept_code = SYS_CONTEXT('CB_AGENT_CTX', 'DEPT_CODE')">부서 일치</button>
+        <button class="btn rw-btn-secondary question-preset" type="button" data-target="filter-only-predicate" data-question="owner_emp_no = SYS_CONTEXT('CB_AGENT_CTX', 'EMP_NO')">본인 소유</button>
+      </div>
+      <button class="btn rw-btn-primary" type="submit">Filter 저장</button>
+    </form>
+    <datalist id="filter-function-names">
+      <option th:each="function : ${formOptions.functions()}" th:value="${function.functionName()}"></option>
+    </datalist>
+  </section>
+
+  <section class="content-band">
+    <div class="section-heading">
+      <h2>Filter 목록</h2>
+      <span class="badge text-bg-secondary" th:text="${#lists.size(formOptions.functions())}">0</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+        <tr>
+          <th>Function</th>
+          <th>Type</th>
+          <th>수정</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="function : ${formOptions.functions()}">
+          <td><code th:text="${function.value()}">ADMIN.FILTER</code></td>
+          <td th:text="${function.objectType()}">FUNCTION</td>
+          <td>
+            <form method="post" action="/vpd-filter-policies/filters" class="inline-form">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+              <input type="hidden" name="functionOwner" th:value="${function.owner()}">
+              <input type="hidden" name="functionName" th:value="${function.functionName()}">
+              <input class="form-control form-control-sm" name="filterPredicate" placeholder="새 predicate">
+              <button class="btn btn-sm rw-btn-secondary" type="submit">저장</button>
+            </form>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(formOptions.functions())}">
+          <td colspan="3" class="text-muted">등록된 VPD filter function 후보가 없습니다.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="content-band">
+    <div class="section-heading">
+      <h2>Policy 등록</h2>
     </div>
     <form method="post" action="/vpd-filter-policies" class="form-grid">
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -97,6 +169,55 @@
       </div>
       <button class="btn rw-btn-primary" type="submit">Filter Policy 등록</button>
     </form>
+  </section>
+
+  <section class="content-band">
+    <div class="section-heading">
+      <h2>Policy 목록/수정</h2>
+      <span class="badge text-bg-secondary" th:text="${#lists.size(policies)}">0</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+        <tr>
+          <th>Object</th>
+          <th>Policy</th>
+          <th>Function</th>
+          <th>Status</th>
+          <th>수정</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="policy : ${policies}">
+          <td><code th:text="${policy.objectDisplayName()}">ADMIN.TABLE</code></td>
+          <td><code th:text="${policy.policyName()}">POLICY</code></td>
+          <td><code th:text="${policy.functionDisplayName()}">ADMIN.FILTER</code></td>
+          <td th:text="${policy.enabled()}">YES</td>
+          <td>
+            <form method="post" action="/vpd-filter-policies/replace" class="inline-form">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+              <input type="hidden" name="oldObjectKey" th:value="${policy.objectDisplayName()}">
+              <input type="hidden" name="oldPolicyName" th:value="${policy.policyName()}">
+              <input type="hidden" name="objectKey" th:value="${policy.objectDisplayName()}">
+              <input class="form-control form-control-sm" name="policyName" th:value="${policy.policyName()}">
+              <select class="form-select form-select-sm" name="functionKey">
+                <option th:each="function : ${formOptions.functions()}"
+                        th:value="${function.value()}"
+                        th:text="${function.value()}"
+                        th:selected="${function.value() == policy.functionDisplayName()}"></option>
+              </select>
+              <input type="hidden" name="enabled" value="true">
+              <input type="hidden" name="statementTypes" th:value="${policy.statementTypes()} ?: 'SELECT'">
+              <button class="btn btn-sm rw-btn-secondary" type="submit">수정</button>
+            </form>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(policies)}">
+          <td colspan="5" class="text-muted">등록된 VPD policy가 없습니다.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <section class="content-band">

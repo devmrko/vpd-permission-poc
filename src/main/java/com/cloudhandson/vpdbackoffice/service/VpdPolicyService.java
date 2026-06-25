@@ -56,6 +56,45 @@ public class VpdPolicyService {
     );
   }
 
+  @Transactional
+  public void saveFilterFunction(String functionOwnerValue, String functionNameValue, String filterPredicateValue) {
+    String currentUser = jdbcTemplate.queryForObject("SELECT USER FROM dual", String.class);
+    String functionOwner = functionOwnerValue == null || functionOwnerValue.isBlank()
+        ? currentUser
+        : requiredIdentifier(functionOwnerValue, "Function owner");
+    if (currentUser == null || !currentUser.equalsIgnoreCase(functionOwner)) {
+      throw new AppException("Filter function 등록/수정은 현재 연결 사용자 스키마에만 가능합니다. 현재 사용자: "
+          + currentUser + ", Function owner: " + functionOwner);
+    }
+    String functionName = requiredIdentifier(functionNameValue, "Function name");
+    String filterPredicate = filterPredicateValue == null ? "" : filterPredicateValue.trim();
+    if (filterPredicate.isBlank()) {
+      throw new AppException("Filter predicate는 필수입니다.");
+    }
+    createFilterFunction(functionName, filterPredicate);
+  }
+
+  @Transactional
+  public void replacePolicy(String oldObjectKey, String oldPolicyName, VpdPolicyCreateCommand command) {
+    String[] objectParts = oldObjectKey == null ? new String[0] : oldObjectKey.split("\\.", 2);
+    if (objectParts.length != 2) {
+      throw new AppException("수정할 Policy 대상 형식이 올바르지 않습니다: " + oldObjectKey);
+    }
+    String objectOwner = requiredIdentifier(objectParts[0], "Object owner");
+    String objectName = requiredIdentifier(objectParts[1], "Object name");
+    String policyName = requiredIdentifier(oldPolicyName, "Policy name");
+    jdbcTemplate.update("""
+        BEGIN
+          DBMS_RLS.DROP_POLICY(
+            object_schema => ?,
+            object_name   => ?,
+            policy_name   => ?
+          );
+        END;
+        """, objectOwner, objectName, policyName);
+    createPolicy(command);
+  }
+
   public VpdBulkApplyResult bulkApplySchema(
       String schemaOwner,
       boolean includeTables,
