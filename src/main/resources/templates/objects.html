@@ -16,10 +16,12 @@
     <h2>조회 Handler 대상 추가</h2>
     <form method="post" action="/objects" class="form-grid">
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <input type="hidden" name="owner" required>
+      <input type="hidden" name="objectName" required>
       <label>
         DB 객체 선택
-        <select class="form-select" id="objectCatalogSelect">
-          <option value="">직접 입력</option>
+        <select class="form-select" id="objectCatalogSelect" required>
+          <option value="">선택하세요</option>
           <option th:each="dbObject : ${dbObjects}"
                   th:value="${dbObject.value()}"
                   th:data-owner="${dbObject.owner()}"
@@ -28,24 +30,8 @@
         </select>
       </label>
       <label>
-        Owner
-        <input class="form-control" name="owner" value="ADMIN" autocomplete="off" required>
-      </label>
-      <label>
-        Object
-        <input class="form-control" name="objectName" placeholder="CB_V_SEARCH_DOCUMENTS" autocomplete="off" required>
-      </label>
-      <label>
         ORDS Path
-        <input class="form-control" name="ordsPath" placeholder="cb-ords/cb-object-query/admin/board_posts" required>
-      </label>
-      <label>
-        컬럼
-        <input class="form-control" name="columns" placeholder="DOC_ID,TITLE,CONTENTS">
-      </label>
-      <label>
-        민감 컬럼
-        <input class="form-control" name="sensitiveColumns" placeholder="CONTENTS">
+        <input class="form-control" name="ordsPath" placeholder="DB 객체 선택 시 자동 입력" required>
       </label>
       <button class="btn btn-primary" type="submit">대상 추가</button>
     </form>

@@ -188,31 +188,16 @@ async function syncObjectCatalogSelection() {
   const ownerInput = document.querySelector('input[name="owner"]');
   const objectInput = document.querySelector('input[name="objectName"]');
   const ordsPathInput = document.querySelector('input[name="ordsPath"]');
-  const columnsInput = document.querySelector('input[name="columns"]');
   if (ownerInput) {
     ownerInput.value = selected.dataset.owner || '';
   }
   if (objectInput) {
     objectInput.value = selected.dataset.objectName || '';
   }
-  if (ordsPathInput && !ordsPathInput.value) {
-    ordsPathInput.focus();
-  }
-  if (!columnsInput) {
-    return;
-  }
-  columnsInput.value = '';
-  try {
-    const response = await fetch(`/permissions/object-columns?objectRef=${encodeURIComponent(`db:${catalog.value}`)}`);
-    if (!response.ok) {
-      return;
-    }
-    const columns = await response.json();
-    if (Array.isArray(columns)) {
-      columnsInput.value = columns.join(',');
-    }
-  } catch (error) {
-    columnsInput.value = '';
+  if (ordsPathInput) {
+    const owner = (selected.dataset.owner || '').toLowerCase();
+    const objectName = (selected.dataset.objectName || '').toLowerCase();
+    ordsPathInput.value = owner && objectName ? `cb-ords/cb-object-query/${owner}/${objectName}` : '';
   }
 }
 

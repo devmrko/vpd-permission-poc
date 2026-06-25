@@ -38,13 +38,11 @@ public class ProtectedObjectController {
       @RequestParam String owner,
       @RequestParam String objectName,
       @RequestParam String ordsPath,
-      @RequestParam(required = false) String columns,
-      @RequestParam(required = false) String sensitiveColumns,
       RedirectAttributes redirectAttributes
   ) {
     try {
       protectedObjectService.createObject(
-          new ProtectedObjectCreateCommand(owner, objectName, ordsPath, columns, sensitiveColumns));
+          new ProtectedObjectCreateCommand(owner, objectName, ordsPath, null, null));
       redirectAttributes.addFlashAttribute("message", "ORDS 조회 Handler 대상을 추가했습니다.");
     } catch (AppException exception) {
       redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
