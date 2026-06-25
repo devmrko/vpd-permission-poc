@@ -36,5 +36,7 @@ public interface ProtectedObjectMapper {
 
   int updateOrdsPath(@Param("objectId") long objectId, @Param("ordsPath") String ordsPath);
 
+  int enableObject(@Param("objectId") long objectId);
+
   int disableObject(@Param("objectId") long objectId);
 }

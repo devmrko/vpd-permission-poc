@@ -28,6 +28,13 @@
     WHERE object_type IN ('TABLE', 'VIEW')
       AND owner NOT IN ('SYS', 'SYSTEM', 'ORDS_METADATA', 'ORDS_PUBLIC_USER')
       AND object_name NOT LIKE 'BIN$%'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM cb_protected_object po
+        WHERE po.owner = all_objects.owner
+          AND po.object_name = all_objects.object_name
+          AND po.enabled_yn = 'Y'
+      )
     ORDER BY owner, object_type, object_name
     FETCH FIRST 500 ROWS ONLY
   </select>
@@ -75,6 +82,12 @@
     UPDATE cb_protected_object
     SET ords_path = #{ordsPath,jdbcType=VARCHAR}
     WHERE object_id = #{objectId,jdbcType=NUMERIC}
+  </update>
+
+  <update id="enableObject">
+    UPDATE cb_protected_object
+    SET enabled_yn = 'Y'
+    WHERE object_id = #{objectId}
   </update>
 
   <update id="disableObject">

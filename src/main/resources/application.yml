@@ -8,9 +8,11 @@ spring:
     driver-class-name: oracle.jdbc.OracleDriver
     hikari:
       pool-name: vpd-backoffice-pool
-      maximum-pool-size: ${BACKOFFICE_DB_POOL_MAX:5}
-      minimum-idle: ${BACKOFFICE_DB_POOL_MIN:1}
+      maximum-pool-size: ${BACKOFFICE_DB_POOL_MAX:10}
+      minimum-idle: ${BACKOFFICE_DB_POOL_MIN:2}
       connection-timeout: 10000
+      idle-timeout: ${BACKOFFICE_DB_POOL_IDLE_TIMEOUT_MS:300000}
+      keepalive-time: ${BACKOFFICE_DB_POOL_KEEPALIVE_MS:120000}
   thymeleaf:
     cache: false
 

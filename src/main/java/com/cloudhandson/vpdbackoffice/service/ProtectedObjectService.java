@@ -10,7 +10,9 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,10 @@ public class ProtectedObjectService {
 
   private final ProtectedObjectMapper mapper;
   private final AuditService auditService;
+  private volatile CacheEntry<List<DatabaseObjectOption>> databaseObjectsCache;
+  private final Map<String, CacheEntry<List<String>>> databaseColumnsCache = new ConcurrentHashMap<>();
+  private final Map<Long, CacheEntry<List<ProtectedColumn>>> protectedColumnsCache = new ConcurrentHashMap<>();
+  private static final long CATALOG_CACHE_MILLIS = 60_000L;
 
   public ProtectedObjectService(ProtectedObjectMapper mapper, AuditService auditService) {
     this.mapper = mapper;
@@ -30,11 +36,24 @@ public class ProtectedObjectService {
   }
 
   public List<DatabaseObjectOption> findDatabaseObjects() {
-    return mapper.findDatabaseObjects();
+    CacheEntry<List<DatabaseObjectOption>> cached = databaseObjectsCache;
+    if (cached != null && !cached.expired()) {
+      return cached.value();
+    }
+    List<DatabaseObjectOption> objects = List.copyOf(mapper.findDatabaseObjects());
+    databaseObjectsCache = new CacheEntry<>(objects, System.currentTimeMillis() + CATALOG_CACHE_MILLIS);
+    return objects;
   }
 
   public List<String> findDatabaseColumns(String owner, String objectName) {
-    return mapper.findDatabaseColumns(owner, objectName);
+    String key = owner.trim().toUpperCase(Locale.ROOT) + "." + objectName.trim().toUpperCase(Locale.ROOT);
+    CacheEntry<List<String>> cached = databaseColumnsCache.get(key);
+    if (cached != null && !cached.expired()) {
+      return cached.value();
+    }
+    List<String> columns = List.copyOf(mapper.findDatabaseColumns(owner, objectName));
+    databaseColumnsCache.put(key, new CacheEntry<>(columns, System.currentTimeMillis() + CATALOG_CACHE_MILLIS));
+    return columns;
   }
 
   public ProtectedObject assertEnabled(long objectId) {
@@ -46,7 +65,13 @@ public class ProtectedObjectService {
   }
 
   public List<ProtectedColumn> findColumns(long objectId) {
-    return mapper.findColumns(objectId);
+    CacheEntry<List<ProtectedColumn>> cached = protectedColumnsCache.get(objectId);
+    if (cached != null && !cached.expired()) {
+      return cached.value();
+    }
+    List<ProtectedColumn> columns = List.copyOf(mapper.findColumns(objectId));
+    protectedColumnsCache.put(objectId, new CacheEntry<>(columns, System.currentTimeMillis() + CATALOG_CACHE_MILLIS));
+    return columns;
   }
 
   @Transactional
@@ -58,18 +83,50 @@ public class ProtectedObjectService {
     for (String column : splitCsv(normalized.columns())) {
       mapper.insertColumn(mapper.nextColumnId(), objectId, column, sensitive.contains(column) ? "Y" : "N");
     }
+    protectedColumnsCache.remove(objectId);
     auditService.record(new AuditEvent("PROTECTED_OBJECT_CREATED", null, objectId, "SUCCESS", null, null,
         normalized.objectName()));
   }
 
   @Transactional
   public ProtectedObject ensureProtectedObject(String owner, String objectName) {
-    ProtectedObject existing = mapper.findByOwnerAndName(owner, objectName);
+    String normalizedOwner = owner.trim().toUpperCase(Locale.ROOT);
+    String normalizedObjectName = objectName.trim().toUpperCase(Locale.ROOT);
+    ProtectedObject existing = mapper.findByOwnerAndName(normalizedOwner, normalizedObjectName);
     if (existing != null) {
+      if (!existing.enabled()) {
+        mapper.enableObject(existing.objectId());
+        auditService.record(new AuditEvent("PROTECTED_OBJECT_RE_ENABLED", null, existing.objectId(), "SUCCESS", null,
+            null, existing.displayName()));
+        return mapper.findById(existing.objectId());
+      }
       return existing;
     }
-    throw new AppException("테이블/뷰 관리에서 실제 ORDS Path를 먼저 등록하세요: "
-        + owner.toUpperCase(Locale.ROOT) + "." + objectName.toUpperCase(Locale.ROOT));
+    List<String> columns = findDatabaseColumns(normalizedOwner, normalizedObjectName);
+    if (columns.isEmpty()) {
+      throw new AppException("DB에서 컬럼 정보를 찾을 수 없습니다. 객체명과 스키마를 확인하세요: "
+          + normalizedOwner + "." + normalizedObjectName);
+    }
+    ProtectedObjectCreateCommand command = new ProtectedObjectCreateCommand(
+        normalizedOwner,
+        normalizedObjectName,
+        defaultOrdsPath(normalizedOwner, normalizedObjectName),
+        String.join(",", columns),
+        ""
+    );
+    long objectId = mapper.nextObjectId();
+    mapper.insertObject(objectId, command);
+    for (String column : columns) {
+      mapper.insertColumn(mapper.nextColumnId(), objectId, column, "N");
+    }
+    protectedColumnsCache.remove(objectId);
+    auditService.record(new AuditEvent("PROTECTED_OBJECT_AUTO_CREATED", null, objectId, "SUCCESS", null, null,
+        command.objectName()));
+    return mapper.findById(objectId);
+  }
+
+  private String defaultOrdsPath(String owner, String objectName) {
+    return owner.toLowerCase(Locale.ROOT) + "/" + objectName.toLowerCase(Locale.ROOT);
   }
 
   private ProtectedObjectCreateCommand normalizeCreateCommand(ProtectedObjectCreateCommand command) {
@@ -119,5 +176,12 @@ public class ProtectedObjectService {
         .map(token -> token.toUpperCase(Locale.ROOT))
         .forEach(result::add);
     return result;
+  }
+
+  private record CacheEntry<T>(T value, long expiresAt) {
+
+    boolean expired() {
+      return System.currentTimeMillis() > expiresAt;
+    }
   }
 }

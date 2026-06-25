@@ -7,6 +7,8 @@ import com.cloudhandson.vpdbackoffice.service.ProtectedObjectService;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +20,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 public class PermissionController {
 
+  private static final Logger log = LoggerFactory.getLogger(PermissionController.class);
   private final PermissionService permissionService;
   private final ProtectedObjectService protectedObjectService;
 
@@ -59,19 +62,40 @@ public class PermissionController {
 
   @GetMapping("/permissions")
   public String permissions(Model model) {
+    long started = System.nanoTime();
     var objects = protectedObjectService.findEnabled();
-    model.addAttribute("roles", permissionService.findRoles());
-    model.addAttribute("objects", objects);
-    model.addAttribute("columnsByObject", objects.stream()
+    long objectsAt = System.nanoTime();
+    var roles = permissionService.findRoles();
+    long rolesAt = System.nanoTime();
+    var columnsByObject = objects.stream()
         .collect(Collectors.toMap(
             object -> object.objectId(),
             object -> protectedObjectService.findColumns(object.objectId()).stream()
                 .map(column -> column.columnName())
                 .toList()
-        )));
-    model.addAttribute("dbObjects", protectedObjectService.findDatabaseObjects());
-    model.addAttribute("permissions", permissionService.findPermissionViews());
+        ));
+    long columnsAt = System.nanoTime();
+    var dbObjects = protectedObjectService.findDatabaseObjects();
+    long dbObjectsAt = System.nanoTime();
+    var permissions = permissionService.findPermissionViews();
+    long permissionsAt = System.nanoTime();
+    log.info("permissions page timings: objects={}ms roles={}ms columns={}ms dbObjects={}ms permissions={}ms total={}ms",
+        elapsedMillis(started, objectsAt),
+        elapsedMillis(objectsAt, rolesAt),
+        elapsedMillis(rolesAt, columnsAt),
+        elapsedMillis(columnsAt, dbObjectsAt),
+        elapsedMillis(dbObjectsAt, permissionsAt),
+        elapsedMillis(started, permissionsAt));
+    model.addAttribute("roles", roles);
+    model.addAttribute("objects", objects);
+    model.addAttribute("columnsByObject", columnsByObject);
+    model.addAttribute("dbObjects", dbObjects);
+    model.addAttribute("permissions", permissions);
     return "permissions";
+  }
+
+  private long elapsedMillis(long from, long to) {
+    return (to - from) / 1_000_000;
   }
 
   @PostMapping("/permissions")
