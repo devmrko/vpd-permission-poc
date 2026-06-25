@@ -336,6 +336,119 @@ body {
   grid-template-columns: 1fr 1fr 1fr auto;
 }
 
+.permission-wizard {
+  display: grid;
+  gap: 1rem;
+}
+
+.wizard-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+
+.wizard-step-indicator {
+  background: var(--rw-surface-muted);
+  border: 1px solid var(--rw-border);
+  border-radius: 999px;
+  color: var(--rw-muted);
+  font-size: .82rem;
+  font-weight: 700;
+  min-height: 2rem;
+  padding: .3rem .7rem;
+}
+
+.wizard-step-indicator.active {
+  background: var(--rw-primary);
+  border-color: var(--rw-primary);
+  color: #fff;
+}
+
+.wizard-summary {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.wizard-summary > div,
+.policy-preview dl > div {
+  background: var(--rw-surface-muted);
+  border: 1px solid var(--rw-border);
+  border-radius: 8px;
+  padding: .75rem;
+}
+
+.wizard-summary span,
+.policy-preview dt {
+  color: var(--rw-muted);
+  display: block;
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.wizard-summary strong,
+.policy-preview dd {
+  display: block;
+  margin: .25rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.wizard-panel {
+  border: 1px solid var(--rw-border);
+  border-radius: 8px;
+  display: none;
+  padding: 1rem;
+}
+
+.wizard-panel.active {
+  display: grid;
+  gap: 1rem;
+}
+
+.wizard-panel-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: .75rem;
+}
+
+.wizard-panel-heading h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.wizard-panel-heading p,
+.wizard-hint {
+  color: var(--rw-muted);
+  margin: .15rem 0 0;
+}
+
+.wizard-step-number {
+  align-items: center;
+  background: var(--rw-primary-soft);
+  border-radius: 999px;
+  color: var(--rw-primary);
+  display: inline-flex;
+  font-weight: 800;
+  height: 2rem;
+  justify-content: center;
+  min-width: 2rem;
+}
+
+.wizard-actions {
+  align-items: center;
+  display: flex;
+  gap: .5rem;
+  justify-content: flex-end;
+}
+
+.policy-preview dl {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  margin: 0;
+}
+
 .question-presets {
   display: flex;
   flex-wrap: wrap;

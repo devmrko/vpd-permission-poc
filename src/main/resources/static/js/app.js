@@ -233,6 +233,113 @@ async function syncObjectCatalogSelection() {
   }
 }
 
+function selectedText(select) {
+  if (!select || select.selectedIndex < 0) {
+    return '-';
+  }
+  return select.options[select.selectedIndex].textContent.trim();
+}
+
+function collectWizardRules(root) {
+  return Array.from(root.querySelectorAll('.rule-row')).map((row) => {
+    const column = row.querySelector('[name="ruleColumn"]')?.value || '';
+    const type = row.querySelector('[name="ruleType"]')?.value || '';
+    const value = row.querySelector('[name="ruleValue"]')?.value || '';
+    const displayColumn = column || {
+      MY_DEPT: 'DEPT_CODE',
+      SELF: 'OWNER_EMP_NO',
+      DEPT: 'DEPT_CODE',
+      EMP_NO: 'OWNER_EMP_NO',
+      ALL: ''
+    }[type] || '';
+    if (type === 'ALL') {
+      return 'ALL';
+    }
+    if (['MY_DEPT', 'SELF'].includes(type)) {
+      return `${displayColumn} ${type}`;
+    }
+    return [displayColumn, type, value].filter(Boolean).join(' ');
+  }).filter(Boolean);
+}
+
+function updatePermissionWizardPreview(root = document) {
+  const wizard = root.querySelector('[data-permission-wizard]');
+  if (!wizard) {
+    return;
+  }
+  const roleSelect = wizard.querySelector('[name="roleId"]');
+  const objectSelect = wizard.querySelector('[name="objectRef"]');
+  const effectSelect = wizard.querySelector('[name="permissionEffect"]');
+  const visibleColumns = wizard.querySelector('[name="visibleColumns"]')?.value.trim() || '';
+  const roleOption = roleSelect?.options[roleSelect.selectedIndex];
+  const effect = effectSelect?.value || 'ALLOW';
+  const rules = collectWizardRules(wizard);
+  const ruleText = rules.length ? rules.join(', ') : '행 규칙 없음';
+  const rowPolicy = effect === 'DENY'
+      ? `거부 규칙: ${ruleText}`
+      : `허용 규칙: ${ruleText}`;
+  const columnPolicy = visibleColumns
+      ? `NULL 처리 예외: ${visibleColumns}`
+      : '민감 컬럼은 NULL 처리 대상';
+
+  wizard.querySelector('[data-wizard-summary="role"]').textContent = selectedText(roleSelect);
+  wizard.querySelector('[data-wizard-summary="object"]').textContent = selectedText(objectSelect);
+  wizard.querySelector('[data-wizard-summary="effect"]').textContent = effect;
+  wizard.querySelector('[data-wizard-summary="rules"]').textContent = ruleText;
+
+  wizard.querySelector('[data-preview="role"]').textContent = selectedText(roleSelect);
+  wizard.querySelector('[data-preview="sensitivity"]').textContent = roleOption?.dataset.maxSensitivity || 'PUBLIC';
+  wizard.querySelector('[data-preview="object"]').textContent = selectedText(objectSelect);
+  wizard.querySelector('[data-preview="rowPolicy"]').textContent = rowPolicy;
+  wizard.querySelector('[data-preview="columnPolicy"]').textContent = columnPolicy;
+}
+
+function activatePermissionWizardStep(wizard, step) {
+  const panels = Array.from(wizard.querySelectorAll('[data-wizard-step]'));
+  const maxStep = panels.length;
+  const nextStep = Math.max(1, Math.min(step, maxStep));
+  panels.forEach((panel) => {
+    panel.classList.toggle('active', Number(panel.dataset.wizardStep) === nextStep);
+  });
+  document.querySelectorAll('[data-wizard-target]').forEach((button) => {
+    button.classList.toggle('active', Number(button.dataset.wizardTarget) === nextStep);
+  });
+  wizard.dataset.currentStep = String(nextStep);
+  const prev = wizard.querySelector('[data-wizard-prev]');
+  const next = wizard.querySelector('[data-wizard-next]');
+  const submit = wizard.querySelector('[data-wizard-submit]');
+  if (prev) {
+    prev.disabled = nextStep === 1;
+  }
+  if (next) {
+    next.hidden = nextStep === maxStep;
+  }
+  if (submit) {
+    submit.hidden = nextStep !== maxStep;
+  }
+  updatePermissionWizardPreview(document);
+}
+
+function initPermissionWizard() {
+  const wizard = document.querySelector('[data-permission-wizard]');
+  if (!wizard) {
+    return;
+  }
+  wizard.dataset.currentStep = wizard.dataset.currentStep || '1';
+  wizard.querySelector('[data-wizard-prev]')?.addEventListener('click', () => {
+    activatePermissionWizardStep(wizard, Number(wizard.dataset.currentStep || '1') - 1);
+  });
+  wizard.querySelector('[data-wizard-next]')?.addEventListener('click', () => {
+    activatePermissionWizardStep(wizard, Number(wizard.dataset.currentStep || '1') + 1);
+  });
+  document.querySelectorAll('[data-wizard-target]').forEach((button) => {
+    button.addEventListener('click', () => activatePermissionWizardStep(wizard, Number(button.dataset.wizardTarget)));
+  });
+  wizard.addEventListener('input', () => updatePermissionWizardPreview(document));
+  wizard.addEventListener('change', () => updatePermissionWizardPreview(document));
+  activatePermissionWizardStep(wizard, Number(wizard.dataset.currentStep || '1'));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   renderMarkdownViews();
   const master = document.getElementById('userRoleMaster');
@@ -242,11 +349,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   const objectSelect = document.querySelector('select[name="objectRef"]');
   if (objectSelect) {
-    objectSelect.addEventListener('change', syncRuleColumnOptions);
+    objectSelect.addEventListener('change', () => {
+      syncRuleColumnOptions();
+      updatePermissionWizardPreview(document);
+    });
     syncRuleColumnOptions();
   }
+  initPermissionWizard();
   document.querySelectorAll('.rule-type-select').forEach((select) => {
-    select.addEventListener('change', () => syncRuleTypeHints());
+    select.addEventListener('change', () => {
+      syncRuleTypeHints();
+      updatePermissionWizardPreview(document);
+    });
   });
   syncRuleTypeHints();
   const catalog = document.getElementById('objectCatalogSelect');
@@ -264,15 +378,23 @@ document.addEventListener('DOMContentLoaded', () => {
       clone.querySelectorAll('input').forEach((input) => input.value = '');
       const cloneButton = clone.querySelector('[data-rule-add]');
       cloneButton.textContent = '삭제';
-      cloneButton.addEventListener('click', () => clone.remove());
+      cloneButton.addEventListener('click', () => {
+        clone.remove();
+        updatePermissionWizardPreview(document);
+      });
       clone.querySelectorAll('.rule-type-select').forEach((select) => {
-        select.addEventListener('change', () => syncRuleTypeHints());
+        select.addEventListener('change', () => {
+          syncRuleTypeHints();
+          updatePermissionWizardPreview(document);
+        });
       });
       list.appendChild(clone);
       syncRuleColumnOptions();
       syncRuleTypeHints(clone);
+      updatePermissionWizardPreview(document);
     });
   });
+  updatePermissionWizardPreview(document);
 });
 
 document.body.addEventListener('htmx:afterSwap', (event) => {
