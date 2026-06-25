@@ -99,8 +99,8 @@ public class OrdsMetadataService {
       throw new AppException("수정할 ORDS Handler를 찾을 수 없습니다.");
     }
     String sourceType = handler.sourceType() == null ? "" : handler.sourceType().toLowerCase(Locale.ROOT);
-    if (!sourceType.contains("plsql")) {
-      throw new AppException("현재는 PL/SQL ORDS Handler만 수정할 수 있습니다: " + handler.sourceType());
+    if (!sourceType.contains("plsql") && !sourceType.contains("query")) {
+      throw new AppException("현재는 PL/SQL/SQL Query ORDS Handler만 수정할 수 있습니다: " + handler.sourceType());
     }
     String currentUser = jdbcTemplate.queryForObject("SELECT USER FROM dual", String.class);
     if (currentUser == null || !currentUser.equalsIgnoreCase(handler.parsingSchema())) {
@@ -108,18 +108,31 @@ public class OrdsMetadataService {
           + currentUser + ", Handler parsing schema: " + handler.parsingSchema());
     }
     jdbcTemplate.update("""
+        DECLARE
+          v_source_type VARCHAR2(30);
         BEGIN
+          IF ? = 'QUERY' THEN
+            v_source_type := ORDS.source_type_query;
+          ELSE
+            v_source_type := ORDS.source_type_plsql;
+          END IF;
+
           ORDS.DEFINE_HANDLER(
             p_module_name    => ?,
             p_pattern        => ?,
             p_method         => ?,
-            p_source_type    => ORDS.source_type_plsql,
+            p_source_type    => v_source_type,
             p_source         => ?,
             p_items_per_page => 0
           );
           COMMIT;
         END;
-        """, handler.moduleName(), handler.template(), handler.method(), command.source());
+        """,
+        handlerSourceTypeCode(handler.sourceType()),
+        handler.moduleName(),
+        handler.template(),
+        handler.method(),
+        command.source());
   }
 
   @Transactional
@@ -163,9 +176,9 @@ public class OrdsMetadataService {
             p_module_name    => ?,
             p_pattern        => ?,
             p_method         => 'POST',
-            p_source_type    => ORDS.source_type_plsql,
+            p_source_type    => ORDS.source_type_query,
             p_source         => ?,
-            p_items_per_page => 0
+            p_items_per_page => 25
           );
           ORDS.DEFINE_PARAMETER(
             p_module_name        => ?,
@@ -200,54 +213,28 @@ public class OrdsMetadataService {
   }
 
   private String objectQuerySource(ProtectedObject object, List<String> columns) {
-    String jsonEntries = columns.stream()
-        .map(column -> "'" + column.toLowerCase(Locale.ROOT) + "' VALUE " + column)
-        .reduce((left, right) -> left + ",\n                 " + right)
+    String selectColumns = columns.stream()
+        .map(column -> "o." + column)
+        .reduce((left, right) -> left + ",\n       " + right)
         .orElseThrow();
-    String selectColumns = String.join(", ", columns);
     return """
-        DECLARE
-          v_limit NUMBER := LEAST(GREATEST(NVL(:row_limit, 50), 1), 500);
-          v_rows_json CLOB;
-          v_offset NUMBER := 1;
-        BEGIN
-          cb_ords_handler_pkg.set_vpd_context(:auth_header);
+        WITH vpd_ctx AS (
+          SELECT cb_ords_handler_pkg.set_vpd_context_sql(:auth_header) AS applied
+          FROM   dual
+        )
+        SELECT %s
+        FROM   %s.%s o
+               CROSS JOIN vpd_ctx
+        WHERE  ROWNUM <= LEAST(GREATEST(NVL(:row_limit, 50), 1), 500)
+        """.formatted(selectColumns, object.owner(), object.objectName());
+  }
 
-          SELECT JSON_ARRAYAGG(
-                   JSON_OBJECT(
-                     %s
-                     RETURNING VARCHAR2(32767)
-                   )
-                   RETURNING CLOB
-                 )
-          INTO   v_rows_json
-          FROM (
-            SELECT %s
-            FROM   %s.%s
-            WHERE  ROWNUM <= v_limit
-          );
-
-          IF v_rows_json IS NULL THEN
-            v_rows_json := '[]';
-          END IF;
-
-          :status_code := 200;
-          OWA_UTIL.MIME_HEADER('application/json', TRUE);
-          HTP.P('{"rows":');
-          WHILE v_offset <= DBMS_LOB.GETLENGTH(v_rows_json) LOOP
-            HTP.P(DBMS_LOB.SUBSTR(v_rows_json, 32767, v_offset));
-            v_offset := v_offset + 32767;
-          END LOOP;
-          HTP.P('}');
-          cb_ords_handler_pkg.clear_vpd_context;
-        EXCEPTION
-          WHEN OTHERS THEN
-            cb_ords_handler_pkg.clear_vpd_context;
-            :status_code := 403;
-            OWA_UTIL.MIME_HEADER('application/json', TRUE);
-            HTP.P(JSON_OBJECT('error' VALUE SQLERRM RETURNING VARCHAR2(4000)));
-        END;
-        """.formatted(jsonEntries, selectColumns, object.owner(), object.objectName());
+  private String handlerSourceTypeCode(String sourceType) {
+    String normalized = sourceType == null ? "" : sourceType.toLowerCase(Locale.ROOT);
+    if (normalized.contains("query")) {
+      return "QUERY";
+    }
+    return "PLSQL";
   }
 
   private void requireIdentifier(String value, String label) {

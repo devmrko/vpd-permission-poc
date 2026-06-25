@@ -20,6 +20,7 @@ SET FEEDBACK ON
 PROMPT === Creating CB_ORDS handler package ===
 CREATE OR REPLACE PACKAGE cb_ords_handler_pkg AUTHID DEFINER AS
   PROCEDURE set_vpd_context(p_authorization IN VARCHAR2);
+  FUNCTION set_vpd_context_sql(p_authorization IN VARCHAR2) RETURN NUMBER;
   PROCEDURE clear_vpd_context;
 END;
 /
@@ -43,6 +44,12 @@ CREATE OR REPLACE PACKAGE BODY cb_ords_handler_pkg AS
     admin.cb_agent_ctx_pkg.clear_user;
     v_bearer_key := extract_bearer_key(p_authorization);
     admin.cb_agent_ctx_pkg.set_user_by_bearer(v_bearer_key);
+  END;
+
+  FUNCTION set_vpd_context_sql(p_authorization IN VARCHAR2) RETURN NUMBER AS
+  BEGIN
+    set_vpd_context(p_authorization);
+    RETURN 1;
   END;
 
   PROCEDURE clear_vpd_context AS
@@ -79,51 +86,21 @@ BEGIN
     p_module_name    => 'cb.agent.security',
     p_pattern        => 'vpd/documents',
     p_method         => 'POST',
-    p_source_type    => ORDS.source_type_plsql,
+    p_source_type    => ORDS.source_type_query,
     p_source         => q'!
-DECLARE
-  v_rows_json CLOB;
-  v_offset NUMBER := 1;
-BEGIN
-  cb_ords_handler_pkg.set_vpd_context(:auth_header);
-
-  SELECT JSON_ARRAYAGG(
-           JSON_OBJECT(
-             'doc_id'       VALUE doc_id,
-             'title'        VALUE title,
-             'owner_emp_no' VALUE owner_emp_no,
-             'dept_code'    VALUE dept_code,
-             'contents'     VALUE contents
-             RETURNING VARCHAR2(32767)
-           )
-           ORDER BY doc_id
-           RETURNING CLOB
-         )
-  INTO   v_rows_json
-  FROM   admin.cb_v_search_documents;
-
-  IF v_rows_json IS NULL THEN
-    v_rows_json := '[]';
-  END IF;
-
-  :status_code := 200;
-  OWA_UTIL.MIME_HEADER('application/json', TRUE);
-  HTP.P('{"rows":');
-  WHILE v_offset <= DBMS_LOB.GETLENGTH(v_rows_json) LOOP
-    HTP.P(DBMS_LOB.SUBSTR(v_rows_json, 32767, v_offset));
-    v_offset := v_offset + 32767;
-  END LOOP;
-  HTP.P('}');
-  cb_ords_handler_pkg.clear_vpd_context;
-EXCEPTION
-  WHEN OTHERS THEN
-    cb_ords_handler_pkg.clear_vpd_context;
-    :status_code := 403;
-    OWA_UTIL.MIME_HEADER('application/json', TRUE);
-    HTP.P(JSON_OBJECT('error' VALUE SQLERRM RETURNING VARCHAR2(4000)));
-END;
+WITH vpd_ctx AS (
+  SELECT cb_ords_handler_pkg.set_vpd_context_sql(:auth_header) AS applied
+  FROM   dual
+)
+SELECT d.doc_id,
+       d.title,
+       d.owner_emp_no,
+       d.dept_code,
+       d.contents
+FROM   admin.cb_v_search_documents d
+       CROSS JOIN vpd_ctx
 !',
-    p_items_per_page => 0
+    p_items_per_page => 25
   );
 
   ORDS.DEFINE_PARAMETER(
