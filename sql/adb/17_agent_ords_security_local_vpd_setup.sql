@@ -341,22 +341,34 @@ BEGIN
         RETURN '1 = 1';
       ELSIF r.rule_type = 'MY_DEPT' THEN
         v_column := safe_column(p_schema, p_object, NVL(r.rule_column, 'DEPT_CODE'));
-        append_or(v_column || ' = SYS_CONTEXT(''CB_AGENT_CTX'', ''DEPT_CODE'')');
+        IF v_column IS NOT NULL THEN
+          append_or(v_column || ' = SYS_CONTEXT(''CB_AGENT_CTX'', ''DEPT_CODE'')');
+        END IF;
       ELSIF r.rule_type = 'SELF' THEN
         v_column := safe_column(p_schema, p_object, NVL(r.rule_column, 'OWNER_EMP_NO'));
-        append_or(v_column || ' = SYS_CONTEXT(''CB_AGENT_CTX'', ''EMP_NO'')');
+        IF v_column IS NOT NULL THEN
+          append_or(v_column || ' = SYS_CONTEXT(''CB_AGENT_CTX'', ''EMP_NO'')');
+        END IF;
       ELSIF r.rule_type = 'DEPT' THEN
         v_column := safe_column(p_schema, p_object, NVL(r.rule_column, 'DEPT_CODE'));
-        append_or(v_column || ' = ' || quote_literal(r.rule_value));
+        IF v_column IS NOT NULL THEN
+          append_or(v_column || ' = ' || quote_literal(r.rule_value));
+        END IF;
       ELSIF r.rule_type = 'EMP_NO' THEN
         v_column := safe_column(p_schema, p_object, NVL(r.rule_column, 'OWNER_EMP_NO'));
-        append_or(v_column || ' = ' || quote_literal(r.rule_value));
+        IF v_column IS NOT NULL THEN
+          append_or(v_column || ' = ' || quote_literal(r.rule_value));
+        END IF;
       ELSIF r.rule_type = '=' THEN
         v_column := safe_column(p_schema, p_object, r.rule_column);
-        append_or('TO_CHAR(' || v_column || ') = ' || quote_literal(r.rule_value));
+        IF v_column IS NOT NULL THEN
+          append_or('TO_CHAR(' || v_column || ') = ' || quote_literal(r.rule_value));
+        END IF;
       ELSIF r.rule_type IN ('!=', '<>') THEN
         v_column := safe_column(p_schema, p_object, r.rule_column);
-        append_or('TO_CHAR(' || v_column || ') <> ' || quote_literal(r.rule_value));
+        IF v_column IS NOT NULL THEN
+          append_or('TO_CHAR(' || v_column || ') <> ' || quote_literal(r.rule_value));
+        END IF;
       END IF;
     END;
   END LOOP;
