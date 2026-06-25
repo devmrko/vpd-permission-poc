@@ -159,6 +159,38 @@ function renderRuleColumnOptions(columns) {
   });
 }
 
+function renderMaskableColumnOptions(option) {
+  const list = document.querySelector('[data-maskable-column-list]');
+  if (!list) {
+    return;
+  }
+  const columns = (option?.dataset.maskableColumns || '').split(',').filter(Boolean);
+  const labels = (option?.dataset.maskableLabels || '').split('|').filter(Boolean);
+  if (!columns.length) {
+    list.innerHTML = '<span class="text-muted small">선택한 객체에 권한별로 허용할 마스킹 컬럼이 없습니다.</span>';
+    return;
+  }
+  list.innerHTML = columns.map((column, index) => (
+      `<button class="btn btn-sm btn-outline-secondary question-preset" type="button" data-mask-column="${column}">`
+      + `${escapeHtml(labels[index] || column)}</button>`
+  )).join('');
+  list.querySelectorAll('[data-mask-column]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const input = document.querySelector('input[name="visibleColumns"]');
+      if (!input) {
+        return;
+      }
+      const current = input.value.split(',').map((value) => value.trim()).filter(Boolean);
+      const column = button.dataset.maskColumn;
+      if (!current.includes(column)) {
+        current.push(column);
+      }
+      input.value = current.join(', ');
+      updatePermissionWizardPreview(document);
+    });
+  });
+}
+
 function syncRuleTypeHints(root = document) {
   root.querySelectorAll('.rule-row').forEach((row) => {
     const typeSelect = row.querySelector('.rule-type-select');
@@ -198,6 +230,7 @@ async function syncRuleColumnOptions() {
   }
   const selectedOption = objectSelect.options[objectSelect.selectedIndex];
   const fallbackColumns = (selectedOption?.dataset.columns || '').split(',').filter(Boolean);
+  renderMaskableColumnOptions(selectedOption);
   renderRuleColumnOptions(fallbackColumns);
   try {
     const response = await fetch(`/permissions/object-columns?objectRef=${encodeURIComponent(objectSelect.value)}`);
@@ -279,8 +312,8 @@ function updatePermissionWizardPreview(root = document) {
       ? `거부 규칙: ${ruleText}`
       : `허용 규칙: ${ruleText}`;
   const columnPolicy = visibleColumns
-      ? `NULL 처리 예외: ${visibleColumns}`
-      : '민감 컬럼은 NULL 처리 대상';
+      ? `이 권한에서 원문 표시 허용: ${visibleColumns}`
+      : '마스킹 대상 컬럼은 기본 정책대로 NULL/마스킹 처리';
 
   wizard.querySelector('[data-wizard-summary="role"]').textContent = selectedText(roleSelect);
   wizard.querySelector('[data-wizard-summary="object"]').textContent = selectedText(objectSelect);

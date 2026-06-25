@@ -2,6 +2,7 @@ package com.cloudhandson.vpdbackoffice.web;
 
 import com.cloudhandson.vpdbackoffice.domain.permission.PermissionSetCommand;
 import com.cloudhandson.vpdbackoffice.domain.permission.RuleCommand;
+import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedColumn;
 import com.cloudhandson.vpdbackoffice.service.PermissionService;
 import com.cloudhandson.vpdbackoffice.service.ProtectedObjectService;
 import java.util.Arrays;
@@ -74,6 +75,22 @@ public class PermissionController {
                 .map(column -> column.columnName())
                 .toList()
         ));
+    var maskableColumnsByObject = objects.stream()
+        .collect(Collectors.toMap(
+            object -> object.objectId(),
+            object -> protectedObjectService.findColumns(object.objectId()).stream()
+                .filter(ProtectedColumn::sensitive)
+                .map(column -> column.columnName())
+                .toList()
+        ));
+    var maskableColumnLabelsByObject = objects.stream()
+        .collect(Collectors.toMap(
+            object -> object.objectId(),
+            object -> protectedObjectService.findColumns(object.objectId()).stream()
+                .filter(ProtectedColumn::sensitive)
+                .map(column -> column.columnName() + " [" + column.policyLabel() + "]")
+                .toList()
+        ));
     long columnsAt = System.nanoTime();
     var dbObjects = protectedObjectService.findDatabaseObjects();
     long dbObjectsAt = System.nanoTime();
@@ -89,6 +106,8 @@ public class PermissionController {
     model.addAttribute("roles", roles);
     model.addAttribute("objects", objects);
     model.addAttribute("columnsByObject", columnsByObject);
+    model.addAttribute("maskableColumnsByObject", maskableColumnsByObject);
+    model.addAttribute("maskableColumnLabelsByObject", maskableColumnLabelsByObject);
     model.addAttribute("dbObjects", dbObjects);
     model.addAttribute("permissions", permissions);
     return "permissions";

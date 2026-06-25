@@ -77,7 +77,9 @@
             <optgroup label="등록된 보호 객체">
               <option th:each="object : ${objects}"
                       th:value="${'protected:' + object.objectId()}"
-                      th:attr="data-columns=${#strings.listJoin(columnsByObject[object.objectId()], ',')}"
+                      th:attr="data-columns=${#strings.listJoin(columnsByObject[object.objectId()], ',')},
+                               data-maskable-columns=${#strings.listJoin(maskableColumnsByObject[object.objectId()], ',')},
+                               data-maskable-labels=${#strings.listJoin(maskableColumnLabelsByObject[object.objectId()], '|')}"
                       th:text="${object.displayName()}"></option>
             </optgroup>
             <optgroup label="DB 스키마 객체">
@@ -136,15 +138,21 @@
         <div class="wizard-panel-heading">
           <span class="wizard-step-number">4</span>
           <div>
-            <h3>컬럼 NULL 처리 예외</h3>
-            <p>redaction 대상 민감 컬럼 중 원문 표시를 허용할 컬럼을 입력합니다.</p>
+            <h3>권한별 컬럼 마스킹</h3>
+            <p>이 역할이 이 테이블/뷰를 조회할 때 원문 표시를 허용할 마스킹 컬럼을 선택합니다.</p>
+          </div>
+        </div>
+        <div class="masking-column-picker">
+          <div class="field-block-title">선택 가능한 마스킹 컬럼</div>
+          <div class="question-presets" data-maskable-column-list>
+            <span class="text-muted small">보호 객체를 선택하면 마스킹 대상 컬럼이 표시됩니다.</span>
           </div>
         </div>
         <label>
-          NULL 처리 예외 컬럼
+          원문 표시 허용 컬럼
           <input class="form-control" name="visibleColumns" placeholder="CONTENTS">
         </label>
-        <p class="wizard-hint">쉼표로 여러 컬럼을 입력합니다. 비워두면 민감 컬럼은 NULL 처리 대상으로 남습니다.</p>
+        <p class="wizard-hint">객체의 기본 민감도/마스킹 정책은 ORDS 조회 Handler 대상에서 관리하고, 여기서는 역할 권한에 붙일 원문 표시 예외만 정합니다.</p>
       </div>
 
       <div class="wizard-panel" data-wizard-step="5">
@@ -161,7 +169,7 @@
             <div><dt>민감도 상한</dt><dd data-preview="sensitivity">-</dd></div>
             <div><dt>보호 객체</dt><dd data-preview="object">-</dd></div>
             <div><dt>행 접근</dt><dd data-preview="rowPolicy">-</dd></div>
-            <div><dt>컬럼 정책</dt><dd data-preview="columnPolicy">-</dd></div>
+            <div><dt>권한별 컬럼 마스킹</dt><dd data-preview="columnPolicy">-</dd></div>
           </dl>
         </div>
       </div>
@@ -187,7 +195,7 @@
           <th>Effect</th>
           <th>행 규칙</th>
           <th>적용 필터</th>
-          <th>NULL 제외 컬럼</th>
+          <th>원문 표시 허용 컬럼</th>
           <th></th>
         </tr>
         </thead>
