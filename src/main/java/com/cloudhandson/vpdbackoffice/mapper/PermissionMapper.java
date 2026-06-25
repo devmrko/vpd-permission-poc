@@ -36,9 +36,13 @@ public interface PermissionMapper {
   void insertPermission(@Param("permissionId") long permissionId,
                         @Param("roleId") long roleId,
                         @Param("objectId") long objectId,
-                        @Param("action") String action);
+                        @Param("action") String action,
+                        @Param("permissionEffect") String permissionEffect);
 
   void updatePermissionAction(@Param("permissionId") long permissionId, @Param("action") String action);
+
+  void updatePermissionEffect(@Param("permissionId") long permissionId,
+                              @Param("permissionEffect") String permissionEffect);
 
   void deleteRules(@Param("permissionId") long permissionId);
 

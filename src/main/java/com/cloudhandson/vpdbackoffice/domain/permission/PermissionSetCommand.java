@@ -9,6 +9,7 @@ public record PermissionSetCommand(
     @Positive long roleId,
     @Positive long objectId,
     @NotBlank String action,
+    String permissionEffect,
     @NotEmpty List<RuleCommand> rules,
     List<String> visibleColumns
 ) {

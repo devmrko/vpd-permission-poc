@@ -52,6 +52,7 @@ class PermissionServiceTest {
         10L,
         1L,
         "SELECT",
+        "ALLOW",
         List.of(new RuleCommand(null, "ALL", null), new RuleCommand("DEPT_CODE", "=", "APAC")),
         List.of()
     );
@@ -67,6 +68,7 @@ class PermissionServiceTest {
         10L,
         1L,
         "SELECT",
+        "ALLOW",
         List.of(new RuleCommand("DEPT_CODE", "CUSTOM_PREDICATE", "1=1")),
         List.of()
     );
@@ -82,6 +84,7 @@ class PermissionServiceTest {
         10L,
         1L,
         "SELECT",
+        "ALLOW",
         List.of(new RuleCommand(null, "MY_DEPT", null), new RuleCommand(null, "SELF", null)),
         List.of()
     );
@@ -103,6 +106,7 @@ class PermissionServiceTest {
         10L,
         1L,
         "SELECT",
+        "ALLOW",
         List.of(new RuleCommand(null, "DEPT", "HR"), new RuleCommand(null, "EMP_NO", "E2001")),
         List.of()
     );
@@ -124,6 +128,7 @@ class PermissionServiceTest {
         10L,
         1L,
         "SELECT",
+        "ALLOW",
         List.of(new RuleCommand(null, "DEPT", "")),
         List.of()
     );
@@ -131,6 +136,23 @@ class PermissionServiceTest {
     assertThatThrownBy(() -> permissionService.savePermissionSet(command))
         .isInstanceOf(AppException.class)
         .hasMessageContaining("값이 필요");
+  }
+
+  @Test
+  void acceptsDenyPermissionEffect() {
+    var command = new PermissionSetCommand(
+        10L,
+        1L,
+        "SELECT",
+        "DENY",
+        List.of(new RuleCommand("DEPT_CODE", "=", "HR")),
+        List.of()
+    );
+
+    permissionService.savePermissionSet(command);
+
+    FakePermissionMapper mapper = (FakePermissionMapper) permissionMapper;
+    assertThat(mapper.insertedEffect).isEqualTo("DENY");
   }
 
   @Test
@@ -209,12 +231,20 @@ class PermissionServiceTest {
       return 0;
     }
 
+    private String insertedEffect;
+
     @Override
-    public void insertPermission(long permissionId, long roleId, long objectId, String action) {
+    public void insertPermission(long permissionId, long roleId, long objectId, String action, String permissionEffect) {
+      insertedEffect = permissionEffect;
     }
 
     @Override
     public void updatePermissionAction(long permissionId, String action) {
+    }
+
+    @Override
+    public void updatePermissionEffect(long permissionId, String permissionEffect) {
+      insertedEffect = permissionEffect;
     }
 
     @Override

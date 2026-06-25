@@ -22,6 +22,7 @@ public class PermissionService {
   private static final Set<String> RULE_TYPES = Set.of("ALL", "=", "!=", "MY_DEPT", "SELF", "DEPT", "EMP_NO");
   private static final Set<String> VALUE_REQUIRED_RULE_TYPES = Set.of("=", "!=", "DEPT", "EMP_NO");
   private static final Set<String> DEFAULT_COLUMN_RULE_TYPES = Set.of("MY_DEPT", "SELF", "DEPT", "EMP_NO");
+  private static final Set<String> PERMISSION_EFFECTS = Set.of("ALLOW", "DENY");
 
   private final PermissionMapper permissionMapper;
   private final ProtectedObjectService protectedObjectService;
@@ -69,6 +70,7 @@ public class PermissionService {
     if (!"SELECT".equalsIgnoreCase(command.action())) {
       throw new AppException("초기 구현에서는 SELECT 권한만 저장할 수 있습니다.");
     }
+    String permissionEffect = normalizePermissionEffect(command.permissionEffect());
     AppRole role = permissionMapper.findRole(command.roleId());
     if (role == null) {
       throw new AppException("역할을 찾을 수 없습니다.");
@@ -80,9 +82,10 @@ public class PermissionService {
     Long existingId = permissionMapper.findPermissionId(command.roleId(), command.objectId());
     long permissionId = existingId == null ? permissionMapper.nextPermissionId() : existingId;
     if (existingId == null) {
-      permissionMapper.insertPermission(permissionId, command.roleId(), command.objectId(), "SELECT");
+      permissionMapper.insertPermission(permissionId, command.roleId(), command.objectId(), "SELECT", permissionEffect);
     } else {
       permissionMapper.updatePermissionAction(permissionId, "SELECT");
+      permissionMapper.updatePermissionEffect(permissionId, permissionEffect);
     }
 
     permissionMapper.deleteRules(permissionId);
@@ -107,7 +110,7 @@ public class PermissionService {
         "PERMISSION_SAVED", null, command.objectId(), "SUCCESS", null, null,
         "roleId=" + command.roleId()
     ));
-    return new PermissionSet(permissionId, command.roleId(), command.objectId(), "SELECT", List.of(), List.of());
+    return new PermissionSet(permissionId, command.roleId(), command.objectId(), "SELECT", permissionEffect, List.of(), List.of());
   }
 
   @Transactional
@@ -183,6 +186,14 @@ public class PermissionService {
 
   private String normalize(String value) {
     return clean(value).toUpperCase(Locale.ROOT);
+  }
+
+  private String normalizePermissionEffect(String value) {
+    String effect = clean(value).isBlank() ? "ALLOW" : normalize(value);
+    if (!PERMISSION_EFFECTS.contains(effect)) {
+      throw new AppException("허용되지 않은 권한 효과입니다: " + effect);
+    }
+    return effect;
   }
 
   private String normalizeNullable(String value) {

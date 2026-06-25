@@ -56,9 +56,12 @@ public class BackofficeSchemaService {
           perm_id      NUMBER PRIMARY KEY,
           role_id      NUMBER NOT NULL,
           target_name  VARCHAR2(128) NOT NULL,
-          action_name  VARCHAR2(30) DEFAULT 'SELECT' NOT NULL
+          action_name  VARCHAR2(30) DEFAULT 'SELECT' NOT NULL,
+          permission_effect VARCHAR2(10) DEFAULT 'ALLOW' NOT NULL
         )
         """);
+    addColumn(results, "cb_permission", "permission_effect",
+        "ALTER TABLE cb_permission ADD (permission_effect VARCHAR2(10) DEFAULT 'ALLOW' NOT NULL)");
     createTable(results, "cb_permission_rule", """
         CREATE TABLE cb_permission_rule (
           rule_id      NUMBER PRIMARY KEY,

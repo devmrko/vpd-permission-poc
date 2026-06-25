@@ -61,6 +61,12 @@ BEGIN
   INSERT INTO cb_app_user(user_id, user_name, employee_no, dept_code, can_read_contents, active)
   VALUES (456110, 'rule_test_target_mismatch', 'E456110', 'QA', 'N', 'Y');
 
+  INSERT INTO cb_app_user(user_id, user_name, employee_no, dept_code, can_read_contents, active)
+  VALUES (456111, 'rule_test_allow_deny', 'E456111', 'HR', 'N', 'Y');
+
+  INSERT INTO cb_app_user(user_id, user_name, employee_no, dept_code, can_read_contents, active)
+  VALUES (456112, 'rule_test_deny_only', 'E456112', 'HR', 'N', 'Y');
+
   INSERT INTO cb_app_role(role_id, role_name) VALUES (456101, 'RULE_TEST_MY_DEPT');
   INSERT INTO cb_app_role(role_id, role_name) VALUES (456102, 'RULE_TEST_SELF');
   INSERT INTO cb_app_role(role_id, role_name) VALUES (456103, 'RULE_TEST_ALL');
@@ -71,6 +77,8 @@ BEGIN
   INSERT INTO cb_app_role(role_id, role_name) VALUES (456108, 'RULE_TEST_OR_INJECTION');
   INSERT INTO cb_app_role(role_id, role_name) VALUES (456109, 'RULE_TEST_COLUMN_INJECTION');
   INSERT INTO cb_app_role(role_id, role_name) VALUES (456110, 'RULE_TEST_TARGET_MISMATCH');
+  INSERT INTO cb_app_role(role_id, role_name) VALUES (456111, 'RULE_TEST_ALLOW_DENY');
+  INSERT INTO cb_app_role(role_id, role_name) VALUES (456112, 'RULE_TEST_DENY_ONLY');
 
   INSERT INTO cb_user_role(user_id, role_id) VALUES (456101, 456101);
   INSERT INTO cb_user_role(user_id, role_id) VALUES (456102, 456102);
@@ -82,6 +90,8 @@ BEGIN
   INSERT INTO cb_user_role(user_id, role_id) VALUES (456108, 456108);
   INSERT INTO cb_user_role(user_id, role_id) VALUES (456109, 456109);
   INSERT INTO cb_user_role(user_id, role_id) VALUES (456110, 456110);
+  INSERT INTO cb_user_role(user_id, role_id) VALUES (456111, 456111);
+  INSERT INTO cb_user_role(user_id, role_id) VALUES (456112, 456112);
 
   INSERT INTO cb_permission(perm_id, role_id, target_name, action_name)
   VALUES (456101, 456101, 'CB_V_SEARCH_DOCUMENTS', 'SELECT');
@@ -113,6 +123,15 @@ BEGIN
   INSERT INTO cb_permission(perm_id, role_id, target_name, action_name)
   VALUES (456110, 456110, 'BOARD_POSTS', 'SELECT');
 
+  INSERT INTO cb_permission(perm_id, role_id, target_name, action_name, permission_effect)
+  VALUES (456111, 456111, 'CB_V_SEARCH_DOCUMENTS', 'SELECT', 'ALLOW');
+
+  INSERT INTO cb_permission(perm_id, role_id, target_name, action_name, permission_effect)
+  VALUES (456112, 456111, 'CB_V_SEARCH_DOCUMENTS', 'SELECT', 'DENY');
+
+  INSERT INTO cb_permission(perm_id, role_id, target_name, action_name, permission_effect)
+  VALUES (456113, 456112, 'CB_V_SEARCH_DOCUMENTS', 'SELECT', 'DENY');
+
   INSERT INTO cb_permission_rule(rule_id, perm_id, rule_column, rule_type, rule_value)
   VALUES (456101, 456101, NULL, 'MY_DEPT', NULL);
 
@@ -142,6 +161,15 @@ BEGIN
 
   INSERT INTO cb_permission_rule(rule_id, perm_id, rule_column, rule_type, rule_value)
   VALUES (456110, 456110, NULL, 'ALL', NULL);
+
+  INSERT INTO cb_permission_rule(rule_id, perm_id, rule_column, rule_type, rule_value)
+  VALUES (456111, 456111, NULL, 'ALL', NULL);
+
+  INSERT INTO cb_permission_rule(rule_id, perm_id, rule_column, rule_type, rule_value)
+  VALUES (456112, 456112, 'DEPT_CODE', '=', 'HR');
+
+  INSERT INTO cb_permission_rule(rule_id, perm_id, rule_column, rule_type, rule_value)
+  VALUES (456113, 456113, 'DEPT_CODE', '=', 'HR');
 
   COMMIT;
 END;
@@ -229,6 +257,9 @@ BEGIN
   assert_equals('COLUMN_INJECTION_DENIES', 456109, '1 = 0');
   assert_equals_for_object('TARGET_MISMATCH_DENIES', 456110, 'CB_V_SEARCH_DOCUMENTS', '1 = 0');
   assert_equals_for_object('TARGET_MATCH_ALL_ALLOWS', 456110, 'BOARD_POSTS', '1 = 1');
+  assert_contains('ALLOW_ALL_MINUS_DENY_DEPT', 456111, 'AND NOT');
+  assert_contains('ALLOW_ALL_MINUS_DENY_DEPT_DETAIL', 456111, 'TO_CHAR(DEPT_CODE) = ''HR''');
+  assert_equals('DENY_ONLY_DENIES', 456112, '1 = 0');
   cb_agent_ctx_pkg.clear_user;
 END;
 /

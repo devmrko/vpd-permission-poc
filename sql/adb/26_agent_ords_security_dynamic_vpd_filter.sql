@@ -22,7 +22,8 @@ AS
   -- no matched stored row rule means no rows are visible.
   v_user_id    NUMBER;
   v_target     VARCHAR2(128);
-  v_predicate  VARCHAR2(32767);
+  v_allow_predicate VARCHAR2(32767);
+  v_deny_predicate  VARCHAR2(32767);
 
   FUNCTION quote_literal(p_value IN VARCHAR2) RETURN VARCHAR2 IS
   BEGIN
@@ -60,16 +61,22 @@ AS
       RETURN NULL;
   END;
 
-  PROCEDURE append_or(p_clause IN VARCHAR2) IS
+  PROCEDURE append_or(p_effect IN VARCHAR2, p_clause IN VARCHAR2) IS
   BEGIN
     IF p_clause IS NULL THEN
       RETURN;
     END IF;
 
-    IF v_predicate IS NULL THEN
-      v_predicate := '(' || p_clause || ')';
+    IF p_effect = 'DENY' THEN
+      IF v_deny_predicate IS NULL THEN
+        v_deny_predicate := '(' || p_clause || ')';
+      ELSE
+        v_deny_predicate := v_deny_predicate || ' OR (' || p_clause || ')';
+      END IF;
+    ELSIF v_allow_predicate IS NULL THEN
+      v_allow_predicate := '(' || p_clause || ')';
     ELSE
-      v_predicate := v_predicate || ' OR (' || p_clause || ')';
+      v_allow_predicate := v_allow_predicate || ' OR (' || p_clause || ')';
     END IF;
   END;
 BEGIN
@@ -89,6 +96,7 @@ BEGIN
   FOR r IN (
     SELECT UPPER(TRIM(r.rule_type)) AS rule_type,
            UPPER(TRIM(r.rule_column)) AS rule_column,
+           NVL(UPPER(TRIM(p.permission_effect)), 'ALLOW') AS permission_effect,
            r.rule_value
     FROM   cb_user_role ur
     JOIN   cb_permission p
@@ -104,48 +112,58 @@ BEGIN
       v_column VARCHAR2(128);
     BEGIN
       IF r.rule_type = 'ALL' THEN
-        RETURN '1 = 1';
+        IF r.permission_effect = 'DENY' THEN
+          RETURN '1 = 0';
+        END IF;
+        v_allow_predicate := '(1 = 1)';
       ELSIF r.rule_type = 'MY_DEPT' THEN
         -- NULL rule_column keeps backward compatibility with the demo seed.
         v_column := safe_column(p_schema, p_object, NVL(r.rule_column, 'DEPT_CODE'));
         IF v_column IS NOT NULL THEN
-          append_or(v_column || ' = SYS_CONTEXT(''CB_AGENT_CTX'', ''DEPT_CODE'')');
+          append_or(r.permission_effect, v_column || ' = SYS_CONTEXT(''CB_AGENT_CTX'', ''DEPT_CODE'')');
         END IF;
       ELSIF r.rule_type = 'SELF' THEN
         -- NULL rule_column keeps backward compatibility with the demo seed.
         v_column := safe_column(p_schema, p_object, NVL(r.rule_column, 'OWNER_EMP_NO'));
         IF v_column IS NOT NULL THEN
-          append_or(v_column || ' = SYS_CONTEXT(''CB_AGENT_CTX'', ''EMP_NO'')');
+          append_or(r.permission_effect, v_column || ' = SYS_CONTEXT(''CB_AGENT_CTX'', ''EMP_NO'')');
         END IF;
       ELSIF r.rule_type = 'DEPT' THEN
         v_column := safe_column(p_schema, p_object, NVL(r.rule_column, 'DEPT_CODE'));
         IF v_column IS NOT NULL THEN
-          append_or(v_column || ' = ' || quote_literal(r.rule_value));
+          append_or(r.permission_effect, v_column || ' = ' || quote_literal(r.rule_value));
         END IF;
       ELSIF r.rule_type = 'EMP_NO' THEN
         v_column := safe_column(p_schema, p_object, NVL(r.rule_column, 'OWNER_EMP_NO'));
         IF v_column IS NOT NULL THEN
-          append_or(v_column || ' = ' || quote_literal(r.rule_value));
+          append_or(r.permission_effect, v_column || ' = ' || quote_literal(r.rule_value));
         END IF;
       ELSIF r.rule_type = '=' THEN
         v_column := safe_column(p_schema, p_object, r.rule_column);
         IF v_column IS NOT NULL THEN
-          append_or('TO_CHAR(' || v_column || ') = ' || quote_literal(r.rule_value));
+          append_or(r.permission_effect, 'TO_CHAR(' || v_column || ') = ' || quote_literal(r.rule_value));
         END IF;
       ELSIF r.rule_type IN ('!=', '<>') THEN
         v_column := safe_column(p_schema, p_object, r.rule_column);
         IF v_column IS NOT NULL THEN
-          append_or('TO_CHAR(' || v_column || ') <> ' || quote_literal(r.rule_value));
+          append_or(r.permission_effect, 'TO_CHAR(' || v_column || ') <> ' || quote_literal(r.rule_value));
         END IF;
       END IF;
     END;
   END LOOP;
 
-  IF v_predicate IS NULL THEN
+  IF v_allow_predicate IS NULL THEN
     RETURN '1 = 0';
   END IF;
 
-  RETURN '(' || v_predicate || ')';
+  IF v_deny_predicate IS NULL THEN
+    IF v_allow_predicate = '(1 = 1)' THEN
+      RETURN '1 = 1';
+    END IF;
+    RETURN '(' || v_allow_predicate || ')';
+  END IF;
+
+  RETURN '((' || v_allow_predicate || ') AND NOT (' || v_deny_predicate || '))';
 END;
 /
 

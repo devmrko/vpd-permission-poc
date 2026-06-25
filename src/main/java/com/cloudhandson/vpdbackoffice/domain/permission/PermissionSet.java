@@ -7,6 +7,7 @@ public record PermissionSet(
     long roleId,
     long objectId,
     String action,
+    String permissionEffect,
     List<PermissionRule> rules,
     List<String> visibleColumns
 ) {

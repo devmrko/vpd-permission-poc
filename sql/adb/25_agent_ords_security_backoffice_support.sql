@@ -52,6 +52,16 @@ EXCEPTION
 END;
 /
 
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE cb_permission ADD (permission_effect VARCHAR2(10) DEFAULT ''ALLOW'' NOT NULL)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -1430 THEN
+      RAISE;
+    END IF;
+END;
+/
+
 CREATE TABLE cb_protected_object (
   object_id    NUMBER PRIMARY KEY,
   owner        VARCHAR2(128) NOT NULL,

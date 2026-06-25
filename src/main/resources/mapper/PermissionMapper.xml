@@ -35,6 +35,7 @@
            o.object_id,
            p.target_name AS object_name,
            p.action_name AS action,
+           NVL(p.permission_effect, 'ALLOW') AS permission_effect,
            LISTAGG(
              NVL2(pr.rule_column, pr.rule_column || ' ', '') ||
              pr.rule_type ||
@@ -74,7 +75,7 @@
     JOIN cb_app_role r ON r.role_id = p.role_id
     LEFT JOIN cb_protected_object o ON o.object_name = p.target_name
     LEFT JOIN cb_permission_rule pr ON pr.perm_id = p.perm_id
-    GROUP BY p.perm_id, r.role_id, r.role_name, o.object_id, p.target_name, p.action_name
+    GROUP BY p.perm_id, r.role_id, r.role_name, o.object_id, p.target_name, p.action_name, p.permission_effect
     ORDER BY r.role_name, p.target_name
   </select>
 
@@ -104,7 +105,8 @@
     SELECT p.perm_id AS permission_id,
            p.role_id,
            o.object_id,
-           p.action_name AS action
+           p.action_name AS action,
+           NVL(p.permission_effect, 'ALLOW') AS permission_effect
     FROM cb_permission p
     JOIN cb_protected_object o ON o.object_name = p.target_name
     WHERE p.role_id = #{roleId}
@@ -120,8 +122,8 @@
   </select>
 
   <insert id="insertPermission">
-    INSERT INTO cb_permission (perm_id, role_id, target_name, action_name)
-    SELECT #{permissionId}, #{roleId}, object_name, #{action}
+    INSERT INTO cb_permission (perm_id, role_id, target_name, action_name, permission_effect)
+    SELECT #{permissionId}, #{roleId}, object_name, #{action}, #{permissionEffect}
     FROM cb_protected_object
     WHERE object_id = #{objectId}
   </insert>
@@ -129,6 +131,12 @@
   <update id="updatePermissionAction">
     UPDATE cb_permission
     SET action_name = #{action}
+    WHERE perm_id = #{permissionId}
+  </update>
+
+  <update id="updatePermissionEffect">
+    UPDATE cb_permission
+    SET permission_effect = #{permissionEffect}
     WHERE perm_id = #{permissionId}
   </update>
 

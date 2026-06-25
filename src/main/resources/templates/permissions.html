@@ -37,6 +37,13 @@
           </optgroup>
         </select>
       </label>
+      <label>
+        권한 효과
+        <select class="form-select" name="permissionEffect" required>
+          <option value="ALLOW">허용</option>
+          <option value="DENY">거부</option>
+        </select>
+      </label>
       <div class="span-2">
         <div class="field-block-title">행 규칙</div>
         <div id="rowRuleList" class="rule-list">
@@ -80,6 +87,7 @@
           <th>역할</th>
           <th>테이블/뷰</th>
           <th>Action</th>
+          <th>Effect</th>
           <th>행 규칙</th>
           <th>적용 필터</th>
           <th>NULL 제외 컬럼</th>
@@ -92,6 +100,11 @@
           <td th:text="${permission.roleName()}">HR_DEPT_ROLE</td>
           <td th:text="${permission.objectName()}">CB_V_SEARCH_DOCUMENTS</td>
           <td th:text="${permission.action()}">SELECT</td>
+          <td>
+            <span class="badge"
+                  th:classappend="${permission.permissionEffect() == 'DENY'} ? ' text-bg-danger' : ' text-bg-success'"
+                  th:text="${permission.permissionEffect()}">ALLOW</span>
+          </td>
           <td th:text="${permission.rules()} ?: '-'">ALL</td>
           <td><pre class="table-pre" th:text="${permission.filterPreview()} ?: '-'">ALL ROWS</pre></td>
           <td th:text="${permission.visibleColumns()} ?: '-'">CONTENTS</td>
@@ -104,7 +117,7 @@
           </td>
         </tr>
         <tr th:if="${#lists.isEmpty(permissions)}">
-          <td colspan="8" class="text-muted">등록된 권한이 없습니다.</td>
+          <td colspan="9" class="text-muted">등록된 권한이 없습니다.</td>
         </tr>
         </tbody>
       </table>

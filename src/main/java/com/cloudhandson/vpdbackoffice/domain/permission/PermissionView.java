@@ -7,6 +7,7 @@ public record PermissionView(
     long objectId,
     String objectName,
     String action,
+    String permissionEffect,
     String rules,
     String visibleColumns,
     String filterPreview,

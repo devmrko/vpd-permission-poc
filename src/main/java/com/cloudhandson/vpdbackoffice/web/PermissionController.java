@@ -102,6 +102,7 @@ public class PermissionController {
   public String save(
       @RequestParam long roleId,
       @RequestParam String objectRef,
+      @RequestParam(defaultValue = "ALLOW") String permissionEffect,
       @RequestParam(required = false) List<String> ruleColumn,
       @RequestParam List<String> ruleType,
       @RequestParam(required = false) List<String> ruleValue,
@@ -113,6 +114,7 @@ public class PermissionController {
         roleId,
         objectId,
         "SELECT",
+        permissionEffect,
         buildRules(ruleColumn, ruleType, ruleValue),
         splitColumns(visibleColumns)
     ));
