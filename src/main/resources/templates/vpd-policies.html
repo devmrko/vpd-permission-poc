@@ -30,7 +30,7 @@
     <div class="section-heading">
       <div>
         <h2>VPD 적용 대상 TABLE/VIEW</h2>
-        <p class="section-subtitle">Oracle DB catalog 기준의 TABLE/VIEW 목록입니다. Schema를 선택하거나 직접 입력하면 해당 스키마 객체를 조회합니다.</p>
+        <p class="section-subtitle">Oracle DB catalog 기준의 TABLE/VIEW 목록입니다. ORDS handler는 여러 객체를 조합할 수 있으므로 이 표의 ORDS 경로는 사용 여부가 아니라 백오피스에 등록된 검증용 경로입니다.</p>
       </div>
       <span class="badge text-bg-secondary" th:text="${#lists.size(vpdTargets)}">0</span>
     </div>
@@ -56,7 +56,7 @@
           <th>Policy</th>
           <th>Filter</th>
           <th>백오피스 권한 테이블</th>
-          <th>ORDS Path</th>
+          <th>검증용 ORDS 경로</th>
         </tr>
         </thead>
         <tbody>
@@ -95,7 +95,7 @@
           </td>
           <td>
             <code th:if="${target.ordsPath()}" th:text="${target.ordsPath()}">cb-ords/path</code>
-            <span th:unless="${target.ordsPath()}" class="text-muted">ORDS 서빙 미등록</span>
+            <span th:unless="${target.ordsPath()}" class="text-muted">검증 경로 미등록</span>
           </td>
         </tr>
         <tr th:if="${target.vpdApplied()}">
