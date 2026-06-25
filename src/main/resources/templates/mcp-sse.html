@@ -15,6 +15,27 @@
   </section>
 
   <section class="content-band">
+    <h2>서비스 구성</h2>
+    <div class="mcp-service-grid">
+      <div class="mcp-service-item">
+        <span>기본 서비스</span>
+        <strong><code>/mcp/sse</code></strong>
+        <small>기존 MCP client 설정과 호환됩니다.</small>
+      </div>
+      <div class="mcp-service-item">
+        <span>Context 서비스</span>
+        <strong><code>/mcp/{contextPath}/sse</code></strong>
+        <small>업무/환경별 이름으로 같은 ORDS tool set을 분리 노출합니다.</small>
+      </div>
+      <div class="mcp-service-item">
+        <span>예시</span>
+        <strong><code>/mcp/vpd-live/sse</code></strong>
+        <small>SSE 연결 시 message endpoint가 같은 context로 반환됩니다.</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="content-band">
     <h2>Endpoint</h2>
     <div class="table-responsive">
       <table class="table align-middle">
@@ -83,6 +104,45 @@
   "bearerToken": "vpd_live_xxx",
   "limit": 50
 }</pre>
+  </section>
+
+  <section class="content-band">
+    <h2>JSON-RPC 예시</h2>
+    <div class="probe-exchange-grid">
+      <div class="probe-exchange">
+        <h3>initialize</h3>
+        <pre>{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {}
+}</pre>
+      </div>
+      <div class="probe-exchange">
+        <h3>tools/list</h3>
+        <pre>{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/list",
+  "params": {}
+}</pre>
+      </div>
+      <div class="probe-exchange">
+        <h3>tools/call</h3>
+        <pre>{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "tools/call",
+  "params": {
+    "name": "ords.query.admin.board_posts",
+    "arguments": {
+      "bearerToken": "vpd_live_xxx",
+      "limit": 50
+    }
+  }
+}</pre>
+      </div>
+    </div>
   </section>
 </main>
 </body>

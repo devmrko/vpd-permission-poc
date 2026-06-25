@@ -99,6 +99,70 @@ body {
   font-weight: 700;
 }
 
+.rw-nav .container {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+}
+
+.rw-menu {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+
+.rw-menu-group {
+  position: relative;
+}
+
+.rw-menu-trigger {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--rw-muted);
+  font-size: .9rem;
+  font-weight: 700;
+  min-height: 2.25rem;
+  padding: .45rem .85rem;
+}
+
+.rw-menu-trigger:hover,
+.rw-menu-trigger:focus {
+  background: var(--rw-surface-muted);
+  border-color: var(--rw-border);
+  color: var(--rw-text);
+}
+
+.rw-menu-panel {
+  background: var(--rw-surface);
+  border: 1px solid var(--rw-border);
+  border-radius: 8px;
+  box-shadow: var(--rw-shadow);
+  display: none;
+  left: 0;
+  min-width: 190px;
+  padding: .35rem;
+  position: absolute;
+  top: calc(100% + .35rem);
+  z-index: 30;
+}
+
+.rw-menu-group:hover .rw-menu-panel,
+.rw-menu-group:focus-within .rw-menu-panel {
+  display: grid;
+  gap: .15rem;
+}
+
+.rw-menu-panel .nav-link {
+  border-radius: 8px;
+  color: var(--rw-text);
+  display: block;
+  padding: .55rem .65rem !important;
+  white-space: nowrap;
+}
+
 .nav-link {
   border-radius: 999px;
   color: var(--rw-muted);
@@ -110,6 +174,16 @@ body {
 .nav-link:focus {
   background: var(--rw-surface-muted);
   color: var(--rw-text);
+}
+
+@media (max-width: 920px) {
+  .rw-menu-panel {
+    position: static;
+  }
+
+  .rw-menu-group:focus-within .rw-menu-panel {
+    display: grid;
+  }
 }
 
 .page-title {
@@ -394,6 +468,39 @@ body {
   gap: .75rem;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   margin: 1rem 0;
+}
+
+.mcp-service-grid {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.mcp-service-item {
+  background: var(--rw-surface-muted);
+  border: 1px solid var(--rw-border);
+  border-radius: 8px;
+  display: grid;
+  gap: .35rem;
+  min-height: 124px;
+  padding: .85rem;
+}
+
+.mcp-service-item span {
+  color: var(--rw-muted);
+  font-size: .78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.mcp-service-item strong {
+  font-size: .95rem;
+  overflow-wrap: anywhere;
+}
+
+.mcp-service-item small {
+  color: var(--rw-muted);
+  line-height: 1.45;
 }
 
 .probe-exchange {

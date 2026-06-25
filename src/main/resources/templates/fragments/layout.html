@@ -14,18 +14,38 @@
 <nav th:fragment="nav" class="navbar rw-nav navbar-expand-lg">
   <div class="container">
     <a class="navbar-brand" href="/">VPD Backoffice</a>
-    <div class="navbar-nav">
-      <a class="nav-link" href="/users">사용자</a>
-      <a class="nav-link" href="/roles">역할</a>
-      <a class="nav-link" href="/permissions">권한</a>
-      <a class="nav-link" href="/objects">ORDS 조회 Handler</a>
-      <a class="nav-link" href="/tokens">토큰</a>
-      <a class="nav-link" href="/probe">ORDS 검증</a>
-      <a class="nav-link" href="/mcp-reasoning">MCP Reasoning</a>
-      <a class="nav-link" href="/mcp-sse">MCP SSE</a>
-      <a class="nav-link" href="/vpd-policies">VPD 설정</a>
-      <a class="nav-link" href="/ords-handlers">ORDS 핸들러</a>
-      <a class="nav-link" href="/settings">설정</a>
+    <div class="rw-menu">
+      <div class="rw-menu-group">
+        <button class="rw-menu-trigger" type="button">권한 관리</button>
+        <div class="rw-menu-panel">
+          <a class="nav-link" href="/users">사용자</a>
+          <a class="nav-link" href="/roles">역할</a>
+          <a class="nav-link" href="/permissions">권한</a>
+          <a class="nav-link" href="/tokens">토큰</a>
+        </div>
+      </div>
+      <div class="rw-menu-group">
+        <button class="rw-menu-trigger" type="button">ORDS</button>
+        <div class="rw-menu-panel">
+          <a class="nav-link" href="/objects">조회 Handler 생성</a>
+          <a class="nav-link" href="/probe">ORDS 검증</a>
+          <a class="nav-link" href="/ords-handlers">ORDS 핸들러</a>
+        </div>
+      </div>
+      <div class="rw-menu-group">
+        <button class="rw-menu-trigger" type="button">MCP</button>
+        <div class="rw-menu-panel">
+          <a class="nav-link" href="/mcp-reasoning">Reasoning</a>
+          <a class="nav-link" href="/mcp-sse">SSE 서비스</a>
+        </div>
+      </div>
+      <div class="rw-menu-group">
+        <button class="rw-menu-trigger" type="button">운영</button>
+        <div class="rw-menu-panel">
+          <a class="nav-link" href="/vpd-policies">VPD 설정</a>
+          <a class="nav-link" href="/settings">설정</a>
+        </div>
+      </div>
     </div>
     <form method="post" action="/logout" class="ms-auto">
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
