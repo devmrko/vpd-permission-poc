@@ -457,6 +457,18 @@ body {
   white-space: pre-wrap;
 }
 
+.policy-function-button {
+  border-radius: 8px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.policy-source-cell {
+  background: var(--rw-surface) !important;
+  padding: 0 0 .75rem !important;
+}
+
 .ai-answer {
   background: var(--rw-primary-soft);
   border: 1px solid var(--rw-border);

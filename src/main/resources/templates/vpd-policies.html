@@ -34,13 +34,22 @@
         </tr>
         </thead>
         <tbody>
-        <tr th:each="policy : ${policies}">
+        <th:block th:each="policy, iter : ${policies}">
+        <tr>
           <td>
             <strong th:text="${policy.objectDisplayName()}">ADMIN.TABLE</strong>
             <div class="text-muted small" th:text="${policy.policyGroup()}">SYS_DEFAULT</div>
           </td>
           <td><code th:text="${policy.policyName()}">POLICY</code></td>
-          <td><code th:text="${policy.functionDisplayName()}">OWNER.FUNC</code></td>
+          <td>
+            <button class="btn btn-sm btn-outline-secondary policy-function-button"
+                    type="button"
+                    th:hx-get="@{/vpd-policies/function-source(owner=${policy.functionOwner()},packageName=${policy.packageName()},functionName=${policy.functionName()})}"
+                    th:hx-target="${'#policy-source-' + iter.index}"
+                    hx-swap="innerHTML">
+              <code th:text="${policy.functionDisplayName()}">OWNER.FUNC</code>
+            </button>
+          </td>
           <td th:text="${policy.statementTypes()} ?: '-'">SELECT</td>
           <td>
             <span class="badge"
@@ -54,6 +63,14 @@
             <span class="ms-2">Long: <strong th:text="${policy.longPredicate()}">NO</strong></span>
           </td>
         </tr>
+        <tr>
+          <td colspan="7" class="policy-source-cell">
+            <div th:id="${'policy-source-' + iter.index}" class="text-muted small">
+              Policy function을 클릭하면 소스가 표시됩니다.
+            </div>
+          </td>
+        </tr>
+        </th:block>
         <tr th:if="${#lists.isEmpty(policies)}">
           <td colspan="7" class="text-muted">
             조회 가능한 VPD policy가 없습니다. 정책이 없거나 현재 DB 계정에 dictionary 조회 권한이 없을 수 있습니다.

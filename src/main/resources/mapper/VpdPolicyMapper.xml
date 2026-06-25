@@ -27,4 +27,12 @@
     FROM all_policies
     ORDER BY object_owner, object_name, policy_name
   </select>
+
+  <select id="findFunctionSource" resultType="string">
+    SELECT LISTAGG(text, '') WITHIN GROUP (ORDER BY line)
+    FROM all_source
+    WHERE owner = UPPER(#{owner,jdbcType=VARCHAR})
+      AND name = UPPER(#{objectName,jdbcType=VARCHAR})
+      AND type = UPPER(#{objectType,jdbcType=VARCHAR})
+  </select>
 </mapper>
