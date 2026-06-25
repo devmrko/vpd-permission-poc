@@ -10,6 +10,7 @@
 #   ./run.sh tests        # 4-user (my/pg/both/none) 로 접속해서 행 필터 검증
 #   ./run.sh audit        # admin 으로 정책/뷰/유저 상태 점검
 #   ./run.sh backoffice-support # Spring Boot 백오피스 보조 객체 생성
+#   ./run.sh backoffice-env-check # SQLcl/JDK/DB/ORDS 환경 점검
 #   ./run.sh backoffice-vpd-ords-test # SQLcl + ORDS VPD/Redaction 회귀 테스트
 #   ./run.sh all          # source → adb → tests → audit
 #   ./run.sh teardown     # ADB 측 객체 + 원격 link/cred 만 정리 (원격 PG/MySQL 데이터는 보존)
@@ -181,6 +182,12 @@ do_backoffice_vpd_ords_test() {
   ok "backoffice-vpd-ords-test 완료"
 }
 
+do_backoffice_env_check() {
+  log "=== backoffice-env-check: SQLcl/JDK/DB/ORDS 환경 점검 ==="
+  bash "$ROOT/scripts/check-sqlcl-backoffice-env.sh"
+  ok "backoffice-env-check 완료"
+}
+
 do_teardown() {
   log "=== teardown: ADB 측 객체 + dblink/credential 정리 ==="
   warn "원격 PG/MySQL 의 customers 테이블은 건드리지 않습니다 (수동으로 DROP 하세요)"
@@ -233,6 +240,7 @@ case "$CMD" in
   tests)        do_prereq; do_tests ;;
   audit)        do_prereq; do_audit ;;
   backoffice-support) do_prereq; do_backoffice_support ;;
+  backoffice-env-check) do_backoffice_env_check ;;
   backoffice-vpd-ords-test) do_backoffice_vpd_ords_test ;;
   teardown)     do_prereq; do_teardown ;;
   all)
@@ -253,6 +261,6 @@ case "$CMD" in
     ok "=== DDS DONE — Deep Data Security 변형 셋업 + 검증 통과 ==="
     ;;
   *)
-    die "알 수 없는 명령: $CMD  (사용: prereq|source|adb|tests|audit|backoffice-support|backoffice-vpd-ords-test|all|teardown | dds|dds-setup|dds-tests|dds-teardown)"
+    die "알 수 없는 명령: $CMD  (사용: prereq|source|adb|tests|audit|backoffice-support|backoffice-env-check|backoffice-vpd-ords-test|all|teardown | dds|dds-setup|dds-tests|dds-teardown)"
     ;;
 esac
