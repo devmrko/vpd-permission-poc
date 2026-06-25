@@ -130,11 +130,11 @@
     <form method="post" action="/vpd-filter-policies" class="form-grid">
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
       <label>
-        VPD 적용 대상
+        VPD 적용 대상 TABLE/VIEW
         <select class="form-select" name="objectKey" required>
           <option th:each="object : ${objects}"
                   th:value="${object.owner() + '.' + object.objectName()}"
-                  th:text="${object.displayName() + ' / ' + object.ordsPath()}"></option>
+                  th:text="${object.displayName()}"></option>
         </select>
       </label>
       <label>
