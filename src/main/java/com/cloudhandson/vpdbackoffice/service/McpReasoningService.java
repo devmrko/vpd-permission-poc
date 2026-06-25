@@ -114,7 +114,7 @@ public class McpReasoningService {
 
   private String buildPrompt(String question, McpToolView tool, String evidenceJson) {
     String normalizedQuestion = question == null || question.isBlank()
-        ? "이 ORDS/VPD 검증 결과를 권한 관점에서 요약해줘."
+        ? "요약부터 작성해줘. 이 ORDS/VPD 검증 결과에서 조회 행 수, 주요 식별자, NULL 처리 여부, 권한 범위, 다음 확인 조치를 정리해줘."
         : question.trim();
     return """
         질문:
@@ -131,8 +131,11 @@ public class McpReasoningService {
         답변 요구사항:
         - 한국어로 답변한다.
         - 증거 JSON에 없는 데이터는 추측하지 않는다.
+        - 첫 섹션은 "## 요약"으로 시작하고 3줄 이내로 쓴다.
+        - 그 다음 "## 판단 근거" 섹션에 표를 사용해 rowCount, maskedColumns, status, errorCode를 정리한다.
+        - 그 다음 "## 상세" 섹션에서 반환 행과 권한 범위를 설명한다.
+        - 마지막 "## 다음 조치" 섹션은 운영자가 확인할 항목만 짧게 쓴다.
         - VPD 행 필터, 컬럼 NULL 처리, ORDS 오류 여부를 구분한다.
-        - 운영자가 다음에 확인할 액션이 있으면 짧게 제시한다.
         """.formatted(normalizedQuestion, tool.name(), tool.displayName(), tool.ordsPath(), evidenceJson);
   }
 
@@ -145,12 +148,53 @@ public class McpReasoningService {
 
   private String fallbackAnswer(String question, ProbeResult result) {
     if (result.status() == ProbeStatus.SUCCESS) {
-      return "AI base URL/API Key 설정이 없어 모델 호출은 건너뛰었습니다. ORDS 호출은 성공했고 "
-          + result.rowCount() + "건이 반환되었습니다. 질문: " + safeQuestion(question);
+      return """
+          ## 요약
+          AI base URL/API Key 설정이 없어 모델 호출은 건너뛰었습니다.
+          ORDS 호출은 성공했고 %d건이 반환되었습니다.
+
+          ## 판단 근거
+          | 항목 | 값 |
+          | --- | --- |
+          | status | %s |
+          | rowCount | %d |
+          | maskedColumns | %s |
+
+          ## 상세
+          질문: %s
+
+          ## 다음 조치
+          - 모델 설명이 필요하면 AI 설정을 확인하세요.
+          - 행/컬럼 결과는 아래 Tool Evidence JSON과 Response Body를 기준으로 확인하세요.
+          """.formatted(
+          result.rowCount(),
+          result.status().name(),
+          result.rowCount(),
+          result.maskedColumns().isEmpty() ? "-" : String.join(", ", result.maskedColumns()),
+          safeQuestion(question)
+      );
     }
-    return "AI base URL/API Key 설정이 없어 모델 호출은 건너뛰었습니다. ORDS 도구 실행 상태는 "
-        + result.status().name() + "입니다. 오류: "
-        + (result.errorMessage() == null ? "없음" : result.errorMessage());
+    return """
+        ## 요약
+        AI base URL/API Key 설정이 없어 모델 호출은 건너뛰었습니다.
+        ORDS 도구 실행은 성공 상태가 아닙니다.
+
+        ## 판단 근거
+        | 항목 | 값 |
+        | --- | --- |
+        | status | %s |
+        | errorMessage | %s |
+
+        ## 상세
+        request/response 증거를 확인해 ORDS path, token, handler 오류를 구분하세요.
+
+        ## 다음 조치
+        - ORDS path와 token 만료/폐기 상태를 확인하세요.
+        - handler 오류면 Response Body의 ORDS error를 확인하세요.
+        """.formatted(
+        result.status().name(),
+        result.errorMessage() == null ? "없음" : result.errorMessage()
+    );
   }
 
   private String safeQuestion(String question) {

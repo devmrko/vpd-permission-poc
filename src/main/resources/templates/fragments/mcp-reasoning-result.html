@@ -13,11 +13,14 @@
     <span>Tool: <code th:text="${result.toolName()}">tool</code></span>
     <span>ORDS Status: <strong th:text="${result.probeResult().status()}">SUCCESS</strong></span>
     <span>Rows: <strong th:text="${result.probeResult().rowCount()}">0</strong></span>
+    <span th:if="${!#lists.isEmpty(result.probeResult().maskedColumns())}">
+      Masked: <code th:text="${#strings.listJoin(result.probeResult().maskedColumns(), ', ')}"></code>
+    </span>
   </div>
 
   <section class="ai-answer">
-    <h3>Answer</h3>
-    <pre th:text="${result.answer()}">answer</pre>
+    <h3>요약 및 판단</h3>
+    <div class="markdown-view" data-markdown-view th:text="${result.answer()}">answer</div>
   </section>
 
   <div class="probe-exchange-grid">

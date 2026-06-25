@@ -10,6 +10,10 @@
   </div>
 
   <section class="content-band">
+    <div class="section-heading">
+      <h2>ORDS 호출</h2>
+      <a class="btn btn-sm rw-btn-secondary" href="/mcp-reasoning">MCP Reasoning으로 해석</a>
+    </div>
     <form hx-post="/probe" hx-target="#probe-result" hx-swap="innerHTML" class="form-grid">
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
       <label>
