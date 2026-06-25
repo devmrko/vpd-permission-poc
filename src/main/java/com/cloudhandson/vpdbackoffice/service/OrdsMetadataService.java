@@ -186,9 +186,9 @@ public class OrdsMetadataService {
             p_module_name    => ?,
             p_pattern        => ?,
             p_method         => 'POST',
-            p_source_type    => ORDS.source_type_query,
+            p_source_type    => ORDS.source_type_plsql,
             p_source         => ?,
-            p_items_per_page => 25
+            p_items_per_page => 0
           );
           ORDS.DEFINE_PARAMETER(
             p_module_name        => ?,
@@ -229,10 +229,37 @@ public class OrdsMetadataService {
         .reduce((left, right) -> left + ",\n       " + right)
         .orElseThrow();
     return """
-        SELECT %s
-        FROM   %s.%s o
-        WHERE  (SELECT cb_ords_handler_pkg.set_vpd_context_sql(:auth_header) FROM dual) = 1
-          AND  ROWNUM <= LEAST(GREATEST(NVL(:row_limit, 50), 1), 500)
+        DECLARE
+          v_rows SYS_REFCURSOR;
+        BEGIN
+          cb_ords_handler_pkg.set_vpd_context(:auth_header);
+
+          OPEN v_rows FOR
+            SELECT %s
+            FROM   %s.%s o
+            WHERE  ROWNUM <= LEAST(GREATEST(NVL(:row_limit, 50), 1), 500);
+
+          :status_code := 200;
+          OWA_UTIL.MIME_HEADER('application/json', FALSE);
+          HTP.P('Cache-Control: no-store');
+          OWA_UTIL.HTTP_HEADER_CLOSE;
+
+          APEX_JSON.OPEN_OBJECT;
+          APEX_JSON.WRITE('items', v_rows);
+          APEX_JSON.CLOSE_OBJECT;
+
+          cb_ords_handler_pkg.clear_vpd_context;
+        EXCEPTION
+          WHEN OTHERS THEN
+            cb_ords_handler_pkg.clear_vpd_context;
+            :status_code := 403;
+            OWA_UTIL.MIME_HEADER('application/json', FALSE);
+            HTP.P('Cache-Control: no-store');
+            OWA_UTIL.HTTP_HEADER_CLOSE;
+            APEX_JSON.OPEN_OBJECT;
+            APEX_JSON.WRITE('error', SQLERRM);
+            APEX_JSON.CLOSE_OBJECT;
+        END;
         """.formatted(selectColumns, object.owner(), object.objectName());
   }
 

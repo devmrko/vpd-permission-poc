@@ -86,17 +86,45 @@ BEGIN
     p_module_name    => 'cb.agent.security',
     p_pattern        => 'vpd/documents',
     p_method         => 'POST',
-    p_source_type    => ORDS.source_type_query,
+    p_source_type    => ORDS.source_type_plsql,
     p_source         => q'!
-SELECT d.doc_id,
-       d.title,
-       d.owner_emp_no,
-       d.dept_code,
-       d.contents
-FROM   admin.cb_v_search_documents d
-WHERE  (SELECT cb_ords_handler_pkg.set_vpd_context_sql(:auth_header) FROM dual) = 1
+DECLARE
+  v_rows SYS_REFCURSOR;
+BEGIN
+  cb_ords_handler_pkg.set_vpd_context(:auth_header);
+
+  OPEN v_rows FOR
+    SELECT d.doc_id,
+           d.title,
+           d.owner_emp_no,
+           d.dept_code,
+           d.contents
+    FROM   admin.cb_v_search_documents d
+    WHERE  ROWNUM <= LEAST(GREATEST(NVL(:row_limit, 50), 1), 500);
+
+  :status_code := 200;
+  OWA_UTIL.MIME_HEADER('application/json', FALSE);
+  HTP.P('Cache-Control: no-store');
+  OWA_UTIL.HTTP_HEADER_CLOSE;
+
+  APEX_JSON.OPEN_OBJECT;
+  APEX_JSON.WRITE('items', v_rows);
+  APEX_JSON.CLOSE_OBJECT;
+
+  cb_ords_handler_pkg.clear_vpd_context;
+EXCEPTION
+  WHEN OTHERS THEN
+    cb_ords_handler_pkg.clear_vpd_context;
+    :status_code := 403;
+    OWA_UTIL.MIME_HEADER('application/json', FALSE);
+    HTP.P('Cache-Control: no-store');
+    OWA_UTIL.HTTP_HEADER_CLOSE;
+    APEX_JSON.OPEN_OBJECT;
+    APEX_JSON.WRITE('error', SQLERRM);
+    APEX_JSON.CLOSE_OBJECT;
+END;
 !',
-    p_items_per_page => 25
+    p_items_per_page => 0
   );
 
   ORDS.DEFINE_PARAMETER(
@@ -107,6 +135,16 @@ WHERE  (SELECT cb_ords_handler_pkg.set_vpd_context_sql(:auth_header) FROM dual) 
     p_bind_variable_name => 'auth_header',
     p_source_type        => 'HEADER',
     p_param_type         => 'STRING',
+    p_access_method      => 'IN'
+  );
+  ORDS.DEFINE_PARAMETER(
+    p_module_name        => 'cb.agent.security',
+    p_pattern            => 'vpd/documents',
+    p_method             => 'POST',
+    p_name               => 'limit',
+    p_bind_variable_name => 'row_limit',
+    p_source_type        => 'URI',
+    p_param_type         => 'INT',
     p_access_method      => 'IN'
   );
 
