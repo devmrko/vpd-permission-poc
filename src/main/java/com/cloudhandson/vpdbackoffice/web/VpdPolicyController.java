@@ -26,6 +26,17 @@ public class VpdPolicyController {
 
   @GetMapping("/vpd-policies")
   public String policies(Model model) {
+    populatePolicyModel(model);
+    return "vpd-policies";
+  }
+
+  @GetMapping("/vpd-filter-policies")
+  public String filterPolicies(Model model) {
+    populatePolicyModel(model);
+    return "vpd-filter-policies";
+  }
+
+  private void populatePolicyModel(Model model) {
     try {
       model.addAttribute("policies", vpdPolicyService.findPolicies());
       model.addAttribute("objects", protectedObjectService.findEnabled());
@@ -37,7 +48,6 @@ public class VpdPolicyController {
       model.addAttribute("objects", List.of());
       model.addAttribute("formOptions", vpdPolicyService.emptyFormOptions());
     }
-    return "vpd-policies";
   }
 
   @PostMapping("/vpd-policies")
@@ -51,6 +61,41 @@ public class VpdPolicyController {
       @RequestParam(defaultValue = "false") boolean enabled,
       @RequestParam(defaultValue = "false") boolean updateCheck,
       @RequestParam(required = false) String filterPredicate,
+      RedirectAttributes redirectAttributes
+  ) {
+    createPolicyInternal(objectKey, policyName, functionKey, functionOwner, functionName, statementTypes, enabled,
+        updateCheck, filterPredicate, redirectAttributes);
+    return "redirect:/vpd-policies";
+  }
+
+  @PostMapping("/vpd-filter-policies")
+  public String createFilterPolicy(
+      @RequestParam String objectKey,
+      @RequestParam String policyName,
+      @RequestParam(required = false) String functionKey,
+      @RequestParam(required = false) String functionOwner,
+      @RequestParam(required = false) String functionName,
+      @RequestParam(defaultValue = "SELECT") List<String> statementTypes,
+      @RequestParam(defaultValue = "false") boolean enabled,
+      @RequestParam(defaultValue = "false") boolean updateCheck,
+      @RequestParam(required = false) String filterPredicate,
+      RedirectAttributes redirectAttributes
+  ) {
+    createPolicyInternal(objectKey, policyName, functionKey, functionOwner, functionName, statementTypes, enabled,
+        updateCheck, filterPredicate, redirectAttributes);
+    return "redirect:/vpd-filter-policies";
+  }
+
+  private void createPolicyInternal(
+      String objectKey,
+      String policyName,
+      String functionKey,
+      String functionOwner,
+      String functionName,
+      List<String> statementTypes,
+      boolean enabled,
+      boolean updateCheck,
+      String filterPredicate,
       RedirectAttributes redirectAttributes
   ) {
     try {
@@ -77,7 +122,6 @@ public class VpdPolicyController {
       RuntimeErrorMessage message = RuntimeErrorMessages.dataAccess(exception);
       redirectAttributes.addFlashAttribute("errorMessage", message.message());
     }
-    return "redirect:/vpd-policies";
   }
 
   @PostMapping("/vpd-policies/bulk")
@@ -92,6 +136,43 @@ public class VpdPolicyController {
       @RequestParam(defaultValue = "false") boolean enabled,
       @RequestParam(defaultValue = "false") boolean updateCheck,
       @RequestParam(required = false) String filterPredicate,
+      RedirectAttributes redirectAttributes
+  ) {
+    bulkApplyPolicyInternal(schemaOwner, includeTables, includeViews, functionKey, functionOwner, functionName,
+        statementTypes, enabled, updateCheck, filterPredicate, redirectAttributes);
+    return "redirect:/vpd-policies";
+  }
+
+  @PostMapping("/vpd-filter-policies/bulk")
+  public String bulkApplyFilterPolicy(
+      @RequestParam String schemaOwner,
+      @RequestParam(defaultValue = "false") boolean includeTables,
+      @RequestParam(defaultValue = "false") boolean includeViews,
+      @RequestParam(required = false) String functionKey,
+      @RequestParam(required = false) String functionOwner,
+      @RequestParam(required = false) String functionName,
+      @RequestParam(defaultValue = "SELECT") List<String> statementTypes,
+      @RequestParam(defaultValue = "false") boolean enabled,
+      @RequestParam(defaultValue = "false") boolean updateCheck,
+      @RequestParam(required = false) String filterPredicate,
+      RedirectAttributes redirectAttributes
+  ) {
+    bulkApplyPolicyInternal(schemaOwner, includeTables, includeViews, functionKey, functionOwner, functionName,
+        statementTypes, enabled, updateCheck, filterPredicate, redirectAttributes);
+    return "redirect:/vpd-filter-policies";
+  }
+
+  private void bulkApplyPolicyInternal(
+      String schemaOwner,
+      boolean includeTables,
+      boolean includeViews,
+      String functionKey,
+      String functionOwner,
+      String functionName,
+      List<String> statementTypes,
+      boolean enabled,
+      boolean updateCheck,
+      String filterPredicate,
       RedirectAttributes redirectAttributes
   ) {
     try {
@@ -114,7 +195,6 @@ public class VpdPolicyController {
       RuntimeErrorMessage message = RuntimeErrorMessages.dataAccess(exception);
       redirectAttributes.addFlashAttribute("errorMessage", message.message());
     }
-    return "redirect:/vpd-policies";
   }
 
   @GetMapping("/vpd-policies/function-source")
