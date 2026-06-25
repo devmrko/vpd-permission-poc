@@ -469,6 +469,32 @@ body {
   padding: 0 0 .75rem !important;
 }
 
+.policy-detail-list {
+  display: grid;
+  grid-template-columns: minmax(120px, 34%) 1fr;
+  margin: 0;
+}
+
+.policy-detail-list dt,
+.policy-detail-list dd {
+  border-bottom: 1px solid var(--rw-border);
+  margin: 0;
+  min-width: 0;
+  padding: .6rem .75rem;
+}
+
+.policy-detail-list dt {
+  background: var(--rw-surface-muted);
+  color: var(--rw-muted);
+  font-size: .78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.policy-detail-list dd {
+  overflow-wrap: anywhere;
+}
+
 .ai-answer {
   background: var(--rw-primary-soft);
   border: 1px solid var(--rw-border);

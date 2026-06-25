@@ -6,16 +6,32 @@
   <div class="probe-exchange-grid" th:if="${detail}">
     <section class="probe-exchange">
       <h3>Policy Metadata</h3>
-      <pre th:text="${'Object: ' + detail.policy().objectDisplayName()
-        + '\nPolicy Group: ' + detail.policy().policyGroup()
-        + '\nPolicy Name: ' + detail.policy().policyName()
-        + '\nFunction: ' + detail.policy().functionDisplayName()
-        + '\nStatement Types: ' + detail.policy().statementTypes()
-        + '\nEnabled: ' + detail.policy().enabled()
-        + '\nPolicy Type: ' + detail.policy().policyType()
-        + '\nCheck Option: ' + detail.policy().checkOption()
-        + '\nStatic Policy: ' + detail.policy().staticPolicy()
-        + '\nLong Predicate: ' + detail.policy().longPredicate()}"></pre>
+      <dl class="policy-detail-list">
+        <dt>Object</dt>
+        <dd><code th:text="${detail.policy().objectDisplayName()}">ADMIN.TABLE</code></dd>
+        <dt>Policy Group</dt>
+        <dd th:text="${detail.policy().policyGroup()}">SYS_DEFAULT</dd>
+        <dt>Policy Name</dt>
+        <dd><code th:text="${detail.policy().policyName()}">POLICY</code></dd>
+        <dt>Function</dt>
+        <dd><code th:text="${detail.policy().functionDisplayName()}">ADMIN.FUNC</code></dd>
+        <dt>Statement Types</dt>
+        <dd th:text="${detail.policy().statementTypes()} ?: '-'">SELECT</dd>
+        <dt>Enabled</dt>
+        <dd>
+          <span class="badge"
+                th:classappend="${detail.policy().enabled() == 'YES'} ? ' text-bg-success' : ' text-bg-secondary'"
+                th:text="${detail.policy().enabled()}">YES</span>
+        </dd>
+        <dt>Policy Type</dt>
+        <dd th:text="${detail.policy().policyType()}">DYNAMIC</dd>
+        <dt>Check Option</dt>
+        <dd th:text="${detail.policy().checkOption()}">NO</dd>
+        <dt>Static Policy</dt>
+        <dd th:text="${detail.policy().staticPolicy()}">NO</dd>
+        <dt>Long Predicate</dt>
+        <dd th:text="${detail.policy().longPredicate()}">NO</dd>
+      </dl>
     </section>
     <section class="probe-exchange">
       <h3>DBMS_RLS.ADD_POLICY</h3>
