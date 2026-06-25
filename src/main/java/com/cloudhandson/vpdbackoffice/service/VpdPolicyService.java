@@ -1,16 +1,20 @@
 package com.cloudhandson.vpdbackoffice.service;
 
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdBulkApplyResult;
+import com.cloudhandson.vpdbackoffice.domain.vpd.VpdFunctionOption;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdFunctionSource;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdObjectFilterDetail;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyCreateCommand;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyDetail;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyExplanation;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyFormOptions;
+import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyTemplateOption;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdSchemaObjectOption;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdTargetView;
 import com.cloudhandson.vpdbackoffice.mapper.VpdPolicyMapper;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -26,6 +30,8 @@ public class VpdPolicyService {
 
   private static final Set<String> ALLOWED_STATEMENTS = Set.of("SELECT", "INSERT", "UPDATE", "DELETE", "INDEX");
   private static final long CATALOG_CACHE_MILLIS = 60_000L;
+  private static final String COMMON_POLICY_NAME = "CB_PERMISSION_SELECT_POLICY";
+  private static final String DEFAULT_PERMISSION_FILTER_FUNCTION = "CB_AGENT_DOC_VPD_FILTER";
 
   private final VpdPolicyMapper mapper;
   private final JdbcTemplate jdbcTemplate;
@@ -64,12 +70,13 @@ public class VpdPolicyService {
     if (cached != null && !cached.expired()) {
       return cached.value();
     }
+    List<VpdFunctionOption> functions = mapper.findFunctionOptions();
     VpdPolicyFormOptions options = new VpdPolicyFormOptions(
         mapper.findPolicyNameOptions(),
         mapper.findSchemaOwnerOptions(),
         mapper.findOwnerOptions(),
-        mapper.findFunctionOptions(),
-        mapper.findPolicyTemplateOptions(),
+        functions,
+        buildPolicyTemplateOptions(functions, mapper.findPolicyTemplateOptions()),
         List.of("SELECT", "INSERT", "UPDATE", "DELETE", "INDEX")
     );
     formOptionsCache = new CacheEntry<>(options, System.currentTimeMillis() + CATALOG_CACHE_MILLIS);
@@ -300,6 +307,32 @@ public class VpdPolicyService {
     formOptionsCache = null;
   }
 
+  private List<VpdPolicyTemplateOption> buildPolicyTemplateOptions(
+      List<VpdFunctionOption> functions,
+      List<VpdPolicyTemplateOption> existingTemplates
+  ) {
+    List<VpdPolicyTemplateOption> templates = new ArrayList<>();
+    functions.stream()
+        .filter(function -> DEFAULT_PERMISSION_FILTER_FUNCTION.equalsIgnoreCase(function.functionName()))
+        .findFirst()
+        .ifPresent(function -> templates.add(new VpdPolicyTemplateOption(
+            COMMON_POLICY_NAME,
+            function.owner(),
+            function.packageName(),
+            function.functionName(),
+            "SELECT",
+            "YES",
+            "NO"
+        )));
+    templates.addAll(existingTemplates);
+
+    Map<String, VpdPolicyTemplateOption> uniqueTemplates = new LinkedHashMap<>();
+    for (VpdPolicyTemplateOption template : templates) {
+      uniqueTemplates.putIfAbsent(template.label().toUpperCase(Locale.ROOT), template);
+    }
+    return List.copyOf(uniqueTemplates.values());
+  }
+
   private void addPolicy(
       String objectOwner,
       String objectName,
@@ -506,8 +539,7 @@ public class VpdPolicyService {
   }
 
   private String generatedPolicyName(String objectName) {
-    String name = objectName + "_POLICY";
-    return name.length() > 128 ? name.substring(0, 128) : name;
+    return COMMON_POLICY_NAME;
   }
 
   private FunctionRef parseFunctionRef(String functionKey) {
