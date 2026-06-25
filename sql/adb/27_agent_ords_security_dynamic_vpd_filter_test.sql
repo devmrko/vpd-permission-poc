@@ -49,12 +49,28 @@ BEGIN
   INSERT INTO cb_app_user(user_id, user_name, employee_no, dept_code, can_read_contents, active)
   VALUES (456106, 'rule_test_bad_column', 'E456106', 'QA', 'N', 'Y');
 
+  INSERT INTO cb_app_user(user_id, user_name, employee_no, dept_code, can_read_contents, active)
+  VALUES (456107, 'rule_test_quote_value', 'E456107', 'QA', 'N', 'Y');
+
+  INSERT INTO cb_app_user(user_id, user_name, employee_no, dept_code, can_read_contents, active)
+  VALUES (456108, 'rule_test_or_injection', 'E456108', 'QA', 'N', 'Y');
+
+  INSERT INTO cb_app_user(user_id, user_name, employee_no, dept_code, can_read_contents, active)
+  VALUES (456109, 'rule_test_column_injection', 'E456109', 'QA', 'N', 'Y');
+
+  INSERT INTO cb_app_user(user_id, user_name, employee_no, dept_code, can_read_contents, active)
+  VALUES (456110, 'rule_test_target_mismatch', 'E456110', 'QA', 'N', 'Y');
+
   INSERT INTO cb_app_role(role_id, role_name) VALUES (456101, 'RULE_TEST_MY_DEPT');
   INSERT INTO cb_app_role(role_id, role_name) VALUES (456102, 'RULE_TEST_SELF');
   INSERT INTO cb_app_role(role_id, role_name) VALUES (456103, 'RULE_TEST_ALL');
   INSERT INTO cb_app_role(role_id, role_name) VALUES (456104, 'RULE_TEST_EQ');
   INSERT INTO cb_app_role(role_id, role_name) VALUES (456105, 'RULE_TEST_NE');
   INSERT INTO cb_app_role(role_id, role_name) VALUES (456106, 'RULE_TEST_BAD_COLUMN');
+  INSERT INTO cb_app_role(role_id, role_name) VALUES (456107, 'RULE_TEST_QUOTE_VALUE');
+  INSERT INTO cb_app_role(role_id, role_name) VALUES (456108, 'RULE_TEST_OR_INJECTION');
+  INSERT INTO cb_app_role(role_id, role_name) VALUES (456109, 'RULE_TEST_COLUMN_INJECTION');
+  INSERT INTO cb_app_role(role_id, role_name) VALUES (456110, 'RULE_TEST_TARGET_MISMATCH');
 
   INSERT INTO cb_user_role(user_id, role_id) VALUES (456101, 456101);
   INSERT INTO cb_user_role(user_id, role_id) VALUES (456102, 456102);
@@ -62,6 +78,10 @@ BEGIN
   INSERT INTO cb_user_role(user_id, role_id) VALUES (456104, 456104);
   INSERT INTO cb_user_role(user_id, role_id) VALUES (456105, 456105);
   INSERT INTO cb_user_role(user_id, role_id) VALUES (456106, 456106);
+  INSERT INTO cb_user_role(user_id, role_id) VALUES (456107, 456107);
+  INSERT INTO cb_user_role(user_id, role_id) VALUES (456108, 456108);
+  INSERT INTO cb_user_role(user_id, role_id) VALUES (456109, 456109);
+  INSERT INTO cb_user_role(user_id, role_id) VALUES (456110, 456110);
 
   INSERT INTO cb_permission(perm_id, role_id, target_name, action_name)
   VALUES (456101, 456101, 'CB_V_SEARCH_DOCUMENTS', 'SELECT');
@@ -81,6 +101,18 @@ BEGIN
   INSERT INTO cb_permission(perm_id, role_id, target_name, action_name)
   VALUES (456106, 456106, 'CB_V_SEARCH_DOCUMENTS', 'SELECT');
 
+  INSERT INTO cb_permission(perm_id, role_id, target_name, action_name)
+  VALUES (456107, 456107, 'CB_V_SEARCH_DOCUMENTS', 'SELECT');
+
+  INSERT INTO cb_permission(perm_id, role_id, target_name, action_name)
+  VALUES (456108, 456108, 'CB_V_SEARCH_DOCUMENTS', 'SELECT');
+
+  INSERT INTO cb_permission(perm_id, role_id, target_name, action_name)
+  VALUES (456109, 456109, 'CB_V_SEARCH_DOCUMENTS', 'SELECT');
+
+  INSERT INTO cb_permission(perm_id, role_id, target_name, action_name)
+  VALUES (456110, 456110, 'BOARD_POSTS', 'SELECT');
+
   INSERT INTO cb_permission_rule(rule_id, perm_id, rule_column, rule_type, rule_value)
   VALUES (456101, 456101, NULL, 'MY_DEPT', NULL);
 
@@ -99,6 +131,18 @@ BEGIN
   INSERT INTO cb_permission_rule(rule_id, perm_id, rule_column, rule_type, rule_value)
   VALUES (456106, 456106, 'NO_SUCH_COLUMN', '=', 'x');
 
+  INSERT INTO cb_permission_rule(rule_id, perm_id, rule_column, rule_type, rule_value)
+  VALUES (456107, 456107, 'TITLE', '=', 'Bob''s plan');
+
+  INSERT INTO cb_permission_rule(rule_id, perm_id, rule_column, rule_type, rule_value)
+  VALUES (456108, 456108, 'TITLE', '=', 'HR'' OR ''1''=''1'' --');
+
+  INSERT INTO cb_permission_rule(rule_id, perm_id, rule_column, rule_type, rule_value)
+  VALUES (456109, 456109, 'DOC_ID) OR 1=1 --', '=', '1');
+
+  INSERT INTO cb_permission_rule(rule_id, perm_id, rule_column, rule_type, rule_value)
+  VALUES (456110, 456110, NULL, 'ALL', NULL);
+
   COMMIT;
 END;
 /
@@ -114,9 +158,10 @@ DECLARE
     );
   END;
 
-  PROCEDURE assert_equals(
+  PROCEDURE assert_equals_for_object(
     p_label    IN VARCHAR2,
     p_user_id  IN NUMBER,
+    p_object   IN VARCHAR2,
     p_expected IN VARCHAR2
   ) IS
     v_actual VARCHAR2(32767);
@@ -127,9 +172,36 @@ DECLARE
       cb_agent_ctx_pkg.set_user(p_user_id);
     END IF;
 
-    v_actual := cb_agent_doc_vpd_filter('ADMIN', 'CB_V_SEARCH_DOCUMENTS');
+    v_actual := cb_agent_doc_vpd_filter('ADMIN', p_object);
 
     IF v_actual != p_expected THEN
+      fail(p_label, p_expected, v_actual);
+    END IF;
+
+    DBMS_OUTPUT.PUT_LINE('PASS ' || p_label || ': ' || v_actual);
+  END;
+
+  PROCEDURE assert_equals(
+    p_label    IN VARCHAR2,
+    p_user_id  IN NUMBER,
+    p_expected IN VARCHAR2
+  ) IS
+  BEGIN
+    assert_equals_for_object(p_label, p_user_id, 'CB_V_SEARCH_DOCUMENTS', p_expected);
+  END;
+
+  PROCEDURE assert_contains_for_object(
+    p_label    IN VARCHAR2,
+    p_user_id  IN NUMBER,
+    p_object   IN VARCHAR2,
+    p_expected IN VARCHAR2
+  ) IS
+    v_actual VARCHAR2(32767);
+  BEGIN
+    cb_agent_ctx_pkg.set_user(p_user_id);
+    v_actual := cb_agent_doc_vpd_filter('ADMIN', p_object);
+
+    IF INSTR(v_actual, p_expected) = 0 THEN
       fail(p_label, p_expected, v_actual);
     END IF;
 
@@ -141,16 +213,8 @@ DECLARE
     p_user_id  IN NUMBER,
     p_expected IN VARCHAR2
   ) IS
-    v_actual VARCHAR2(32767);
   BEGIN
-    cb_agent_ctx_pkg.set_user(p_user_id);
-    v_actual := cb_agent_doc_vpd_filter('ADMIN', 'CB_V_SEARCH_DOCUMENTS');
-
-    IF INSTR(v_actual, p_expected) = 0 THEN
-      fail(p_label, p_expected, v_actual);
-    END IF;
-
-    DBMS_OUTPUT.PUT_LINE('PASS ' || p_label || ': ' || v_actual);
+    assert_contains_for_object(p_label, p_user_id, 'CB_V_SEARCH_DOCUMENTS', p_expected);
   END;
 BEGIN
   assert_equals('NO_CONTEXT_DENIES', NULL, '1 = 0');
@@ -160,6 +224,11 @@ BEGIN
   assert_contains('EQUALS_RULE', 456104, 'TO_CHAR(DOC_ID) = ''1''');
   assert_contains('NOT_EQUALS_RULE', 456105, 'TO_CHAR(DEPT_CODE) <> ''HR''');
   assert_equals('BAD_COLUMN_DENIES', 456106, '1 = 0');
+  assert_contains('QUOTE_VALUE_ESCAPED', 456107, 'TO_CHAR(TITLE) = ''Bob''''s plan''');
+  assert_contains('OR_INJECTION_STAYS_LITERAL', 456108, 'TO_CHAR(TITLE) = ''HR'''' OR ''''1''''=''''1'''' --''');
+  assert_equals('COLUMN_INJECTION_DENIES', 456109, '1 = 0');
+  assert_equals_for_object('TARGET_MISMATCH_DENIES', 456110, 'CB_V_SEARCH_DOCUMENTS', '1 = 0');
+  assert_equals_for_object('TARGET_MATCH_ALL_ALLOWS', 456110, 'BOARD_POSTS', '1 = 1');
   cb_agent_ctx_pkg.clear_user;
 END;
 /
