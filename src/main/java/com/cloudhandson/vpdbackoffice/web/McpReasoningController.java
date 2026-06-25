@@ -63,6 +63,18 @@ public class McpReasoningController {
     }
   }
 
+  @GetMapping("/mcp-sse")
+  public String ssePage(Model model) {
+    try {
+      model.addAttribute("tools", toolRegistry.listTools());
+    } catch (DataAccessException e) {
+      RuntimeErrorMessage message = RuntimeErrorMessages.dataAccess(e);
+      model.addAttribute("tools", List.of());
+      model.addAttribute("runtimeError", message);
+    }
+    return "mcp-sse";
+  }
+
   @PostMapping("/mcp-reasoning")
   public String reason(
       @RequestParam long objectId,

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('MCP SSE')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container page-shell">
+  <section class="page-heading">
+    <h1>MCP SSE</h1>
+    <p>보호 객체 ORDS 조회를 외부 MCP client에서 호출할 수 있도록 SSE transport로 제공합니다.</p>
+  </section>
+
+  <section th:if="${runtimeError}" class="alert alert-warning">
+    <strong th:text="${runtimeError.title()}">DB 연결 설정이 필요합니다.</strong>
+    <div th:text="${runtimeError.message()}">DB 연결을 확인할 수 없습니다.</div>
+  </section>
+
+  <section class="content-band">
+    <h2>Endpoint</h2>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <tbody>
+        <tr>
+          <th>SSE</th>
+          <td><code>/mcp/sse</code></td>
+        </tr>
+        <tr>
+          <th>Message</th>
+          <td><code>/mcp/messages?sessionId={sessionId}</code></td>
+        </tr>
+        <tr>
+          <th>Auth</th>
+          <td><code>Basic Auth</code> / <code>BACKOFFICE_ADMIN_USER</code>, <code>BACKOFFICE_ADMIN_PASSWORD</code></td>
+        </tr>
+        <tr>
+          <th>Methods</th>
+          <td><code>initialize</code>, <code>tools/list</code>, <code>tools/call</code></td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="content-band">
+    <h2>Tools</h2>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+        <tr>
+          <th>Name</th>
+          <th>Object</th>
+          <th>ORDS Path</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="tool : ${tools}">
+          <td><code th:text="${tool.name()}">ords.query.admin.board_posts</code></td>
+          <td th:text="${tool.displayName()}">ADMIN.BOARD_POSTS</td>
+          <td><code th:text="${tool.ordsPath()}">cb-ords/cb-object-query/admin/board_posts</code></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(tools)}">
+          <td colspan="3" class="text-muted">등록된 MCP tool이 없습니다.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="content-band">
+    <h2>tools/call Arguments</h2>
+    <pre class="code-block">{
+  "bearerToken": "vpd_live_xxx",
+  "limit": 50
+}</pre>
+  </section>
+</main>
+</body>
+</html>
