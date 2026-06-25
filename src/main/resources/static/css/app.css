@@ -129,7 +129,8 @@ body {
 }
 
 .rw-menu-trigger:hover,
-.rw-menu-trigger:focus {
+.rw-menu-trigger:focus,
+.rw-menu-group.open .rw-menu-trigger {
   background: var(--rw-surface-muted);
   border-color: var(--rw-border);
   color: var(--rw-text);
@@ -149,8 +150,7 @@ body {
   z-index: 30;
 }
 
-.rw-menu-group:hover .rw-menu-panel,
-.rw-menu-group:focus-within .rw-menu-panel {
+.rw-menu-group.open .rw-menu-panel {
   display: grid;
   gap: .15rem;
 }
@@ -181,7 +181,7 @@ body {
     position: static;
   }
 
-  .rw-menu-group:focus-within .rw-menu-panel {
+  .rw-menu-group.open .rw-menu-panel {
     display: grid;
   }
 

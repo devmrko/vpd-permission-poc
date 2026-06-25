@@ -59,6 +59,48 @@ function syncPolicyTemplate(select) {
   });
 }
 
+function closeMenuGroup(group) {
+  if (!group) {
+    return;
+  }
+  group.classList.remove('open');
+  group.querySelector('.rw-menu-trigger')?.setAttribute('aria-expanded', 'false');
+}
+
+function closeAllMenuGroups(exceptGroup = null) {
+  document.querySelectorAll('.rw-menu-group.open').forEach((group) => {
+    if (group !== exceptGroup) {
+      closeMenuGroup(group);
+    }
+  });
+}
+
+function initPersistentMenus() {
+  document.querySelectorAll('.rw-menu-trigger').forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const group = button.closest('.rw-menu-group');
+      if (!group) {
+        return;
+      }
+      const nextOpen = !group.classList.contains('open');
+      closeAllMenuGroups(group);
+      group.classList.toggle('open', nextOpen);
+      button.setAttribute('aria-expanded', String(nextOpen));
+    });
+  });
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.rw-menu')) {
+      closeAllMenuGroups();
+    }
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeAllMenuGroups();
+    }
+  });
+}
+
 function escapeHtml(value) {
   return value
       .replaceAll('&', '&amp;')
@@ -428,6 +470,7 @@ function initPermissionWizard() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  initPersistentMenus();
   renderMarkdownViews();
   const master = document.getElementById('userRoleMaster');
   if (master) {
