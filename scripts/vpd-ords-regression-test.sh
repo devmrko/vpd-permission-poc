@@ -137,6 +137,36 @@ print(f"[PASS] {label}: rows={len(rows)} ids={ids} rows_with_contents={contents_
 PY
 }
 
+call_and_assert_rejected() {
+  local label="$1" token="$2"
+  local response_file="$WORK_DIR/${label}.response.json"
+  local request_file="$WORK_DIR/${label}.request.txt"
+  local url="${ORDS_BASE%/}/${ORDS_PATH}?limit=50"
+
+  {
+    printf "POST %s\n" "$url"
+    printf "Authorization: Bearer ****%s\n" "${token: -6}"
+    printf "Content-Type: application/json\n"
+    printf "{}\n"
+  } >"$request_file"
+
+  local status
+  status="$(curl -sS -o "$response_file" -w "%{http_code}" \
+    -X POST "$url" \
+    -H "Authorization: Bearer $token" \
+    -H "Content-Type: application/json" \
+    -d "{}")"
+
+  if [[ "$status" == "200" ]]; then
+    echo "[FAIL] $label: invalid token returned HTTP 200"
+    echo "       request=$request_file"
+    echo "       response=$response_file"
+    exit 1
+  fi
+
+  echo "[PASS] $label: rejected with HTTP $status"
+}
+
 echo "[INFO] SQLcl: $SQLCL_BIN"
 echo "[INFO] ORDS: ${ORDS_BASE%/}/${ORDS_PATH}"
 echo "[INFO] Evidence: $WORK_DIR"
@@ -145,5 +175,6 @@ insert_tokens
 call_and_assert "HR" "$TOKEN_HR" "3" "1,2,6" "0"
 call_and_assert "SELF" "$TOKEN_SELF" "1" "3" "0"
 call_and_assert "ALL" "$TOKEN_ALL" "6" "1,2,3,4,5,6" "6"
+call_and_assert_rejected "INVALID_TOKEN" "codex_invalid_$(uuidgen)"
 
 echo "[PASS] VPD/Redaction ORDS regression passed"
