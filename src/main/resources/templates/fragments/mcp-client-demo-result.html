@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="result">
+  <div class="alert alert-danger" th:if="${errorMessage}">
+    <strong>Java MCP client 호출 실패</strong>
+    <div th:text="${errorMessage}">error</div>
+  </div>
+
+  <div th:if="${result}">
+    <div class="section-heading">
+      <h2>Java Client 결과</h2>
+      <span class="badge"
+            th:classappend="${result.status() == 'SUCCESS'} ? ' text-bg-success' : ' text-bg-secondary'"
+            th:text="${result.status()}">SUCCESS</span>
+    </div>
+
+    <dl class="policy-detail-list">
+      <dt>Context Path</dt>
+      <dd><code th:text="${result.contextPath()}">vpd-live</code></dd>
+      <dt>Message URL</dt>
+      <dd><code th:text="${result.messageUrl()}">http://localhost:8082/mcp/vpd-live/messages</code></dd>
+      <dt>Selected Tool</dt>
+      <dd><code th:text="${result.selectedTool()} ?: '-'">tool</code></dd>
+    </dl>
+
+    <div class="probe-exchange-grid">
+      <section class="probe-exchange">
+        <h3>initialize Response</h3>
+        <pre th:text="${result.initializeResponse()}">{}</pre>
+      </section>
+      <section class="probe-exchange">
+        <h3>tools/list Response</h3>
+        <pre th:text="${result.toolsListResponse()}">{}</pre>
+      </section>
+      <section class="probe-exchange">
+        <h3>tools/call Response</h3>
+        <pre th:text="${result.toolsCallResponse()}">{}</pre>
+      </section>
+    </div>
+  </div>
+</div>
+</body>
+</html>
