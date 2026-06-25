@@ -306,6 +306,23 @@ public class VpdPolicyController {
     return "fragments/vpd-policy-detail :: detail";
   }
 
+  @GetMapping("/vpd-policies/object-filter-detail")
+  public String objectFilterDetail(
+      @RequestParam String objectOwner,
+      @RequestParam String objectName,
+      Model model
+  ) {
+    try {
+      model.addAttribute("detail", vpdPolicyService.findObjectFilterDetail(objectOwner, objectName));
+    } catch (AppException exception) {
+      model.addAttribute("errorMessage", exception.getMessage());
+    } catch (DataAccessException exception) {
+      RuntimeErrorMessage message = RuntimeErrorMessages.dataAccess(exception);
+      model.addAttribute("errorMessage", message.message());
+    }
+    return "fragments/vpd-object-filter-detail :: detail";
+  }
+
   @GetMapping("/vpd-policies/policy-explanation")
   public String policyExplanation(
       @RequestParam String objectOwner,

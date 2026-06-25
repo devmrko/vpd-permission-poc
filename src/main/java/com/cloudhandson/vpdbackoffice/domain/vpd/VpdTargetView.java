@@ -7,7 +7,8 @@ public record VpdTargetView(
     String protectedYn,
     String ordsPath,
     int policyCount,
-    String policyNames
+    String policyNames,
+    String filterNames
 ) {
 
   public String objectDisplayName() {

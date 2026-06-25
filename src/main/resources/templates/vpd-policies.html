@@ -54,12 +54,14 @@
           <th>Type</th>
           <th>VPD 상태</th>
           <th>Policy</th>
+          <th>Filter</th>
           <th>백오피스 권한 테이블</th>
           <th>ORDS Path</th>
         </tr>
         </thead>
         <tbody>
-        <tr th:each="target : ${vpdTargets}">
+        <th:block th:each="target, iter : ${vpdTargets}">
+        <tr>
           <td><code th:text="${target.objectDisplayName()}">ADMIN.TABLE</code></td>
           <td th:text="${target.objectType()}">TABLE</td>
           <td>
@@ -72,6 +74,17 @@
             <span th:unless="${target.vpdApplied()}" class="text-muted">-</span>
           </td>
           <td>
+            <button th:if="${target.vpdApplied()}"
+                    class="btn btn-sm btn-outline-secondary policy-function-button"
+                    type="button"
+                    th:hx-get="@{/vpd-policies/object-filter-detail(objectOwner=${target.owner()},objectName=${target.objectName()})}"
+                    th:hx-target="${'#target-filter-detail-' + iter.index}"
+                    hx-swap="innerHTML">
+              <code th:text="${target.filterNames()}">ADMIN.FILTER</code>
+            </button>
+            <span th:unless="${target.vpdApplied()}" class="text-muted">-</span>
+          </td>
+          <td>
             <span class="badge"
                   th:classappend="${target.protectedObject()} ? ' text-bg-primary' : ' text-bg-light'"
                   th:text="${target.protectedObject()} ? '등록됨' : '미등록'">미등록</span>
@@ -81,8 +94,16 @@
             <span th:unless="${target.ordsPath()}" class="text-muted">ORDS 서빙 미등록</span>
           </td>
         </tr>
+        <tr th:if="${target.vpdApplied()}">
+          <td colspan="7" class="policy-source-cell">
+            <div th:id="${'target-filter-detail-' + iter.index}" class="text-muted small">
+              Filter 이름을 클릭하면 policy/filter source가 표시됩니다.
+            </div>
+          </td>
+        </tr>
+        </th:block>
         <tr th:if="${#lists.isEmpty(vpdTargets)}">
-          <td colspan="6" class="text-muted">
+          <td colspan="7" class="text-muted">
             <span th:if="${selectedSchemaOwner != null && selectedSchemaOwner != ''}"
                   th:text="${selectedSchemaOwner + ' 스키마에서 현재 DB 연결 사용자로 조회 가능한 TABLE/VIEW가 없습니다. 스키마명, ALL_OBJECTS 조회 권한, 객체 권한을 확인하세요.'}">
               선택한 스키마에서 조회 가능한 TABLE/VIEW가 없습니다.

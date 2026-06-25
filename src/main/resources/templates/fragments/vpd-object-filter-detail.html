@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="detail">
+  <div class="alert alert-warning mb-0" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+  <section class="probe-exchange" th:if="${detail}">
+    <h3>
+      <span th:text="${detail.objectDisplayName()}">ADMIN.TABLE</span>
+      <span class="text-muted"> / Policy Filter</span>
+    </h3>
+    <div th:if="${#lists.isEmpty(detail.rows())}" class="text-muted">
+      이 TABLE/VIEW에 적용된 VPD policy/filter가 없습니다.
+    </div>
+    <div class="filter-detail-stack" th:each="row : ${detail.rows()}">
+      <dl class="policy-detail-list">
+        <dt>Policy</dt>
+        <dd><code th:text="${row.policy().policyName()}">POLICY</code></dd>
+        <dt>Filter</dt>
+        <dd><code th:text="${row.policy().functionDisplayName()}">ADMIN.FILTER</code></dd>
+        <dt>Statements</dt>
+        <dd th:text="${row.policy().statementTypes()} ?: '-'">SELECT</dd>
+        <dt>Status</dt>
+        <dd th:text="${row.policy().enabled()}">YES</dd>
+      </dl>
+      <pre th:if="${row.source().found()}" th:text="${row.source().source()}"></pre>
+      <pre th:unless="${row.source().found()}">ALL_SOURCE에서 조회 가능한 filter source가 없습니다.</pre>
+    </div>
+  </section>
+</div>
+</body>
+</html>

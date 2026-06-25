@@ -35,6 +35,11 @@ public interface VpdPolicyMapper {
       @Param("policyName") String policyName
   );
 
+  List<VpdPolicyView> findPoliciesForObject(
+      @Param("objectOwner") String objectOwner,
+      @Param("objectName") String objectName
+  );
+
   VpdPolicyView findAnyPolicy(
       @Param("objectOwner") String objectOwner,
       @Param("objectName") String objectName,

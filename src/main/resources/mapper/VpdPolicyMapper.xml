@@ -63,7 +63,13 @@
            CASE WHEN po.object_id IS NULL THEN 'N' ELSE po.enabled_yn END AS protected_yn,
            po.ords_path,
            COUNT(p.policy_name) AS policy_count,
-           LISTAGG(p.policy_name, ', ') WITHIN GROUP (ORDER BY p.policy_name) AS policy_names
+           LISTAGG(p.policy_name, ', ') WITHIN GROUP (ORDER BY p.policy_name) AS policy_names,
+           LISTAGG(
+             p.pf_owner ||
+             CASE WHEN p.package IS NULL THEN '.' ELSE '.' || p.package || '.' END ||
+             p.function,
+             ', '
+           ) WITHIN GROUP (ORDER BY p.policy_name) AS filter_names
     FROM managed_objects o
     LEFT JOIN cb_protected_object po
       ON po.owner = o.owner
@@ -208,6 +214,14 @@
           AND o.owner = p.object_owner
           AND o.object_name = p.object_name
       )
+  </select>
+
+  <select id="findPoliciesForObject" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView">
+    SELECT <include refid="policyColumns"><property name="alias" value="p."/></include>
+    FROM all_policies p
+    WHERE p.object_owner = UPPER(#{objectOwner,jdbcType=VARCHAR})
+      AND p.object_name = UPPER(#{objectName,jdbcType=VARCHAR})
+    ORDER BY p.policy_name
   </select>
 
   <select id="findAnyPolicy" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView">

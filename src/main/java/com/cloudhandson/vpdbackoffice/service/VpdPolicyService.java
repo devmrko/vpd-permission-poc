@@ -2,6 +2,7 @@ package com.cloudhandson.vpdbackoffice.service;
 
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdBulkApplyResult;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdFunctionSource;
+import com.cloudhandson.vpdbackoffice.domain.vpd.VpdObjectFilterDetail;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyCreateCommand;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyDetail;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyExplanation;
@@ -231,6 +232,18 @@ public class VpdPolicyService {
       throw new AppException("VPD policy를 찾을 수 없습니다.");
     }
     return new VpdPolicyDetail(policy, buildAddPolicyBlock(policy));
+  }
+
+  public VpdObjectFilterDetail findObjectFilterDetail(String objectOwner, String objectName) {
+    String normalizedOwner = requiredIdentifier(objectOwner, "Object owner");
+    String normalizedObject = requiredIdentifier(objectName, "Object name");
+    List<VpdObjectFilterDetail.Row> rows = mapper.findPoliciesForObject(normalizedOwner, normalizedObject).stream()
+        .map(policy -> new VpdObjectFilterDetail.Row(
+            policy,
+            findFunctionSource(policy.functionOwner(), policy.packageName(), policy.functionName())
+        ))
+        .toList();
+    return new VpdObjectFilterDetail(normalizedOwner, normalizedObject, rows);
   }
 
   @Transactional

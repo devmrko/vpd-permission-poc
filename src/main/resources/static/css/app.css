@@ -870,6 +870,12 @@ body {
   padding: .75rem;
 }
 
+.filter-detail-stack + .filter-detail-stack {
+  border-top: 1px solid var(--rw-border);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
 .policy-detail-list {
   display: grid;
   grid-template-columns: minmax(120px, 34%) 1fr;
