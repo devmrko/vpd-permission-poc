@@ -336,6 +336,18 @@ body {
   grid-template-columns: 1fr 1fr 1fr auto;
 }
 
+.question-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.question-preset {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+
 .rw-btn,
 .btn {
   border-radius: 999px;

@@ -11,8 +11,8 @@
 
   <section class="content-band chat-shell">
     <div class="chat-message assistant-message">
-      <strong>Router</strong>
-      <p>보호 객체명이나 업무명을 질문에 넣으면 가장 가까운 MCP tool을 선택합니다. Bearer Token을 입력하면 실제 ORDS 호출까지 실행합니다.</p>
+      <strong>질문 실행</strong>
+      <p>아래 예시를 누르거나 직접 질문을 입력하세요. Bearer Token을 입력하면 실제 ORDS/VPD 결과까지 조회합니다.</p>
     </div>
 
     <div id="mcp-chatbot-result" class="chat-thread">
@@ -21,11 +21,8 @@
 
     <form hx-post="/mcp-chatbot" hx-target="#mcp-chatbot-result" hx-swap="beforeend" class="chat-form">
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <input type="hidden" name="contextPath" value="vpd-live">
       <div class="chat-form-row">
-        <label>
-          Context
-          <input class="form-control" name="contextPath" value="vpd-live" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" required>
-        </label>
         <label>
           Limit
           <input class="form-control" name="limit" type="number" min="1" max="500" value="50">
@@ -38,12 +35,39 @@
       </label>
       <label>
         질문
-        <textarea class="form-control" name="question" rows="3"
+        <textarea class="form-control" id="mcp-chat-question" name="question" rows="3"
                   placeholder="예: BOARD_POSTS에서 이 토큰으로 보이는 행과 NULL 처리 컬럼을 요약해줘." required></textarea>
       </label>
+      <div class="question-presets" aria-label="질문 예시">
+        <button class="btn rw-btn-secondary question-preset" type="button"
+                data-question="CB_V_SEARCH_DOCUMENTS에서 이 토큰으로 보이는 문서 행 수와 주요 컬럼을 요약해줘.">
+          문서 조회 요약
+        </button>
+        <button class="btn rw-btn-secondary question-preset" type="button"
+                data-question="CB_V_SEARCH_DOCUMENTS에서 contents 컬럼이 NULL 처리되는지 확인하고, 보이는 행의 dept_code와 owner_emp_no를 정리해줘.">
+          민감 컬럼 확인
+        </button>
+        <button class="btn rw-btn-secondary question-preset" type="button"
+                data-question="BOARD_POSTS에서 이 토큰으로 조회 가능한 게시글 행과 VPD 적용 결과를 요약해줘.">
+          BOARD_POSTS 조회
+        </button>
+        <button class="btn rw-btn-secondary question-preset" type="button"
+                data-question="등록된 보호 객체 중 질문과 가장 가까운 ORDS/VPD MCP tool을 선택하고, 토큰 없이 라우팅 결과만 보여줘.">
+          라우팅만 확인
+        </button>
+      </div>
       <button class="btn rw-btn-primary" type="submit">질문 보내기</button>
     </form>
   </section>
 </main>
+<script>
+  document.querySelectorAll('.question-preset').forEach((button) => {
+    button.addEventListener('click', () => {
+      const question = document.getElementById('mcp-chat-question');
+      question.value = button.dataset.question || '';
+      question.focus();
+    });
+  });
+</script>
 </body>
 </html>
