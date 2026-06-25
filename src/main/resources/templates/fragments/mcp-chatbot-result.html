@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="result">
+  <div class="chat-message user-message" th:if="${result}">
+    <strong>질문</strong>
+    <p th:text="${result.question()}">question</p>
+  </div>
+
+  <div class="chat-message assistant-message" th:if="${errorMessage}">
+    <strong>Router</strong>
+    <p th:text="${errorMessage}">error</p>
+  </div>
+
+  <div class="chat-message assistant-message" th:if="${result}">
+    <div class="section-heading">
+      <strong>Router</strong>
+      <span class="badge"
+            th:classappend="${result.status() == 'SUCCESS'} ? ' text-bg-success' : ' text-bg-secondary'"
+            th:text="${result.status()}">SUCCESS</span>
+    </div>
+    <div class="meta-row">
+      <span>Context: <code th:text="${result.contextPath()}">vpd-live</code></span>
+      <span>Tool: <code th:text="${result.selectedTool()}">tool</code></span>
+    </div>
+    <div class="markdown-view" th:text="${result.answer()}">answer</div>
+    <details class="chat-debug">
+      <summary>라우팅/도구 응답 보기</summary>
+      <div class="probe-exchange-grid">
+        <section class="probe-exchange">
+          <h3>Routing Reason</h3>
+          <pre th:text="${result.routingReason()}">reason</pre>
+        </section>
+        <section class="probe-exchange">
+          <h3>tools/list</h3>
+          <pre th:text="${result.toolsListJson()}">{}</pre>
+        </section>
+        <section class="probe-exchange">
+          <h3>tools/call</h3>
+          <pre th:text="${result.toolResultJson()}">{}</pre>
+        </section>
+      </div>
+    </details>
+  </div>
+</div>
+</body>
+</html>
