@@ -86,9 +86,9 @@
       <label>
         VPD 적용 대상 TABLE/VIEW
         <select class="form-select" name="objectKey" required>
-          <option th:each="object : ${objects}"
-                  th:value="${object.owner() + '.' + object.objectName()}"
-                  th:text="${object.displayName()}"></option>
+          <option th:each="target : ${vpdTargets}"
+                  th:value="${target.objectDisplayName()}"
+                  th:text="${target.objectDisplayName() + ' / ' + target.objectType() + (target.vpdApplied() ? ' / VPD 적용됨' : ' / 미적용')}"></option>
         </select>
       </label>
       <label>

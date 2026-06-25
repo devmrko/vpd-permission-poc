@@ -2,7 +2,6 @@ package com.cloudhandson.vpdbackoffice.web;
 
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyCreateCommand;
 import com.cloudhandson.vpdbackoffice.service.AppException;
-import com.cloudhandson.vpdbackoffice.service.ProtectedObjectService;
 import com.cloudhandson.vpdbackoffice.service.VpdPolicyService;
 import java.util.List;
 import org.springframework.dao.DataAccessException;
@@ -17,11 +16,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class VpdPolicyController {
 
   private final VpdPolicyService vpdPolicyService;
-  private final ProtectedObjectService protectedObjectService;
 
-  public VpdPolicyController(VpdPolicyService vpdPolicyService, ProtectedObjectService protectedObjectService) {
+  public VpdPolicyController(VpdPolicyService vpdPolicyService) {
     this.vpdPolicyService = vpdPolicyService;
-    this.protectedObjectService = protectedObjectService;
   }
 
   @GetMapping("/vpd-policies")
@@ -40,14 +37,12 @@ public class VpdPolicyController {
     try {
       model.addAttribute("policies", vpdPolicyService.findPolicies());
       model.addAttribute("vpdTargets", vpdPolicyService.findVpdTargets());
-      model.addAttribute("objects", protectedObjectService.findEnabled());
       model.addAttribute("formOptions", vpdPolicyService.formOptions());
     } catch (DataAccessException exception) {
       RuntimeErrorMessage message = RuntimeErrorMessages.dataAccess(exception);
       model.addAttribute("runtimeError", message);
       model.addAttribute("policies", List.of());
       model.addAttribute("vpdTargets", List.of());
-      model.addAttribute("objects", List.of());
       model.addAttribute("formOptions", vpdPolicyService.emptyFormOptions());
     }
   }
