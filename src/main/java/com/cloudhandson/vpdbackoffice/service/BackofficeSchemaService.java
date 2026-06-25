@@ -40,10 +40,13 @@ public class BackofficeSchemaService {
         """);
     createTable(results, "cb_app_role", """
         CREATE TABLE cb_app_role (
-          role_id    NUMBER PRIMARY KEY,
-          role_name  VARCHAR2(100) NOT NULL UNIQUE
+          role_id               NUMBER PRIMARY KEY,
+          role_name             VARCHAR2(100) NOT NULL UNIQUE,
+          max_sensitivity_level VARCHAR2(20) DEFAULT 'PUBLIC' NOT NULL
         )
         """);
+    addColumn(results, "cb_app_role", "max_sensitivity_level",
+        "ALTER TABLE cb_app_role ADD (max_sensitivity_level VARCHAR2(20) DEFAULT 'PUBLIC' NOT NULL)");
     createTable(results, "cb_user_role", """
         CREATE TABLE cb_user_role (
           user_id  NUMBER NOT NULL,
@@ -108,8 +111,22 @@ public class BackofficeSchemaService {
           column_name      VARCHAR2(128) NOT NULL,
           sensitive_yn     CHAR(1) DEFAULT 'N' CHECK (sensitive_yn IN ('Y','N')) NOT NULL,
           visible_role_id  NUMBER,
+          sensitivity_level VARCHAR2(20) DEFAULT 'PUBLIC' NOT NULL,
+          redaction_method  VARCHAR2(20) DEFAULT 'NONE' NOT NULL,
           CONSTRAINT cb_protected_column_uk UNIQUE (object_id, column_name)
         )
+        """);
+    addColumn(results, "cb_protected_column", "sensitivity_level",
+        "ALTER TABLE cb_protected_column ADD (sensitivity_level VARCHAR2(20) DEFAULT 'PUBLIC' NOT NULL)");
+    addColumn(results, "cb_protected_column", "redaction_method",
+        "ALTER TABLE cb_protected_column ADD (redaction_method VARCHAR2(20) DEFAULT 'NONE' NOT NULL)");
+    jdbcTemplate.update("""
+        UPDATE cb_protected_column
+        SET sensitivity_level = CASE sensitive_yn WHEN 'Y' THEN 'CONFIDENTIAL' ELSE 'PUBLIC' END,
+            redaction_method = CASE sensitive_yn WHEN 'Y' THEN 'NULLIFY' ELSE 'NONE' END
+        WHERE sensitivity_level = 'PUBLIC'
+          AND redaction_method = 'NONE'
+          AND sensitive_yn = 'Y'
         """);
     createTable(results, "cb_ords_probe_audit", """
         CREATE TABLE cb_ords_probe_audit (

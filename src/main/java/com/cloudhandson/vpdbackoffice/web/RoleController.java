@@ -27,10 +27,22 @@ public class RoleController {
   public String create(
       @RequestParam String roleName,
       @RequestParam(required = false) String description,
+      @RequestParam(defaultValue = "PUBLIC") String maxSensitivityLevel,
       RedirectAttributes redirectAttributes
   ) {
-    permissionService.createRole(roleName, description);
+    permissionService.createRole(roleName, description, maxSensitivityLevel);
     redirectAttributes.addFlashAttribute("message", "역할을 추가했습니다.");
+    return "redirect:/roles";
+  }
+
+  @PostMapping("/roles/max-sensitivity")
+  public String updateMaxSensitivity(
+      @RequestParam long roleId,
+      @RequestParam String maxSensitivityLevel,
+      RedirectAttributes redirectAttributes
+  ) {
+    permissionService.updateRoleMaxSensitivity(roleId, maxSensitivityLevel);
+    redirectAttributes.addFlashAttribute("message", "역할 민감도 허용 상한을 수정했습니다.");
     return "redirect:/roles";
   }
 

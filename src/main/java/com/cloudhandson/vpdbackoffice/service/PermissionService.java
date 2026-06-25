@@ -23,6 +23,8 @@ public class PermissionService {
   private static final Set<String> VALUE_REQUIRED_RULE_TYPES = Set.of("=", "!=", "DEPT", "EMP_NO");
   private static final Set<String> DEFAULT_COLUMN_RULE_TYPES = Set.of("MY_DEPT", "SELF", "DEPT", "EMP_NO");
   private static final Set<String> PERMISSION_EFFECTS = Set.of("ALLOW", "DENY");
+  private static final Set<String> SENSITIVITY_LEVELS = Set.of(
+      "PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED");
 
   private final PermissionMapper permissionMapper;
   private final ProtectedObjectService protectedObjectService;
@@ -48,12 +50,28 @@ public class PermissionService {
 
   @Transactional
   public void createRole(String roleName, String description) {
+    createRole(roleName, description, "PUBLIC");
+  }
+
+  @Transactional
+  public void createRole(String roleName, String description, String maxSensitivityLevel) {
     if (roleName == null || roleName.isBlank()) {
       throw new AppException("역할명은 필수입니다.");
     }
     long roleId = permissionMapper.nextRoleId();
-    permissionMapper.insertRole(roleId, roleName.trim(), description);
+    permissionMapper.insertRole(roleId, roleName.trim(), description, normalizeSensitivityLevel(maxSensitivityLevel));
     auditService.record(new AuditEvent("ROLE_CREATED", null, null, "SUCCESS", null, null, roleName));
+  }
+
+  @Transactional
+  public void updateRoleMaxSensitivity(long roleId, String maxSensitivityLevel) {
+    String normalized = normalizeSensitivityLevel(maxSensitivityLevel);
+    int updated = permissionMapper.updateRoleMaxSensitivity(roleId, normalized);
+    if (updated == 0) {
+      throw new AppException("수정할 역할을 찾을 수 없습니다.");
+    }
+    auditService.record(new AuditEvent("ROLE_MAX_SENSITIVITY_UPDATED", null, null, "SUCCESS", null, null,
+        "roleId=" + roleId + ", max=" + normalized));
   }
 
   @Transactional
@@ -194,6 +212,14 @@ public class PermissionService {
       throw new AppException("허용되지 않은 권한 효과입니다: " + effect);
     }
     return effect;
+  }
+
+  private String normalizeSensitivityLevel(String value) {
+    String level = clean(value).isBlank() ? "PUBLIC" : normalize(value);
+    if (!SENSITIVITY_LEVELS.contains(level)) {
+      throw new AppException("허용되지 않은 민감도 등급입니다: " + level);
+    }
+    return level;
   }
 
   private String normalizeNullable(String value) {

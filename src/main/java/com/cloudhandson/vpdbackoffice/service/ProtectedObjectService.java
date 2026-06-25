@@ -25,6 +25,9 @@ public class ProtectedObjectService {
   private final Map<String, CacheEntry<List<String>>> databaseColumnsCache = new ConcurrentHashMap<>();
   private final Map<Long, CacheEntry<List<ProtectedColumn>>> protectedColumnsCache = new ConcurrentHashMap<>();
   private static final long CATALOG_CACHE_MILLIS = 60_000L;
+  private static final Set<String> SENSITIVITY_LEVELS = Set.of(
+      "PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED");
+  private static final Set<String> REDACTION_METHODS = Set.of("NONE", "NULLIFY", "PARTIAL", "FULL");
 
   public ProtectedObjectService(ProtectedObjectMapper mapper, AuditService auditService) {
     this.mapper = mapper;
@@ -90,7 +93,9 @@ public class ProtectedObjectService {
     mapper.insertObject(objectId, normalized);
     Set<String> sensitive = splitCsv(normalized.sensitiveColumns());
     for (String column : splitCsv(normalized.columns())) {
-      mapper.insertColumn(mapper.nextColumnId(), objectId, column, sensitive.contains(column) ? "Y" : "N");
+      String sensitiveYn = sensitive.contains(column) ? "Y" : "N";
+      mapper.insertColumn(mapper.nextColumnId(), objectId, column, sensitiveYn,
+          defaultSensitivityLevel(sensitiveYn), defaultRedactionMethod(sensitiveYn));
     }
     databaseObjectsCache = null;
     protectedColumnsCache.remove(objectId);
@@ -137,7 +142,7 @@ public class ProtectedObjectService {
     long objectId = mapper.nextObjectId();
     mapper.insertObject(objectId, command);
     for (String column : columns) {
-      mapper.insertColumn(mapper.nextColumnId(), objectId, column, "N");
+      mapper.insertColumn(mapper.nextColumnId(), objectId, column, "N", "PUBLIC", "NONE");
     }
     databaseObjectsCache = null;
     protectedColumnsCache.remove(objectId);
@@ -188,6 +193,22 @@ public class ProtectedObjectService {
   }
 
   @Transactional
+  public void updateColumnPolicy(long columnId, String sensitivityLevel, String redactionMethod) {
+    String normalizedLevel = normalizeOption(sensitivityLevel, "PUBLIC", SENSITIVITY_LEVELS, "민감도 등급");
+    String normalizedMethod = normalizeOption(redactionMethod, "NONE", REDACTION_METHODS, "마스킹 방식");
+    if ("PUBLIC".equals(normalizedLevel) && !"NONE".equals(normalizedMethod)) {
+      throw new AppException("PUBLIC 컬럼의 마스킹 방식은 NONE이어야 합니다.");
+    }
+    int updated = mapper.updateColumnPolicy(columnId, normalizedLevel, normalizedMethod);
+    if (updated == 0) {
+      throw new AppException("수정할 컬럼 정책을 찾을 수 없습니다.");
+    }
+    protectedColumnsCache.clear();
+    auditService.record(new AuditEvent("PROTECTED_COLUMN_POLICY_UPDATED", null, null, "SUCCESS", null, null,
+        "columnId=" + columnId + ", " + normalizedLevel + "/" + normalizedMethod));
+  }
+
+  @Transactional
   public void disableObject(long objectId) {
     int updated = mapper.disableObject(objectId);
     if (updated == 0) {
@@ -209,6 +230,24 @@ public class ProtectedObjectService {
         .map(token -> token.toUpperCase(Locale.ROOT))
         .forEach(result::add);
     return result;
+  }
+
+  private String defaultSensitivityLevel(String sensitiveYn) {
+    return "Y".equalsIgnoreCase(sensitiveYn) ? "CONFIDENTIAL" : "PUBLIC";
+  }
+
+  private String defaultRedactionMethod(String sensitiveYn) {
+    return "Y".equalsIgnoreCase(sensitiveYn) ? "NULLIFY" : "NONE";
+  }
+
+  private String normalizeOption(String value, String defaultValue, Set<String> allowed, String label) {
+    String normalized = value == null || value.isBlank()
+        ? defaultValue
+        : value.trim().toUpperCase(Locale.ROOT);
+    if (!allowed.contains(normalized)) {
+      throw new AppException("허용되지 않은 " + label + "입니다: " + normalized);
+    }
+    return normalized;
   }
 
   private record CacheEntry<T>(T value, long expiresAt) {

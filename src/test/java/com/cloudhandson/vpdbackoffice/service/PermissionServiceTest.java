@@ -38,8 +38,8 @@ class PermissionServiceTest {
       @Override
       public List<ProtectedColumn> findColumns(long objectId) {
         return List.of(
-            new ProtectedColumn(1L, 1L, "DEPT_CODE", "N", null),
-            new ProtectedColumn(2L, 1L, "OWNER_EMP_NO", "N", null)
+            new ProtectedColumn(1L, 1L, "DEPT_CODE", "N", null, "INTERNAL", "NONE"),
+            new ProtectedColumn(2L, 1L, "OWNER_EMP_NO", "N", null, "INTERNAL", "NONE")
         );
       }
     };
@@ -184,12 +184,12 @@ class PermissionServiceTest {
 
     @Override
     public List<AppRole> findRoles() {
-      return List.of(new AppRole(10L, "HR_DEPT_ROLE", null));
+      return List.of(new AppRole(10L, "HR_DEPT_ROLE", null, "INTERNAL"));
     }
 
     @Override
     public AppRole findRole(long roleId) {
-      return roleId == 10L ? new AppRole(10L, "HR_DEPT_ROLE", null) : null;
+      return roleId == 10L ? new AppRole(10L, "HR_DEPT_ROLE", null, "INTERNAL") : null;
     }
 
     @Override
@@ -198,7 +198,12 @@ class PermissionServiceTest {
     }
 
     @Override
-    public void insertRole(long roleId, String roleName, String description) {
+    public void insertRole(long roleId, String roleName, String description, String maxSensitivityLevel) {
+    }
+
+    @Override
+    public int updateRoleMaxSensitivity(long roleId, String maxSensitivityLevel) {
+      return 1;
     }
 
     @Override

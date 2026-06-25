@@ -86,6 +86,65 @@
           </tr>
           <tr>
             <td colspan="5" class="policy-source-cell">
+              <details class="column-policy-panel">
+                <summary>컬럼 민감도/마스킹 정책</summary>
+                <div class="table-responsive">
+                  <table class="table table-sm align-middle">
+                    <thead>
+                    <tr>
+                      <th>Column</th>
+                      <th>민감도</th>
+                      <th>마스킹</th>
+                      <th>상태</th>
+                      <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="column : ${columnsByObject[object.objectId()]}">
+                      <td>
+                        <span th:text="${column.columnName()}">CONTENTS</span>
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"
+                               th:form="${'column-policy-form-' + column.columnId()}">
+                        <input type="hidden" name="columnId" th:value="${column.columnId()}"
+                               th:form="${'column-policy-form-' + column.columnId()}">
+                      </td>
+                      <td>
+                          <select class="form-select form-select-sm" name="sensitivityLevel"
+                                  th:form="${'column-policy-form-' + column.columnId()}">
+                            <option value="PUBLIC" th:selected="${column.sensitivityLevel() == 'PUBLIC'}">PUBLIC</option>
+                            <option value="INTERNAL" th:selected="${column.sensitivityLevel() == 'INTERNAL'}">INTERNAL</option>
+                            <option value="CONFIDENTIAL" th:selected="${column.sensitivityLevel() == 'CONFIDENTIAL'}">CONFIDENTIAL</option>
+                            <option value="RESTRICTED" th:selected="${column.sensitivityLevel() == 'RESTRICTED'}">RESTRICTED</option>
+                          </select>
+                      </td>
+                      <td>
+                          <select class="form-select form-select-sm" name="redactionMethod"
+                                  th:form="${'column-policy-form-' + column.columnId()}">
+                            <option value="NONE" th:selected="${column.redactionMethod() == 'NONE'}">NONE</option>
+                            <option value="NULLIFY" th:selected="${column.redactionMethod() == 'NULLIFY'}">NULLIFY</option>
+                            <option value="PARTIAL" th:selected="${column.redactionMethod() == 'PARTIAL'}">PARTIAL</option>
+                            <option value="FULL" th:selected="${column.redactionMethod() == 'FULL'}">FULL</option>
+                          </select>
+                      </td>
+                      <td>
+                        <span class="badge"
+                              th:classappend="${column.sensitive()} ? ' text-bg-warning' : ' text-bg-secondary'"
+                              th:text="${column.policyLabel()}">PUBLIC/NONE</span>
+                      </td>
+                      <td>
+                          <form method="post" action="/objects/column-policy"
+                                th:id="${'column-policy-form-' + column.columnId()}"></form>
+                          <button class="btn btn-sm btn-outline-primary" type="submit"
+                                  th:form="${'column-policy-form-' + column.columnId()}">저장</button>
+                      </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(columnsByObject[object.objectId()])}">
+                      <td colspan="5" class="text-muted">등록된 컬럼 정책이 없습니다.</td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </details>
               <div th:id="${'handler-source-' + object.objectId()}" class="text-muted small">
                 소스 보기를 누르면 기본 Handler PL/SQL이 표시됩니다.
               </div>

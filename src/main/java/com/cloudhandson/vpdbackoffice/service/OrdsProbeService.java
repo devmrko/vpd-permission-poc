@@ -192,28 +192,27 @@ public class OrdsProbeService {
     if (rows.isEmpty()) {
       return List.of();
     }
-    List<String> sensitiveColumns = protectedObjectService.findColumns(objectId).stream()
+    List<ProtectedColumn> sensitiveColumns = protectedObjectService.findColumns(objectId).stream()
         .filter(ProtectedColumn::sensitive)
-        .map(column -> column.columnName().toLowerCase(Locale.ROOT))
         .toList();
     if (sensitiveColumns.isEmpty()) {
       return List.of();
     }
 
     List<String> masked = new ArrayList<>();
-    for (String column : sensitiveColumns) {
+    for (ProtectedColumn column : sensitiveColumns) {
       boolean present = false;
       boolean allNull = true;
       for (Map<String, Object> row : rows) {
         for (Map.Entry<String, Object> entry : row.entrySet()) {
-          if (entry.getKey().equalsIgnoreCase(column)) {
+          if (entry.getKey().equalsIgnoreCase(column.columnName())) {
             present = true;
             allNull = allNull && entry.getValue() == null;
           }
         }
       }
       if (present && allNull) {
-        masked.add(column);
+        masked.add(column.columnName().toLowerCase(Locale.ROOT) + " [" + column.policyLabel() + "]");
       }
     }
     return masked;

@@ -34,7 +34,13 @@ public interface ProtectedObjectMapper {
   void insertColumn(@Param("columnId") long columnId,
                     @Param("objectId") long objectId,
                     @Param("columnName") String columnName,
-                    @Param("sensitiveYn") String sensitiveYn);
+                    @Param("sensitiveYn") String sensitiveYn,
+                    @Param("sensitivityLevel") String sensitivityLevel,
+                    @Param("redactionMethod") String redactionMethod);
+
+  int updateColumnPolicy(@Param("columnId") long columnId,
+                         @Param("sensitivityLevel") String sensitivityLevel,
+                         @Param("redactionMethod") String redactionMethod);
 
   int updateOrdsPath(@Param("objectId") long objectId, @Param("ordsPath") String ordsPath);
 

@@ -51,8 +51,9 @@ CREATE TABLE cb_app_user (
 );
 
 CREATE TABLE cb_app_role (
-  role_id    NUMBER PRIMARY KEY,
-  role_name  VARCHAR2(50) NOT NULL
+  role_id               NUMBER PRIMARY KEY,
+  role_name             VARCHAR2(50) NOT NULL,
+  max_sensitivity_level VARCHAR2(20) DEFAULT 'PUBLIC' NOT NULL
 );
 
 CREATE TABLE cb_user_role (
@@ -99,9 +100,9 @@ INSERT INTO cb_app_user VALUES (101, 'agent_hr',       'E10234', 'HR',  'N', 'Y'
 INSERT INTO cb_app_user VALUES (102, 'agent_fin_self', 'E2001',  'FIN', 'N', 'Y');
 INSERT INTO cb_app_user VALUES (103, 'agent_all',      'E99999', 'HQ',  'Y', 'Y');
 
-INSERT INTO cb_app_role VALUES (10, 'HR_DEPT_ROLE');
-INSERT INTO cb_app_role VALUES (20, 'FIN_SELF_ROLE');
-INSERT INTO cb_app_role VALUES (30, 'ALL_DOC_ROLE');
+INSERT INTO cb_app_role VALUES (10, 'HR_DEPT_ROLE', 'INTERNAL');
+INSERT INTO cb_app_role VALUES (20, 'FIN_SELF_ROLE', 'INTERNAL');
+INSERT INTO cb_app_role VALUES (30, 'ALL_DOC_ROLE', 'CONFIDENTIAL');
 
 INSERT INTO cb_user_role VALUES (101, 10);
 INSERT INTO cb_user_role VALUES (102, 20);

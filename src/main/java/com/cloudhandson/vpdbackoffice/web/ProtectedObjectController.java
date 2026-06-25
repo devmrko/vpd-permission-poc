@@ -4,6 +4,7 @@ import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedObjectCrea
 import com.cloudhandson.vpdbackoffice.service.AppException;
 import com.cloudhandson.vpdbackoffice.service.OrdsMetadataService;
 import com.cloudhandson.vpdbackoffice.service.ProtectedObjectService;
+import java.util.stream.Collectors;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -28,8 +29,14 @@ public class ProtectedObjectController {
 
   @GetMapping("/objects")
   public String objects(Model model) {
-    model.addAttribute("objects", protectedObjectService.findEnabled());
+    var objects = protectedObjectService.findEnabled();
+    model.addAttribute("objects", objects);
     model.addAttribute("dbObjects", protectedObjectService.findDatabaseObjects());
+    model.addAttribute("columnsByObject", objects.stream()
+        .collect(Collectors.toMap(
+            object -> object.objectId(),
+            object -> protectedObjectService.findColumns(object.objectId())
+        )));
     return "objects";
   }
 
@@ -59,6 +66,22 @@ public class ProtectedObjectController {
     try {
       protectedObjectService.updateOrdsPath(objectId, ordsPath);
       redirectAttributes.addFlashAttribute("message", "ORDS Path를 수정했습니다.");
+    } catch (AppException exception) {
+      redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+    }
+    return "redirect:/objects";
+  }
+
+  @PostMapping("/objects/column-policy")
+  public String updateColumnPolicy(
+      @RequestParam long columnId,
+      @RequestParam String sensitivityLevel,
+      @RequestParam String redactionMethod,
+      RedirectAttributes redirectAttributes
+  ) {
+    try {
+      protectedObjectService.updateColumnPolicy(columnId, sensitivityLevel, redactionMethod);
+      redirectAttributes.addFlashAttribute("message", "컬럼 민감도/마스킹 정책을 수정했습니다.");
     } catch (AppException exception) {
       redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
     }

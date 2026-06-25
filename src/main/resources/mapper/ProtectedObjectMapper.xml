@@ -57,7 +57,13 @@
   </select>
 
   <select id="findColumns" resultType="com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedColumn">
-    SELECT column_id, object_id, column_name, sensitive_yn, visible_role_id
+    SELECT column_id,
+           object_id,
+           column_name,
+           sensitive_yn,
+           visible_role_id,
+           NVL(sensitivity_level, CASE sensitive_yn WHEN 'Y' THEN 'CONFIDENTIAL' ELSE 'PUBLIC' END) AS sensitivity_level,
+           NVL(redaction_method, CASE sensitive_yn WHEN 'Y' THEN 'NULLIFY' ELSE 'NONE' END) AS redaction_method
     FROM cb_protected_column
     WHERE object_id = #{objectId}
     ORDER BY column_id
@@ -83,9 +89,25 @@
   </insert>
 
   <insert id="insertColumn">
-    INSERT INTO cb_protected_column (column_id, object_id, column_name, sensitive_yn)
-    VALUES (#{columnId}, #{objectId}, UPPER(#{columnName}), #{sensitiveYn})
+    INSERT INTO cb_protected_column (
+      column_id, object_id, column_name, sensitive_yn, sensitivity_level, redaction_method
+    )
+    VALUES (
+      #{columnId}, #{objectId}, UPPER(#{columnName}), #{sensitiveYn}, #{sensitivityLevel}, #{redactionMethod}
+    )
   </insert>
+
+  <update id="updateColumnPolicy">
+    UPDATE cb_protected_column
+    SET sensitivity_level = #{sensitivityLevel,jdbcType=VARCHAR},
+        redaction_method = #{redactionMethod,jdbcType=VARCHAR},
+        sensitive_yn = CASE
+          WHEN #{sensitivityLevel,jdbcType=VARCHAR} = 'PUBLIC'
+           AND #{redactionMethod,jdbcType=VARCHAR} = 'NONE' THEN 'N'
+          ELSE 'Y'
+        END
+    WHERE column_id = #{columnId,jdbcType=NUMERIC}
+  </update>
 
   <update id="updateOrdsPath">
     UPDATE cb_protected_object

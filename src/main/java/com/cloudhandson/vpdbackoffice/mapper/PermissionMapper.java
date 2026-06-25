@@ -19,7 +19,11 @@ public interface PermissionMapper {
 
   void insertRole(@Param("roleId") long roleId,
                   @Param("roleName") String roleName,
-                  @Param("description") String description);
+                  @Param("description") String description,
+                  @Param("maxSensitivityLevel") String maxSensitivityLevel);
+
+  int updateRoleMaxSensitivity(@Param("roleId") long roleId,
+                               @Param("maxSensitivityLevel") String maxSensitivityLevel);
 
   int deleteRole(@Param("roleId") long roleId);
 

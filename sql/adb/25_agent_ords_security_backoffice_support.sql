@@ -62,6 +62,16 @@ EXCEPTION
 END;
 /
 
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE cb_app_role ADD (max_sensitivity_level VARCHAR2(20) DEFAULT ''PUBLIC'' NOT NULL)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -1430 THEN
+      RAISE;
+    END IF;
+END;
+/
+
 CREATE TABLE cb_protected_object (
   object_id    NUMBER PRIMARY KEY,
   owner        VARCHAR2(128) NOT NULL,
@@ -76,8 +86,37 @@ CREATE TABLE cb_protected_column (
   column_name      VARCHAR2(128) NOT NULL,
   sensitive_yn     CHAR(1) DEFAULT 'N' CHECK (sensitive_yn IN ('Y','N')) NOT NULL,
   visible_role_id  NUMBER,
+  sensitivity_level VARCHAR2(20) DEFAULT 'PUBLIC' NOT NULL,
+  redaction_method  VARCHAR2(20) DEFAULT 'NONE' NOT NULL,
   CONSTRAINT cb_protected_column_uk UNIQUE (object_id, column_name)
 );
+
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE cb_protected_column ADD (sensitivity_level VARCHAR2(20) DEFAULT ''PUBLIC'' NOT NULL)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -1430 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE cb_protected_column ADD (redaction_method VARCHAR2(20) DEFAULT ''NONE'' NOT NULL)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -1430 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+UPDATE cb_protected_column
+SET    sensitivity_level = CASE sensitive_yn WHEN 'Y' THEN 'CONFIDENTIAL' ELSE 'PUBLIC' END,
+       redaction_method = CASE sensitive_yn WHEN 'Y' THEN 'NULLIFY' ELSE 'NONE' END
+WHERE  sensitivity_level = 'PUBLIC'
+AND    redaction_method = 'NONE'
+AND    sensitive_yn = 'Y';
 
 CREATE TABLE cb_permission_column (
   permission_id  NUMBER NOT NULL,
@@ -146,16 +185,23 @@ VALUES (src.object_id, src.owner, src.object_name, src.ords_path, src.enabled_yn
 
 MERGE INTO cb_protected_column dst
 USING (
-  SELECT 1 column_id, 1 object_id, 'DOC_ID' column_name, 'N' sensitive_yn FROM dual UNION ALL
-  SELECT 2, 1, 'TITLE', 'N' FROM dual UNION ALL
-  SELECT 3, 1, 'OWNER_EMP_NO', 'N' FROM dual UNION ALL
-  SELECT 4, 1, 'DEPT_CODE', 'N' FROM dual UNION ALL
-  SELECT 5, 1, 'CONTENTS', 'Y' FROM dual
+  SELECT 1 column_id, 1 object_id, 'DOC_ID' column_name, 'N' sensitive_yn, 'PUBLIC' sensitivity_level, 'NONE' redaction_method FROM dual UNION ALL
+  SELECT 2, 1, 'TITLE', 'N', 'PUBLIC', 'NONE' FROM dual UNION ALL
+  SELECT 3, 1, 'OWNER_EMP_NO', 'N', 'INTERNAL', 'NONE' FROM dual UNION ALL
+  SELECT 4, 1, 'DEPT_CODE', 'N', 'INTERNAL', 'NONE' FROM dual UNION ALL
+  SELECT 5, 1, 'CONTENTS', 'Y', 'CONFIDENTIAL', 'NULLIFY' FROM dual
 ) src
 ON (dst.object_id = src.object_id AND dst.column_name = src.column_name)
-WHEN MATCHED THEN UPDATE SET dst.sensitive_yn = src.sensitive_yn
-WHEN NOT MATCHED THEN INSERT (column_id, object_id, column_name, sensitive_yn)
-VALUES (src.column_id, src.object_id, src.column_name, src.sensitive_yn);
+WHEN MATCHED THEN UPDATE SET
+  dst.sensitive_yn = src.sensitive_yn,
+  dst.sensitivity_level = src.sensitivity_level,
+  dst.redaction_method = src.redaction_method
+WHEN NOT MATCHED THEN INSERT (
+  column_id, object_id, column_name, sensitive_yn, sensitivity_level, redaction_method
+)
+VALUES (
+  src.column_id, src.object_id, src.column_name, src.sensitive_yn, src.sensitivity_level, src.redaction_method
+);
 
 MERGE INTO cb_permission_column dst
 USING (

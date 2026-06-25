@@ -3,13 +3,19 @@
     "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.cloudhandson.vpdbackoffice.mapper.PermissionMapper">
   <select id="findRoles" resultType="com.cloudhandson.vpdbackoffice.domain.permission.AppRole">
-    SELECT role_id, role_name, CAST(NULL AS VARCHAR2(200)) AS description
+    SELECT role_id,
+           role_name,
+           CAST(NULL AS VARCHAR2(200)) AS description,
+           NVL(max_sensitivity_level, 'PUBLIC') AS max_sensitivity_level
     FROM cb_app_role
     ORDER BY role_name
   </select>
 
   <select id="findRole" resultType="com.cloudhandson.vpdbackoffice.domain.permission.AppRole">
-    SELECT role_id, role_name, CAST(NULL AS VARCHAR2(200)) AS description
+    SELECT role_id,
+           role_name,
+           CAST(NULL AS VARCHAR2(200)) AS description,
+           NVL(max_sensitivity_level, 'PUBLIC') AS max_sensitivity_level
     FROM cb_app_role
     WHERE role_id = #{roleId}
   </select>
@@ -19,9 +25,19 @@
   </select>
 
   <insert id="insertRole">
-    INSERT INTO cb_app_role (role_id, role_name)
-    VALUES (#{roleId,jdbcType=NUMERIC}, UPPER(#{roleName,jdbcType=VARCHAR}))
+    INSERT INTO cb_app_role (role_id, role_name, max_sensitivity_level)
+    VALUES (
+      #{roleId,jdbcType=NUMERIC},
+      UPPER(#{roleName,jdbcType=VARCHAR}),
+      #{maxSensitivityLevel,jdbcType=VARCHAR}
+    )
   </insert>
+
+  <update id="updateRoleMaxSensitivity">
+    UPDATE cb_app_role
+    SET max_sensitivity_level = #{maxSensitivityLevel,jdbcType=VARCHAR}
+    WHERE role_id = #{roleId,jdbcType=NUMERIC}
+  </update>
 
   <delete id="deleteRole">
     DELETE FROM cb_app_role
