@@ -305,7 +305,7 @@ body {
 .section-heading h2 {
   font-size: 1rem;
   font-weight: 700;
-  margin: 0 0 1rem;
+  margin: 0;
 }
 
 .section-heading {
@@ -313,6 +313,13 @@ body {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-subtitle {
+  color: var(--rw-muted);
+  font-size: .875rem;
+  margin: .2rem 0 0;
 }
 
 .form-grid {

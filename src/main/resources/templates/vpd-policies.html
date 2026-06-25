@@ -28,6 +28,57 @@
 
   <section class="content-band">
     <div class="section-heading">
+      <div>
+        <h2>VPD 적용 대상 TABLE/VIEW</h2>
+        <p class="section-subtitle">Oracle DB catalog 기준의 TABLE/VIEW 목록입니다. ORDS는 이 객체를 HTTP로 서빙하는 별도 레이어입니다.</p>
+      </div>
+      <span class="badge text-bg-secondary" th:text="${#lists.size(vpdTargets)}">0</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+        <tr>
+          <th>Object</th>
+          <th>Type</th>
+          <th>VPD 상태</th>
+          <th>Policy</th>
+          <th>백오피스 권한 테이블</th>
+          <th>ORDS Path</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="target : ${vpdTargets}">
+          <td><code th:text="${target.objectDisplayName()}">ADMIN.TABLE</code></td>
+          <td th:text="${target.objectType()}">TABLE</td>
+          <td>
+            <span class="badge"
+                  th:classappend="${target.vpdApplied()} ? ' text-bg-success' : ' text-bg-secondary'"
+                  th:text="${target.vpdApplied()} ? 'VPD 적용됨' : '미적용'">미적용</span>
+          </td>
+          <td>
+            <span th:if="${target.vpdApplied()}" th:text="${target.policyNames()}">POLICY</span>
+            <span th:unless="${target.vpdApplied()}" class="text-muted">-</span>
+          </td>
+          <td>
+            <span class="badge"
+                  th:classappend="${target.protectedObject()} ? ' text-bg-primary' : ' text-bg-light'"
+                  th:text="${target.protectedObject()} ? '등록됨' : '미등록'">미등록</span>
+          </td>
+          <td>
+            <code th:if="${target.ordsPath()}" th:text="${target.ordsPath()}">cb-ords/path</code>
+            <span th:unless="${target.ordsPath()}" class="text-muted">ORDS 서빙 미등록</span>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(vpdTargets)}">
+          <td colspan="6" class="text-muted">조회 가능한 TABLE/VIEW가 없습니다. DB 연결 사용자 권한과 스키마 객체를 확인하세요.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="content-band">
+    <div class="section-heading">
       <h2>개별 적용</h2>
     </div>
     <form method="post" action="/vpd-policies" class="form-grid">

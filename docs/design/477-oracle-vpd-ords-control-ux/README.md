@@ -22,4 +22,5 @@
 - 권한 관리 화면은 Backoffice Tables 레이어를 강조한다.
 - VPD 설정 화면은 Oracle Database VPD 레이어를 강조한다.
 - ORDS Handler 생성과 ORDS 검증 화면은 ORDS 서빙/검증 레이어를 강조한다.
-- VPD 적용 대상은 TABLE/VIEW로 표기하고, ORDS path는 서빙/검증 화면에서만 노출한다.
+- VPD 적용 대상은 Oracle DB catalog 기준의 TABLE/VIEW 목록으로 표시한다.
+- VPD 화면에서는 VPD 적용 여부를 중심으로 보여주고, 백오피스 권한 테이블 등록 여부와 ORDS Path는 서빙 상태 참고 정보로 함께 표시한다.

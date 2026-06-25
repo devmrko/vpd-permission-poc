@@ -2,6 +2,7 @@ package com.cloudhandson.vpdbackoffice.config;
 
 import com.cloudhandson.vpdbackoffice.service.PermissionService;
 import com.cloudhandson.vpdbackoffice.service.ProtectedObjectService;
+import com.cloudhandson.vpdbackoffice.service.VpdPolicyService;
 import java.sql.Connection;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
@@ -17,15 +18,18 @@ public class DbPoolWarmup {
   private final DataSource dataSource;
   private final ProtectedObjectService protectedObjectService;
   private final PermissionService permissionService;
+  private final VpdPolicyService vpdPolicyService;
 
   public DbPoolWarmup(
       DataSource dataSource,
       ProtectedObjectService protectedObjectService,
-      PermissionService permissionService
+      PermissionService permissionService,
+      VpdPolicyService vpdPolicyService
   ) {
     this.dataSource = dataSource;
     this.protectedObjectService = protectedObjectService;
     this.permissionService = permissionService;
+    this.vpdPolicyService = vpdPolicyService;
   }
 
   @EventListener(ApplicationReadyEvent.class)
@@ -45,6 +49,8 @@ public class DbPoolWarmup {
     protectedObjectService.findDatabaseObjects();
     permissionService.findRoles();
     permissionService.findPermissionViews();
+    vpdPolicyService.findVpdTargets();
+    vpdPolicyService.formOptions();
     log.info("Backoffice DB catalog cache warmed up in {}ms", (System.nanoTime() - started) / 1_000_000);
   }
 }

@@ -39,12 +39,14 @@ public class VpdPolicyController {
   private void populatePolicyModel(Model model) {
     try {
       model.addAttribute("policies", vpdPolicyService.findPolicies());
+      model.addAttribute("vpdTargets", vpdPolicyService.findVpdTargets());
       model.addAttribute("objects", protectedObjectService.findEnabled());
       model.addAttribute("formOptions", vpdPolicyService.formOptions());
     } catch (DataAccessException exception) {
       RuntimeErrorMessage message = RuntimeErrorMessages.dataAccess(exception);
       model.addAttribute("runtimeError", message);
       model.addAttribute("policies", List.of());
+      model.addAttribute("vpdTargets", List.of());
       model.addAttribute("objects", List.of());
       model.addAttribute("formOptions", vpdPolicyService.emptyFormOptions());
     }

@@ -8,6 +8,7 @@ import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyExplanation;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyFormOptions;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdSchemaObjectOption;
+import com.cloudhandson.vpdbackoffice.domain.vpd.VpdTargetView;
 import com.cloudhandson.vpdbackoffice.mapper.VpdPolicyMapper;
 import java.util.List;
 import java.util.Locale;
@@ -21,10 +22,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class VpdPolicyService {
 
   private static final Set<String> ALLOWED_STATEMENTS = Set.of("SELECT", "INSERT", "UPDATE", "DELETE", "INDEX");
+  private static final long CATALOG_CACHE_MILLIS = 60_000L;
 
   private final VpdPolicyMapper mapper;
   private final JdbcTemplate jdbcTemplate;
   private final OpenAiCompatibleClient aiClient;
+  private volatile CacheEntry<List<VpdTargetView>> vpdTargetsCache;
+  private volatile CacheEntry<VpdPolicyFormOptions> formOptionsCache;
 
   public VpdPolicyService(VpdPolicyMapper mapper, JdbcTemplate jdbcTemplate, OpenAiCompatibleClient aiClient) {
     this.mapper = mapper;
@@ -36,14 +40,30 @@ public class VpdPolicyService {
     return mapper.findPolicies();
   }
 
+  public List<VpdTargetView> findVpdTargets() {
+    CacheEntry<List<VpdTargetView>> cached = vpdTargetsCache;
+    if (cached != null && !cached.expired()) {
+      return cached.value();
+    }
+    List<VpdTargetView> targets = List.copyOf(mapper.findVpdTargets());
+    vpdTargetsCache = new CacheEntry<>(targets, System.currentTimeMillis() + CATALOG_CACHE_MILLIS);
+    return targets;
+  }
+
   public VpdPolicyFormOptions formOptions() {
-    return new VpdPolicyFormOptions(
+    CacheEntry<VpdPolicyFormOptions> cached = formOptionsCache;
+    if (cached != null && !cached.expired()) {
+      return cached.value();
+    }
+    VpdPolicyFormOptions options = new VpdPolicyFormOptions(
         mapper.findPolicyNameOptions(),
         mapper.findSchemaOwnerOptions(),
         mapper.findOwnerOptions(),
         mapper.findFunctionOptions(),
         List.of("SELECT", "INSERT", "UPDATE", "DELETE", "INDEX")
     );
+    formOptionsCache = new CacheEntry<>(options, System.currentTimeMillis() + CATALOG_CACHE_MILLIS);
+    return options;
   }
 
   public VpdPolicyFormOptions emptyFormOptions() {
@@ -72,6 +92,7 @@ public class VpdPolicyService {
       throw new AppException("Filter predicate는 필수입니다.");
     }
     createFilterFunction(functionName, filterPredicate);
+    clearCatalogCache();
   }
 
   @Transactional
@@ -93,6 +114,7 @@ public class VpdPolicyService {
         END;
         """, objectOwner, objectName, policyName);
     createPolicy(command);
+    clearCatalogCache();
   }
 
   public VpdBulkApplyResult bulkApplySchema(
@@ -178,6 +200,7 @@ public class VpdPolicyService {
         failed++;
       }
     }
+    clearCatalogCache();
     return new VpdBulkApplyResult(targets.size(), created, skipped, failed);
   }
 
@@ -246,6 +269,12 @@ public class VpdPolicyService {
         command.enabled(),
         command.updateCheck()
     );
+    clearCatalogCache();
+  }
+
+  public void clearCatalogCache() {
+    vpdTargetsCache = null;
+    formOptionsCache = null;
   }
 
   private void addPolicy(
@@ -494,6 +523,13 @@ public class VpdPolicyService {
 
   private String escapeSqlLiteral(String value) {
     return value.replace("'", "''");
+  }
+
+  private record CacheEntry<T>(T value, long expiresAt) {
+
+    boolean expired() {
+      return System.currentTimeMillis() > expiresAt;
+    }
   }
 
   private record FunctionRef(String owner, String packageName, String functionName) {

@@ -38,6 +38,45 @@
     ORDER BY p.object_owner, p.object_name, p.policy_name
   </select>
 
+  <select id="findVpdTargets" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdTargetView">
+    WITH managed_owners AS (
+      SELECT USER AS owner FROM dual
+      UNION
+      SELECT owner FROM cb_protected_object
+    ),
+    managed_objects AS (
+      SELECT owner, object_name, object_type
+      FROM all_objects
+      WHERE object_type IN ('TABLE', 'VIEW')
+        AND owner IN (SELECT owner FROM managed_owners)
+        AND owner NOT IN ('SYS', 'SYSTEM', 'ORDS_METADATA', 'ORDS_PUBLIC_USER')
+        AND owner NOT LIKE 'APEX\_%' ESCAPE '\'
+        AND owner NOT LIKE 'C##%'
+        AND object_name NOT LIKE 'BIN$%'
+    )
+    SELECT o.owner,
+           o.object_name,
+           o.object_type,
+           CASE WHEN po.object_id IS NULL THEN 'N' ELSE po.enabled_yn END AS protected_yn,
+           po.ords_path,
+           COUNT(p.policy_name) AS policy_count,
+           LISTAGG(p.policy_name, ', ') WITHIN GROUP (ORDER BY p.policy_name) AS policy_names
+    FROM managed_objects o
+    LEFT JOIN cb_protected_object po
+      ON po.owner = o.owner
+     AND po.object_name = o.object_name
+     AND po.enabled_yn = 'Y'
+    LEFT JOIN all_policies p
+      ON p.object_owner = o.owner
+     AND p.object_name = o.object_name
+    GROUP BY o.owner, o.object_name, o.object_type, po.object_id, po.enabled_yn, po.ords_path
+    ORDER BY CASE WHEN COUNT(p.policy_name) > 0 THEN 0 ELSE 1 END,
+             o.owner,
+             o.object_type,
+             o.object_name
+    FETCH FIRST 500 ROWS ONLY
+  </select>
+
   <select id="findPolicyNameOptions" resultType="string">
     SELECT DISTINCT policy_name
     FROM all_policies
