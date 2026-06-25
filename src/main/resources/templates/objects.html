@@ -51,33 +51,47 @@
         </tr>
         </thead>
         <tbody>
-        <tr th:each="object : ${objects}">
-          <td th:text="${object.objectId()}">1</td>
-          <td th:text="${object.owner()}">ADMIN</td>
-          <td th:text="${object.objectName()}">CB_V_SEARCH_DOCUMENTS</td>
-          <td>
-            <form method="post" action="/objects/ords-path" class="inline-form">
-              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-              <input type="hidden" name="objectId" th:value="${object.objectId()}">
-              <input class="form-control form-control-sm" name="ordsPath" th:value="${object.ordsPath()}" required>
-              <button class="btn btn-sm btn-outline-primary" type="submit">저장</button>
-            </form>
-          </td>
-          <td>
-            <div class="action-stack">
-              <form method="post" action="/objects/ords-handler" class="inline-form">
+        <th:block th:each="object : ${objects}">
+          <tr>
+            <td th:text="${object.objectId()}">1</td>
+            <td th:text="${object.owner()}">ADMIN</td>
+            <td th:text="${object.objectName()}">CB_V_SEARCH_DOCUMENTS</td>
+            <td>
+              <form method="post" action="/objects/ords-path" class="inline-form">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <input type="hidden" name="objectId" th:value="${object.objectId()}">
-                <button class="btn btn-sm btn-outline-primary" type="submit">Handler 생성</button>
+                <input class="form-control form-control-sm" name="ordsPath" th:value="${object.ordsPath()}" required>
+                <button class="btn btn-sm btn-outline-primary" type="submit">저장</button>
               </form>
-              <form method="post" action="/objects/disable" class="inline-form">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <input type="hidden" name="objectId" th:value="${object.objectId()}">
-                <button class="btn btn-sm btn-outline-danger" type="submit">비활성화</button>
-              </form>
-            </div>
-          </td>
-        </tr>
+            </td>
+            <td>
+              <div class="action-stack">
+                <form method="post" action="/objects/ords-handler" class="inline-form">
+                  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                  <input type="hidden" name="objectId" th:value="${object.objectId()}">
+                  <button class="btn btn-sm btn-outline-primary" type="submit">Handler 생성</button>
+                </form>
+                <button class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        th:hx-get="@{/objects/ords-handler-source(objectId=${object.objectId()})}"
+                        th:hx-target="${'#handler-source-' + object.objectId()}"
+                        hx-swap="innerHTML">소스 보기</button>
+                <form method="post" action="/objects/disable" class="inline-form">
+                  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                  <input type="hidden" name="objectId" th:value="${object.objectId()}">
+                  <button class="btn btn-sm btn-outline-danger" type="submit">비활성화</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="5" class="policy-source-cell">
+              <div th:id="${'handler-source-' + object.objectId()}" class="text-muted small">
+                소스 보기를 누르면 기본 Handler PL/SQL이 표시됩니다.
+              </div>
+            </td>
+          </tr>
+        </th:block>
         <tr th:if="${#lists.isEmpty(objects)}">
           <td colspan="5" class="text-muted">등록된 조회 Handler 대상이 없습니다.</td>
         </tr>

@@ -48,6 +48,20 @@ public class OrdsMetadataService {
         .toList();
   }
 
+  public String objectQueryHandlerSource(long objectId) {
+    ProtectedObject object = protectedObjectService.assertEnabled(objectId);
+    List<String> columns = protectedObjectService.findColumns(objectId).stream()
+        .map(ProtectedColumn::columnName)
+        .toList();
+    if (columns.isEmpty()) {
+      throw new AppException("보호 객체 컬럼이 없어 ORDS 조회 Handler Source를 만들 수 없습니다.");
+    }
+    requireIdentifier(object.owner(), "owner");
+    requireIdentifier(object.objectName(), "objectName");
+    columns.forEach(column -> requireIdentifier(column, "column"));
+    return objectQuerySource(object, columns);
+  }
+
   @Transactional
   public void updateHandlerSource(OrdsHandlerUpdateCommand command) {
     if (command.source() == null || command.source().isBlank()) {
@@ -97,14 +111,14 @@ public class OrdsMetadataService {
     String currentUser = jdbcTemplate.queryForObject("SELECT USER FROM dual", String.class);
     if (currentUser == null || !currentUser.equalsIgnoreCase("CB_ORDS")) {
       throw new AppException("ORDS 조회 Handler 생성은 ORDS parsing schema(CB_ORDS)로 DB에 연결했을 때만 가능합니다. 현재 연결 사용자: "
-          + currentUser);
+          + currentUser + ". 현재 연결에서는 소스 보기를 눌러 기본 PL/SQL을 확인한 뒤 ORDS Handler에 적용하세요.");
     }
 
     String moduleName = "cb.object.query";
     String basePath = "cb-object-query/";
     String template = object.owner().toLowerCase(Locale.ROOT) + "/" + object.objectName().toLowerCase(Locale.ROOT);
     String ordsPath = "cb-ords/" + basePath + template;
-    String source = objectQuerySource(object, columns);
+    String source = objectQueryHandlerSource(objectId);
 
     jdbcTemplate.update("""
         BEGIN

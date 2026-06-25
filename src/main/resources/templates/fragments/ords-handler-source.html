@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="source">
+  <div class="alert alert-danger mb-0" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+  <section class="probe-exchange" th:if="${source}">
+    <h3>
+      <span th:text="${object.owner() + '.' + object.objectName()}">ADMIN.TABLE_NAME</span>
+      <span class="text-muted"> / 기본 ORDS Handler PL/SQL</span>
+    </h3>
+    <pre th:text="${source}">source</pre>
+  </section>
+</div>
+</body>
+</html>

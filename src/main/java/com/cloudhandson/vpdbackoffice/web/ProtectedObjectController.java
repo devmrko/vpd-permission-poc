@@ -79,6 +79,17 @@ public class ProtectedObjectController {
     return "redirect:/objects";
   }
 
+  @GetMapping("/objects/ords-handler-source")
+  public String ordsHandlerSource(@RequestParam long objectId, Model model) {
+    try {
+      model.addAttribute("object", protectedObjectService.assertEnabled(objectId));
+      model.addAttribute("source", ordsMetadataService.objectQueryHandlerSource(objectId));
+    } catch (AppException exception) {
+      model.addAttribute("errorMessage", exception.getMessage());
+    }
+    return "fragments/ords-handler-source :: source";
+  }
+
   @PostMapping("/objects/disable")
   public String disable(@RequestParam long objectId, RedirectAttributes redirectAttributes) {
     protectedObjectService.disableObject(objectId);
