@@ -82,9 +82,10 @@ public class VpdPolicyService {
   private String buildExplanationPrompt(VpdPolicyDetail detail, VpdFunctionSource functionSource) {
     VpdPolicyView policy = detail.policy();
     return """
-        다음 Oracle VPD policy와 policy function source를 근거로 설명해줘.
+        다음 Oracle VPD policy와 policy function source를 근거로 운영자가 바로 검토할 수 있는 분석 보고서를 작성한다.
+        일반적인 VPD 설명은 금지한다. 반드시 제공된 source에서 확인되는 변수, SELECT, IF/ELSIF, RETURN predicate만 근거로 설명한다.
 
-        Policy Metadata:
+        [입력: Policy Metadata]
         - Object: %s
         - Policy Group: %s
         - Policy Name: %s
@@ -96,18 +97,38 @@ public class VpdPolicyService {
         - Static Policy: %s
         - Long Predicate: %s
 
-        DBMS_RLS.ADD_POLICY:
+        [입력: DBMS_RLS.ADD_POLICY]
         %s
 
-        Policy Function Source:
+        [입력: Policy Function Source]
         %s
 
-        답변 요구사항:
+        [출력 형식]
+        1. 정책 적용 범위
+        - 대상 객체, 적용 SQL, enabled 여부를 한 문단으로 설명한다.
+
+        2. 필터 함수 입력과 조회 값
+        - source에서 읽어오는 context/user/role/permission/rule 값을 bullet로 정리한다.
+        - 각 항목 옆에 source 근거를 짧게 적는다. 예: "v_user_id: SYS_CONTEXT(...)"
+
+        3. Predicate 생성 분기
+        - source의 RETURN 값을 기준으로 분기별 표를 만든다.
+        - 컬럼은 "조건", "반환 predicate", "의미", "보이는 행/차단되는 행"으로 한다.
+        - '1=0' 같은 fail-closed predicate가 있으면 반드시 명시한다.
+
+        4. 실제 접근 결과 해석
+        - 이 policy가 행(row)을 허용하는 조건과 제외하는 조건을 구분한다.
+        - 컬럼 마스킹/NULL 처리는 source에 직접 있지 않으면 "이 policy source만으로는 판단 불가"라고 쓴다.
+
+        5. 운영 확인 포인트
+        - 운영자가 DB에서 확인할 테이블/컬럼/컨텍스트 값을 5개 이하로 적는다.
+
+        [엄격한 규칙]
         - 한국어로 답변한다.
-        - 이 policy가 어느 객체의 어떤 SQL 동작에 적용되는지 설명한다.
-        - filter predicate가 어떤 조건을 만들고 어떤 행이 보이거나 제외되는지 설명한다.
-        - source에 명시되지 않은 동작은 추측하지 않는다.
-        - 운영자가 확인할 포인트를 짧게 정리한다.
+        - source에 없는 테이블, 컬럼, role 이름을 만들지 않는다.
+        - source 근거가 부족하면 추측하지 말고 "source만으로는 판단 불가"라고 쓴다.
+        - "일반적으로", "보통", "아마" 같은 표현을 쓰지 않는다.
+        - 답변은 80줄 이내로 유지한다.
         """.formatted(
         policy.objectDisplayName(),
         policy.policyGroup(),
@@ -126,8 +147,10 @@ public class VpdPolicyService {
 
   private String vpdSystemPrompt() {
     return """
-        당신은 Oracle ADB VPD(DBMS_RLS), RLS policy function, ORDS 권한 검증을 설명하는 보조자입니다.
-        제공된 policy metadata와 source만 근거로 설명하고, 없는 정보를 추측하지 마세요.
+        당신은 Oracle ADB VPD(DBMS_RLS) policy function을 리뷰하는 데이터 보안 엔지니어입니다.
+        목표는 운영자가 실제 filter predicate 동작을 검증할 수 있게 source 기반으로 설명하는 것입니다.
+        제공된 policy metadata와 source만 근거로 판단하고, source에 없는 업무 규칙이나 테이블 의미를 추측하지 마세요.
+        가능하면 source의 변수명, SELECT 대상, RETURN predicate를 그대로 언급하세요.
         """;
   }
 
