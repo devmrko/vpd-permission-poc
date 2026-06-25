@@ -6,8 +6,13 @@ import com.cloudhandson.vpdbackoffice.domain.ords.OrdsObjectHandlerResult;
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedColumn;
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedObject;
 import com.cloudhandson.vpdbackoffice.mapper.OrdsMetadataMapper;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import jakarta.annotation.PreDestroy;
 import java.util.List;
 import java.util.Locale;
+import javax.sql.DataSource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,16 +22,38 @@ public class OrdsMetadataService {
 
   private final OrdsMetadataMapper mapper;
   private final JdbcTemplate jdbcTemplate;
+  private final JdbcTemplate ordsMetadataJdbcTemplate;
+  private final HikariDataSource ordsMetadataDataSource;
   private final ProtectedObjectService protectedObjectService;
 
   public OrdsMetadataService(
       OrdsMetadataMapper mapper,
       JdbcTemplate jdbcTemplate,
-      ProtectedObjectService protectedObjectService
+      ProtectedObjectService protectedObjectService,
+      DataSource dataSource,
+      @Value("${backoffice.ords.metadata-db.url:}") String ordsMetadataUrl,
+      @Value("${backoffice.ords.metadata-db.username:}") String ordsMetadataUsername,
+      @Value("${backoffice.ords.metadata-db.password:}") String ordsMetadataPassword
   ) {
     this.mapper = mapper;
     this.jdbcTemplate = jdbcTemplate;
     this.protectedObjectService = protectedObjectService;
+    if (hasText(ordsMetadataUrl) && hasText(ordsMetadataUsername)) {
+      HikariConfig config = new HikariConfig();
+      config.setPoolName("vpd-ords-metadata-pool");
+      config.setJdbcUrl(ordsMetadataUrl.trim());
+      config.setUsername(ordsMetadataUsername.trim());
+      config.setPassword(ordsMetadataPassword == null ? "" : ordsMetadataPassword);
+      config.setDriverClassName("oracle.jdbc.OracleDriver");
+      config.setMaximumPoolSize(2);
+      config.setMinimumIdle(0);
+      config.setConnectionTimeout(10000);
+      this.ordsMetadataDataSource = new HikariDataSource(config);
+      this.ordsMetadataJdbcTemplate = new JdbcTemplate(this.ordsMetadataDataSource);
+    } else {
+      this.ordsMetadataDataSource = null;
+      this.ordsMetadataJdbcTemplate = new JdbcTemplate(dataSource);
+    }
   }
 
   public List<OrdsHandlerView> findHandlers() {
@@ -108,7 +135,7 @@ public class OrdsMetadataService {
     requireIdentifier(object.objectName(), "objectName");
     columns.forEach(column -> requireIdentifier(column, "column"));
 
-    String currentUser = jdbcTemplate.queryForObject("SELECT USER FROM dual", String.class);
+    String currentUser = ordsMetadataJdbcTemplate.queryForObject("SELECT USER FROM dual", String.class);
     if (currentUser == null || !currentUser.equalsIgnoreCase("CB_ORDS")) {
       throw new AppException("ORDS 조회 Handler 생성은 ORDS parsing schema(CB_ORDS)로 DB에 연결했을 때만 가능합니다. 현재 연결 사용자: "
           + currentUser + ". 현재 연결에서는 소스 보기를 눌러 기본 PL/SQL을 확인한 뒤 ORDS Handler에 적용하세요.");
@@ -120,7 +147,7 @@ public class OrdsMetadataService {
     String ordsPath = "cb-ords/" + basePath + template;
     String source = objectQueryHandlerSource(objectId);
 
-    jdbcTemplate.update("""
+    ordsMetadataJdbcTemplate.update("""
         BEGIN
           ORDS.DEFINE_MODULE(
             p_module_name    => ?,
@@ -156,7 +183,7 @@ public class OrdsMetadataService {
             p_method             => 'POST',
             p_name               => 'limit',
             p_bind_variable_name => 'row_limit',
-            p_source_type        => 'QUERY',
+            p_source_type        => 'URI',
             p_param_type         => 'INT',
             p_access_method      => 'IN'
           );
@@ -226,6 +253,17 @@ public class OrdsMetadataService {
   private void requireIdentifier(String value, String label) {
     if (value == null || !value.matches("[A-Z][A-Z0-9_$#]*")) {
       throw new AppException("ORDS Handler 생성에 사용할 수 없는 " + label + " 식별자입니다: " + value);
+    }
+  }
+
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
+  }
+
+  @PreDestroy
+  public void closeOrdsMetadataDataSource() {
+    if (ordsMetadataDataSource != null) {
+      ordsMetadataDataSource.close();
     }
   }
 }
