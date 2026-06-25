@@ -13,7 +13,7 @@
         <dd th:text="${detail.policy().policyGroup()}">SYS_DEFAULT</dd>
         <dt>Policy Name</dt>
         <dd><code th:text="${detail.policy().policyName()}">POLICY</code></dd>
-        <dt>Function</dt>
+        <dt>Filter Function</dt>
         <dd><code th:text="${detail.policy().functionDisplayName()}">ADMIN.FUNC</code></dd>
         <dt>Statement Types</dt>
         <dd th:text="${detail.policy().statementTypes()} ?: '-'">SELECT</dd>

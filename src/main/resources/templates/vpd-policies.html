@@ -233,7 +233,7 @@
         <tr>
           <th>Object</th>
           <th>Policy</th>
-          <th>Function</th>
+          <th>Filter</th>
           <th>Statements</th>
           <th>Status</th>
           <th>Type</th>
@@ -265,6 +265,7 @@
                     hx-swap="innerHTML">
               <code th:text="${policy.functionDisplayName()}">OWNER.FUNC</code>
             </button>
+            <div class="text-muted small">클릭하면 filter source를 봅니다.</div>
           </td>
           <td th:text="${policy.statementTypes()} ?: '-'">SELECT</td>
           <td>
@@ -298,7 +299,7 @@
         <tr>
           <td colspan="8" class="policy-source-cell">
             <div th:id="${'policy-source-' + iter.index}" class="text-muted small">
-              Policy, policy function, LLM 설명을 클릭하면 상세 내역이 표시됩니다.
+              Policy, Filter, LLM 설명을 클릭하면 상세 내역이 표시됩니다.
             </div>
           </td>
         </tr>
