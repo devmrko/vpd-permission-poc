@@ -45,7 +45,7 @@ public class ProtectedObjectController {
     try {
       protectedObjectService.createObject(
           new ProtectedObjectCreateCommand(owner, objectName, ordsPath, columns, sensitiveColumns));
-      redirectAttributes.addFlashAttribute("message", "보호 객체를 추가했습니다.");
+      redirectAttributes.addFlashAttribute("message", "ORDS 조회 Handler 대상을 추가했습니다.");
     } catch (AppException exception) {
       redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
     }
@@ -84,7 +84,7 @@ public class ProtectedObjectController {
   @PostMapping("/objects/disable")
   public String disable(@RequestParam long objectId, RedirectAttributes redirectAttributes) {
     protectedObjectService.disableObject(objectId);
-    redirectAttributes.addFlashAttribute("message", "보호 객체를 비활성화했습니다.");
+    redirectAttributes.addFlashAttribute("message", "ORDS 조회 Handler 대상을 비활성화했습니다.");
     return "redirect:/objects";
   }
 }
