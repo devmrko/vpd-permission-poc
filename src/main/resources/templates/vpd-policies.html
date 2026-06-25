@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('VPD 설정')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+<main class="container py-4">
+  <div class="page-title">
+    <h1>VPD 설정</h1>
+    <p>현재 계정에서 조회 가능한 Oracle VPD policy 설정을 확인합니다.</p>
+  </div>
+
+  <div class="alert alert-warning" th:if="${runtimeError}">
+    <strong th:text="${runtimeError.title()}">조회할 수 없습니다.</strong>
+    <span th:text="${runtimeError.message()}">message</span>
+  </div>
+
+  <section class="content-band">
+    <div class="section-heading">
+      <h2>VPD Policies</h2>
+      <span class="badge text-bg-secondary" th:text="${#lists.size(policies)}">0</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm table-striped align-middle">
+        <thead>
+        <tr>
+          <th>Object</th>
+          <th>Policy</th>
+          <th>Function</th>
+          <th>Statements</th>
+          <th>Status</th>
+          <th>Type</th>
+          <th>Options</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="policy : ${policies}">
+          <td>
+            <strong th:text="${policy.objectDisplayName()}">ADMIN.TABLE</strong>
+            <div class="text-muted small" th:text="${policy.policyGroup()}">SYS_DEFAULT</div>
+          </td>
+          <td><code th:text="${policy.policyName()}">POLICY</code></td>
+          <td><code th:text="${policy.functionDisplayName()}">OWNER.FUNC</code></td>
+          <td th:text="${policy.statementTypes()} ?: '-'">SELECT</td>
+          <td>
+            <span class="badge"
+                  th:classappend="${policy.enabled() == 'YES'} ? ' text-bg-success' : ' text-bg-secondary'"
+                  th:text="${policy.enabled()}">YES</span>
+          </td>
+          <td th:text="${policy.policyType()}">DYNAMIC</td>
+          <td>
+            <span>Check: <strong th:text="${policy.checkOption()}">NO</strong></span>
+            <span class="ms-2">Static: <strong th:text="${policy.staticPolicy()}">NO</strong></span>
+            <span class="ms-2">Long: <strong th:text="${policy.longPredicate()}">NO</strong></span>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(policies)}">
+          <td colspan="7" class="text-muted">
+            조회 가능한 VPD policy가 없습니다. 정책이 없거나 현재 DB 계정에 dictionary 조회 권한이 없을 수 있습니다.
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>
