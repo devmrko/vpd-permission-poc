@@ -161,13 +161,23 @@ public class OrdsMetadataService {
     String source = objectQueryHandlerSource(objectId);
 
     ordsMetadataJdbcTemplate.update("""
+        DECLARE
+          v_module_count NUMBER;
         BEGIN
-          ORDS.DEFINE_MODULE(
-            p_module_name    => ?,
-            p_base_path      => ?,
-            p_items_per_page => 25,
-            p_status         => 'PUBLISHED'
-          );
+          SELECT COUNT(*)
+          INTO   v_module_count
+          FROM   user_ords_modules
+          WHERE  name = ?;
+
+          IF v_module_count = 0 THEN
+            ORDS.DEFINE_MODULE(
+              p_module_name    => ?,
+              p_base_path      => ?,
+              p_items_per_page => 25,
+              p_status         => 'PUBLISHED'
+            );
+          END IF;
+
           ORDS.DEFINE_TEMPLATE(
             p_module_name => ?,
             p_pattern     => ?
@@ -203,6 +213,7 @@ public class OrdsMetadataService {
           COMMIT;
         END;
         """,
+        moduleName,
         moduleName, basePath,
         moduleName, template,
         moduleName, template, source,
@@ -218,14 +229,10 @@ public class OrdsMetadataService {
         .reduce((left, right) -> left + ",\n       " + right)
         .orElseThrow();
     return """
-        WITH vpd_ctx AS (
-          SELECT cb_ords_handler_pkg.set_vpd_context_sql(:auth_header) AS applied
-          FROM   dual
-        )
         SELECT %s
         FROM   %s.%s o
-               CROSS JOIN vpd_ctx
-        WHERE  ROWNUM <= LEAST(GREATEST(NVL(:row_limit, 50), 1), 500)
+        WHERE  (SELECT cb_ords_handler_pkg.set_vpd_context_sql(:auth_header) FROM dual) = 1
+          AND  ROWNUM <= LEAST(GREATEST(NVL(:row_limit, 50), 1), 500)
         """.formatted(selectColumns, object.owner(), object.objectName());
   }
 

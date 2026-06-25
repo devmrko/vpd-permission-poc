@@ -88,17 +88,13 @@ BEGIN
     p_method         => 'POST',
     p_source_type    => ORDS.source_type_query,
     p_source         => q'!
-WITH vpd_ctx AS (
-  SELECT cb_ords_handler_pkg.set_vpd_context_sql(:auth_header) AS applied
-  FROM   dual
-)
 SELECT d.doc_id,
        d.title,
        d.owner_emp_no,
        d.dept_code,
        d.contents
 FROM   admin.cb_v_search_documents d
-       CROSS JOIN vpd_ctx
+WHERE  (SELECT cb_ords_handler_pkg.set_vpd_context_sql(:auth_header) FROM dual) = 1
 !',
     p_items_per_page => 25
   );
