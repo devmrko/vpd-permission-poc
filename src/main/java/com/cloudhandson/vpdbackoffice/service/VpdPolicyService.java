@@ -57,6 +57,7 @@ public class VpdPolicyService {
     if (!aiClient.configured()) {
       return new VpdPolicyExplanation(
           "AI_NOT_CONFIGURED",
+          aiClient.modelName(),
           "AI base URL/API Key 설정이 없어 모델 호출은 건너뛰었습니다. 아래 Prompt와 function source를 기준으로 policy/filter 내용을 확인하세요.",
           prompt,
           detail,
@@ -65,10 +66,11 @@ public class VpdPolicyService {
     }
     try {
       String answer = aiClient.chat(vpdSystemPrompt(), prompt);
-      return new VpdPolicyExplanation("SUCCESS", answer, prompt, detail, functionSource);
+      return new VpdPolicyExplanation("SUCCESS", aiClient.modelName(), answer, prompt, detail, functionSource);
     } catch (Exception e) {
       return new VpdPolicyExplanation(
           "AI_CALL_FAILED",
+          aiClient.modelName(),
           "AI 호출은 실패했지만 policy/filter 근거는 수집했습니다. 상세: " + e.getMessage(),
           prompt,
           detail,

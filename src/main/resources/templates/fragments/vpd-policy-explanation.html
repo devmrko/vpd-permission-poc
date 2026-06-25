@@ -6,9 +6,12 @@
   <div th:if="${explanation}">
     <div class="section-heading mb-2">
       <h2>LLM 설명</h2>
-      <span class="badge"
-            th:classappend="${explanation.status() == 'SUCCESS'} ? ' text-bg-success' : ' text-bg-warning'"
-            th:text="${explanation.status()}">SUCCESS</span>
+      <div class="action-stack">
+        <span class="badge text-bg-secondary" th:text="${explanation.modelName()} ?: 'model not configured'">model</span>
+        <span class="badge"
+              th:classappend="${explanation.status() == 'SUCCESS'} ? ' text-bg-success' : ' text-bg-warning'"
+              th:text="${explanation.status()}">SUCCESS</span>
+      </div>
     </div>
     <section class="ai-answer">
       <h3>Answer</h3>

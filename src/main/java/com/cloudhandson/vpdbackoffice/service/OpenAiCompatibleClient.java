@@ -41,6 +41,11 @@ public class OpenAiCompatibleClient {
         && hasText(ai.apiKey());
   }
 
+  public String modelName() {
+    BackofficeProperties.Ai ai = properties.ai();
+    return ai == null ? "" : ai.model();
+  }
+
   public String chat(String systemPrompt, String userPrompt) {
     if (!configured()) {
       throw new AppException("AI 호출 설정이 없습니다.");
@@ -50,7 +55,11 @@ public class OpenAiCompatibleClient {
     ObjectNode request = objectMapper.createObjectNode();
     request.put("model", ai.model());
     request.put("temperature", 0.1);
-    request.put("max_tokens", 1200);
+    if (usesCompletionTokenLimit(ai.model())) {
+      request.put("max_completion_tokens", 1200);
+    } else {
+      request.put("max_tokens", 1200);
+    }
     ArrayNode messages = request.putArray("messages");
     messages.add(message("system", systemPrompt));
     messages.add(message("user", userPrompt));
@@ -89,6 +98,10 @@ public class OpenAiCompatibleClient {
       return URI.create(withoutSlash + "/chat/completions");
     }
     return URI.create(withoutSlash + "/v1/chat/completions");
+  }
+
+  private boolean usesCompletionTokenLimit(String model) {
+    return model != null && model.startsWith("openai.gpt-5.4");
   }
 
   private String extractAnswer(String body) {
