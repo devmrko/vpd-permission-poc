@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('로그인')}"></head>
+<body class="login-body">
+<main class="login-shell">
+  <section class="login-panel">
+    <div class="login-brand">
+      <span class="login-mark">VPD</span>
+      <div>
+        <h1>VPD Backoffice</h1>
+        <p>권한, 토큰, ORDS 검증을 관리합니다.</p>
+      </div>
+    </div>
+
+    <div class="alert alert-danger" th:if="${param.error}">
+      계정 또는 비밀번호가 올바르지 않습니다.
+    </div>
+    <div class="alert alert-success" th:if="${param.logout}">
+      로그아웃되었습니다.
+    </div>
+
+    <form method="post" th:action="@{/login}" class="login-form">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <label>
+        Admin User
+        <input class="form-control" name="username" type="text" autocomplete="username" autofocus required>
+      </label>
+      <label>
+        Admin Password
+        <input class="form-control" name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <button class="btn rw-btn-primary w-100" type="submit">로그인</button>
+    </form>
+  </section>
+</main>
+</body>
+</html>

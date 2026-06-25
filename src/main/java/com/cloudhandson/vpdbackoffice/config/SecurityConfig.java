@@ -2,7 +2,6 @@ package com.cloudhandson.vpdbackoffice.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -20,7 +19,9 @@ public class SecurityConfig {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/css/**", "/js/**", "/webjars/**").permitAll()
             .anyRequest().authenticated())
-        .formLogin(Customizer.withDefaults())
+        .formLogin(login -> login
+            .loginPage("/login")
+            .permitAll())
         .logout(logout -> logout.logoutSuccessUrl("/login?logout"))
         .build();
   }

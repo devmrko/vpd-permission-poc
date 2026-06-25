@@ -22,6 +22,71 @@ body {
   font-family: "Oracle Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+.login-body {
+  min-height: 100vh;
+}
+
+.login-shell {
+  align-items: center;
+  display: flex;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+}
+
+.login-panel {
+  background: var(--rw-surface);
+  border: 1px solid var(--rw-border);
+  border-radius: 8px;
+  box-shadow: var(--rw-shadow);
+  margin: 0 auto;
+  max-width: 420px;
+  padding: 1.5rem;
+  width: 100%;
+}
+
+.login-brand {
+  align-items: center;
+  border-bottom: 1px solid var(--rw-border);
+  display: flex;
+  gap: .85rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+}
+
+.login-mark {
+  align-items: center;
+  background: var(--rw-primary);
+  border-radius: 8px;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 800;
+  height: 3rem;
+  justify-content: center;
+  width: 3rem;
+}
+
+.login-brand h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.login-brand p {
+  color: var(--rw-muted);
+  margin: .2rem 0 0;
+}
+
+.login-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.login-form label {
+  color: var(--rw-muted);
+  font-size: .875rem;
+  font-weight: 600;
+}
+
 .rw-nav,
 .navbar {
   background: rgba(255, 254, 253, .96) !important;
