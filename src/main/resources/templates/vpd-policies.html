@@ -72,13 +72,20 @@
             <span class="ms-2">Long: <strong th:text="${policy.longPredicate()}">NO</strong></span>
           </td>
           <td>
-            <button class="btn btn-sm rw-btn-primary"
+            <div class="action-stack">
+              <button class="btn btn-sm rw-btn-primary"
                     type="button"
                     th:hx-get="@{/vpd-policies/policy-explanation(objectOwner=${policy.objectOwner()},objectName=${policy.objectName()},policyName=${policy.policyName()})}"
                     th:hx-target="${'#policy-source-' + iter.index}"
+                    th:hx-indicator="${'#policy-loading-' + iter.index}"
                     hx-swap="innerHTML">
-              LLM 설명
-            </button>
+                LLM 설명
+              </button>
+              <span th:id="${'policy-loading-' + iter.index}" class="htmx-indicator loading-pill">
+                <span class="loading-spinner" aria-hidden="true"></span>
+                분석 중
+              </span>
+            </div>
           </td>
         </tr>
         <tr>

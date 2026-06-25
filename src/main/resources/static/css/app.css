@@ -495,6 +495,45 @@ body {
   overflow-wrap: anywhere;
 }
 
+.htmx-indicator {
+  display: none;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  display: inline-flex;
+}
+
+.loading-pill {
+  align-items: center;
+  background: var(--rw-surface-muted);
+  border: 1px solid var(--rw-border);
+  border-radius: 999px;
+  color: var(--rw-muted);
+  font-size: .78rem;
+  font-weight: 700;
+  gap: .4rem;
+  min-height: 2rem;
+  padding: .25rem .65rem;
+  white-space: nowrap;
+}
+
+.loading-spinner {
+  animation: spin .8s linear infinite;
+  border: 2px solid var(--rw-border-strong);
+  border-top-color: var(--rw-primary);
+  border-radius: 999px;
+  display: inline-block;
+  height: .9rem;
+  width: .9rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .ai-answer {
   background: var(--rw-primary-soft);
   border: 1px solid var(--rw-border);
