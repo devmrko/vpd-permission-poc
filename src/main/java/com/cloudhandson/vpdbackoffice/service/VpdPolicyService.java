@@ -142,7 +142,7 @@ public class VpdPolicyService {
       throw new AppException("선택한 스키마에서 VPD 적용 대상 TABLE/VIEW를 찾을 수 없습니다: " + owner);
     }
 
-    FunctionRef functionRef = parseFunctionRef(functionKey);
+    FunctionRef functionRef = parseFunctionRef(defaultFunctionKey(functionKey));
     String filterPredicate = filterPredicateValue == null ? "" : filterPredicateValue.trim();
     if (functionRef == null && filterPredicate.isBlank()) {
       throw new AppException("벌크 적용은 기존 Function을 선택하거나 Filter predicate를 입력해야 합니다.");
@@ -231,7 +231,7 @@ public class VpdPolicyService {
     String objectName = requiredIdentifier(command.objectName(), "Object name");
     String policyName = requiredIdentifier(command.policyName(), "Policy name");
     String currentUser = jdbcTemplate.queryForObject("SELECT USER FROM dual", String.class);
-    FunctionRef functionRef = parseFunctionRef(command.functionKey());
+    FunctionRef functionRef = parseFunctionRef(defaultFunctionKey(command.functionKey()));
     String functionOwner;
     String packageName;
     String functionName;
@@ -501,6 +501,13 @@ public class VpdPolicyService {
           requiredIdentifier(parts[1], "Package name"), requiredIdentifier(parts[2], "Function name"));
     }
     throw new AppException("Function 선택 값이 올바르지 않습니다: " + functionKey);
+  }
+
+  private String defaultFunctionKey(String functionKey) {
+    if (functionKey != null && !functionKey.isBlank()) {
+      return functionKey;
+    }
+    return formOptions().defaultPermissionFunctionKey();
   }
 
   private String normalizeStatementTypes(String value) {

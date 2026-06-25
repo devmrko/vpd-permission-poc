@@ -9,4 +9,12 @@ public record VpdPolicyFormOptions(
     List<VpdFunctionOption> functions,
     List<String> statementTypes
 ) {
+
+  public String defaultPermissionFunctionKey() {
+    return functions.stream()
+        .filter(function -> "CB_AGENT_DOC_VPD_FILTER".equalsIgnoreCase(function.functionName()))
+        .findFirst()
+        .map(VpdFunctionOption::value)
+        .orElse("");
+  }
 }

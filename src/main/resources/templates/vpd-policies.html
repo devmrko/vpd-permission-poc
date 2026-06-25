@@ -97,12 +97,13 @@
                placeholder="예: CB_AGENT_DOC_POLICY" required>
       </label>
       <label class="span-2">
-        기존 Function 선택
+        VPD Filter Function
         <select class="form-select" name="functionKey">
-          <option value="">Filter predicate로 새 function 자동 생성</option>
+          <option value="">기본 권한 함수가 없으면 Filter predicate로 새 function 자동 생성</option>
           <option th:each="function : ${formOptions.functions()}"
                   th:value="${function.value()}"
-                  th:text="${function.label()}"></option>
+                  th:text="${function.functionName() == 'CB_AGENT_DOC_VPD_FILTER' ? function.label() + ' / 기본 권한 테이블 필터' : function.label()}"
+                  th:selected="${function.value() == formOptions.defaultPermissionFunctionKey()}"></option>
         </select>
       </label>
       <label>
@@ -182,11 +183,14 @@
             </label>
           </div>
         </div>
-        <label class="span-2">
-          기존 Function 선택
+      <label class="span-2">
+          VPD Filter Function
           <select class="form-select" name="functionKey">
-            <option value="">Filter predicate로 벌크 function 자동 생성</option>
-            <option th:each="function : ${formOptions.functions()}" th:value="${function.value()}" th:text="${function.label()}"></option>
+            <option value="">기본 권한 함수가 없으면 Filter predicate로 벌크 function 자동 생성</option>
+            <option th:each="function : ${formOptions.functions()}"
+                    th:value="${function.value()}"
+                    th:text="${function.functionName() == 'CB_AGENT_DOC_VPD_FILTER' ? function.label() + ' / 기본 권한 테이블 필터' : function.label()}"
+                    th:selected="${function.value() == formOptions.defaultPermissionFunctionKey()}"></option>
           </select>
         </label>
         <div>
