@@ -6,7 +6,7 @@
 <main class="container py-4">
   <div class="page-title">
     <h1>Filter Policy 관리</h1>
-    <p>VPD filter predicate와 policy function을 등록하고, 단건 또는 스키마 단위로 DBMS_RLS policy를 적용합니다.</p>
+    <p>Filter를 관리하고, VPD policy를 개별 객체 또는 스키마 단위로 적용합니다.</p>
   </div>
 
   <div class="alert alert-warning" th:if="${runtimeError}">
@@ -64,23 +64,57 @@
         <tr>
           <th>Function</th>
           <th>Type</th>
-          <th>수정</th>
+          <th>Source</th>
         </tr>
         </thead>
         <tbody>
-        <tr th:each="function : ${formOptions.functions()}">
+        <th:block th:each="function, iter : ${formOptions.functions()}">
+        <tr>
           <td><code th:text="${function.value()}">ADMIN.FILTER</code></td>
           <td th:text="${function.objectType()}">FUNCTION</td>
           <td>
-            <form method="post" action="/vpd-filter-policies/filters" class="inline-form">
-              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-              <input type="hidden" name="functionOwner" th:value="${function.owner()}">
-              <input type="hidden" name="functionName" th:value="${function.functionName()}">
-              <input class="form-control form-control-sm" name="filterPredicate" placeholder="새 predicate">
-              <button class="btn btn-sm rw-btn-secondary" type="submit">저장</button>
-            </form>
+            <button class="btn btn-sm rw-btn-secondary"
+                    type="button"
+                    th:hx-get="@{/vpd-policies/function-source(owner=${function.owner()},packageName=${function.packageName()},functionName=${function.functionName()})}"
+                    th:hx-target="${'#filter-source-' + iter.index}"
+                    hx-swap="innerHTML">
+              Source 보기
+            </button>
           </td>
         </tr>
+        <tr>
+          <td colspan="3" class="policy-source-cell">
+            <div class="filter-edit-grid">
+              <div th:id="${'filter-source-' + iter.index}" class="text-muted small">
+                Source 보기를 누르면 현재 function source가 표시됩니다.
+              </div>
+              <form method="post" action="/vpd-filter-policies/filters" class="filter-edit-form">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <input type="hidden" name="functionOwner" th:value="${function.owner()}">
+                <input type="hidden" name="functionName" th:value="${function.functionName()}">
+                <label>
+                  수정할 Filter predicate
+                  <textarea class="form-control" name="filterPredicate" rows="3"
+                            th:id="${'filter-edit-predicate-' + iter.index}"
+                            placeholder="예: dept_code = SYS_CONTEXT(''CB_AGENT_CTX'', ''DEPT_CODE'')" required></textarea>
+                </label>
+                <div class="question-presets" aria-label="Filter predicate 예시">
+                  <button class="btn rw-btn-secondary question-preset" type="button"
+                          th:attr="data-target=${'filter-edit-predicate-' + iter.index}"
+                          data-question="1=0">전체 차단</button>
+                  <button class="btn rw-btn-secondary question-preset" type="button"
+                          th:attr="data-target=${'filter-edit-predicate-' + iter.index}"
+                          data-question="1=1">전체 허용</button>
+                  <button class="btn rw-btn-secondary question-preset" type="button"
+                          th:attr="data-target=${'filter-edit-predicate-' + iter.index}"
+                          data-question="dept_code = SYS_CONTEXT('CB_AGENT_CTX', 'DEPT_CODE')">부서 일치</button>
+                </div>
+                <button class="btn btn-sm rw-btn-primary" type="submit">Filter 수정</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        </th:block>
         <tr th:if="${#lists.isEmpty(formOptions.functions())}">
           <td colspan="3" class="text-muted">등록된 VPD filter function 후보가 없습니다.</td>
         </tr>
@@ -91,7 +125,7 @@
 
   <section class="content-band">
     <div class="section-heading">
-      <h2>Policy 등록</h2>
+      <h2>VPD 개별 적용</h2>
     </div>
     <form method="post" action="/vpd-filter-policies" class="form-grid">
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -167,13 +201,13 @@
         <button class="btn rw-btn-secondary question-preset" type="button" data-target="filter-predicate" data-question="dept_code = SYS_CONTEXT('CB_AGENT_CTX', 'DEPT_CODE')">부서 일치</button>
         <button class="btn rw-btn-secondary question-preset" type="button" data-target="filter-predicate" data-question="owner_emp_no = SYS_CONTEXT('CB_AGENT_CTX', 'EMP_NO')">본인 소유</button>
       </div>
-      <button class="btn rw-btn-primary" type="submit">Filter Policy 등록</button>
+      <button class="btn rw-btn-primary" type="submit">개별 객체에 VPD 적용</button>
     </form>
   </section>
 
   <section class="content-band">
     <div class="section-heading">
-      <h2>Policy 목록/수정</h2>
+      <h2>적용된 Policy 목록/수정</h2>
       <span class="badge text-bg-secondary" th:text="${#lists.size(policies)}">0</span>
     </div>
     <div class="table-responsive">
@@ -222,7 +256,7 @@
 
   <section class="content-band">
     <div class="section-heading">
-      <h2>스키마 벌크 적용</h2>
+      <h2>VPD 벌크 적용</h2>
     </div>
     <form method="post" action="/vpd-filter-policies/bulk" class="form-grid">
       <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -265,7 +299,7 @@
         <textarea class="form-control" id="bulk-filter-predicate" name="filterPredicate" rows="4"
                   placeholder="기존 Function을 선택하지 않으면 이 predicate로 스키마 공통 function을 생성합니다."></textarea>
       </label>
-      <button class="btn rw-btn-primary" type="submit">스키마 전체 적용</button>
+      <button class="btn rw-btn-primary" type="submit">스키마 TABLE/VIEW에 VPD 일괄 적용</button>
     </form>
   </section>
 </main>

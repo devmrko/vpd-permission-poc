@@ -679,6 +679,17 @@ body {
   padding: 0 0 .75rem !important;
 }
 
+.filter-edit-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.filter-edit-form {
+  display: grid;
+  gap: .75rem;
+  padding: .75rem;
+}
+
 .policy-detail-list {
   display: grid;
   grid-template-columns: minmax(120px, 34%) 1fr;
