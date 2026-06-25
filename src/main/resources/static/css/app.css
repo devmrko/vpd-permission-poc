@@ -348,6 +348,18 @@ body {
   text-align: left;
 }
 
+.checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem 1rem;
+  min-height: 2.45rem;
+  align-items: center;
+}
+
+.checkbox-row .form-check {
+  margin: 0;
+}
+
 .rw-btn,
 .btn {
   border-radius: 999px;

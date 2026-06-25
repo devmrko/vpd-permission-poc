@@ -4,6 +4,7 @@ public record VpdPolicyCreateCommand(
     String objectOwner,
     String objectName,
     String policyName,
+    String functionKey,
     String functionOwner,
     String functionName,
     String statementTypes,

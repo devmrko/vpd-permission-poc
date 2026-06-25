@@ -32,20 +32,52 @@
       </label>
       <label>
         Policy 이름
-        <input class="form-control" name="policyName" placeholder="예: BOARD_POSTS_POLICY" required>
+        <select class="form-select" name="policyName" required>
+          <option th:each="policyName : ${formOptions.policyNames()}"
+                  th:value="${policyName}"
+                  th:text="${policyName}"></option>
+        </select>
+      </label>
+      <label class="span-2">
+        기존 Function 선택
+        <select class="form-select" name="functionKey">
+          <option value="">Filter predicate로 새 function 자동 생성</option>
+          <option th:each="function : ${formOptions.functions()}"
+                  th:value="${function.value()}"
+                  th:text="${function.label()}"></option>
+        </select>
       </label>
       <label>
         Function Owner
-        <input class="form-control" name="functionOwner" placeholder="비우면 현재 연결 사용자">
+        <select class="form-select" name="functionOwner">
+          <option value="">현재 연결 사용자</option>
+          <option th:each="owner : ${formOptions.owners()}"
+                  th:value="${owner}"
+                  th:text="${owner}"></option>
+        </select>
       </label>
       <label>
         Function 이름
-        <input class="form-control" name="functionName" placeholder="비우면 POLICY_NAME_FILTER 자동 생성">
+        <select class="form-select" name="functionName">
+          <option value="">POLICY_NAME_FILTER 자동 생성</option>
+          <option th:each="function : ${formOptions.functions()}"
+                  th:value="${function.functionName()}"
+                  th:text="${function.functionName()}"></option>
+        </select>
       </label>
-      <label>
+      <div>
         Statement Types
-        <input class="form-control" name="statementTypes" value="SELECT" placeholder="SELECT,INSERT,UPDATE,DELETE">
-      </label>
+        <div class="checkbox-row">
+          <label class="form-check" th:each="statement : ${formOptions.statementTypes()}">
+            <input class="form-check-input"
+                   type="checkbox"
+                   name="statementTypes"
+                   th:value="${statement}"
+                   th:checked="${statement == 'SELECT'}">
+            <span class="form-check-label" th:text="${statement}">SELECT</span>
+          </label>
+        </div>
+      </div>
       <div class="form-check align-self-end">
         <input class="form-check-input" id="vpd-enabled" type="checkbox" name="enabled" value="true" checked>
         <label class="form-check-label" for="vpd-enabled">등록 즉시 활성화</label>

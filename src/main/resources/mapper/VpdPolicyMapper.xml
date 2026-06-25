@@ -38,6 +38,47 @@
     ORDER BY p.object_owner, p.object_name, p.policy_name
   </select>
 
+  <select id="findPolicyNameOptions" resultType="string">
+    SELECT DISTINCT policy_name
+    FROM all_policies
+    WHERE policy_name IS NOT NULL
+    UNION
+    SELECT object_name || '_POLICY'
+    FROM cb_protected_object
+    WHERE enabled_yn = 'Y'
+    ORDER BY 1
+  </select>
+
+  <select id="findOwnerOptions" resultType="string">
+    SELECT USER FROM dual
+    UNION
+    SELECT owner FROM cb_protected_object WHERE enabled_yn = 'Y'
+    UNION
+    SELECT pf_owner FROM all_policies WHERE pf_owner IS NOT NULL
+    ORDER BY 1
+  </select>
+
+  <select id="findFunctionOptions" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdFunctionOption">
+    WITH allowed_owners AS (
+      SELECT USER AS owner FROM dual
+      UNION
+      SELECT owner FROM cb_protected_object WHERE enabled_yn = 'Y'
+      UNION
+      SELECT pf_owner FROM all_policies WHERE pf_owner IS NOT NULL
+    )
+    SELECT owner,
+           package_name,
+           object_name AS function_name,
+           CASE WHEN package_name IS NULL THEN 'FUNCTION' ELSE 'PACKAGE FUNCTION' END AS object_type
+    FROM all_arguments
+    WHERE owner IN (SELECT owner FROM allowed_owners)
+      AND position = 0
+      AND data_type = 'VARCHAR2'
+      AND object_name IS NOT NULL
+    ORDER BY owner, package_name, function_name
+    FETCH FIRST 300 ROWS ONLY
+  </select>
+
   <select id="findPolicy" resultType="com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView">
     SELECT <include refid="policyColumns"><property name="alias" value="p."/></include>
     FROM all_policies p

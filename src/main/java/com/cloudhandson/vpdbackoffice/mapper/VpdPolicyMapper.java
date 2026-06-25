@@ -1,5 +1,6 @@
 package com.cloudhandson.vpdbackoffice.mapper;
 
+import com.cloudhandson.vpdbackoffice.domain.vpd.VpdFunctionOption;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
@@ -9,6 +10,12 @@ import org.apache.ibatis.annotations.Param;
 public interface VpdPolicyMapper {
 
   List<VpdPolicyView> findPolicies();
+
+  List<String> findPolicyNameOptions();
+
+  List<String> findOwnerOptions();
+
+  List<VpdFunctionOption> findFunctionOptions();
 
   VpdPolicyView findPolicy(
       @Param("objectOwner") String objectOwner,

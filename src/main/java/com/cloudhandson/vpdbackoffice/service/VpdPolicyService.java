@@ -4,6 +4,7 @@ import com.cloudhandson.vpdbackoffice.domain.vpd.VpdFunctionSource;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyCreateCommand;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyDetail;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyExplanation;
+import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyFormOptions;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView;
 import com.cloudhandson.vpdbackoffice.mapper.VpdPolicyMapper;
 import java.util.List;
@@ -30,6 +31,24 @@ public class VpdPolicyService {
 
   public List<VpdPolicyView> findPolicies() {
     return mapper.findPolicies();
+  }
+
+  public VpdPolicyFormOptions formOptions() {
+    return new VpdPolicyFormOptions(
+        mapper.findPolicyNameOptions(),
+        mapper.findOwnerOptions(),
+        mapper.findFunctionOptions(),
+        List.of("SELECT", "INSERT", "UPDATE", "DELETE", "INDEX")
+    );
+  }
+
+  public VpdPolicyFormOptions emptyFormOptions() {
+    return new VpdPolicyFormOptions(
+        List.of(),
+        List.of(),
+        List.of(),
+        List.of("SELECT", "INSERT", "UPDATE", "DELETE", "INDEX")
+    );
   }
 
   public VpdFunctionSource findFunctionSource(String owner, String packageName, String functionName) {
@@ -59,12 +78,23 @@ public class VpdPolicyService {
     String objectName = requiredIdentifier(command.objectName(), "Object name");
     String policyName = requiredIdentifier(command.policyName(), "Policy name");
     String currentUser = jdbcTemplate.queryForObject("SELECT USER FROM dual", String.class);
-    String functionOwner = command.functionOwner() == null || command.functionOwner().isBlank()
-        ? currentUser
-        : requiredIdentifier(command.functionOwner(), "Function owner");
-    String functionName = command.functionName() == null || command.functionName().isBlank()
-        ? generatedFunctionName(policyName)
-        : requiredIdentifier(command.functionName(), "Function name");
+    FunctionRef functionRef = parseFunctionRef(command.functionKey());
+    String functionOwner;
+    String packageName;
+    String functionName;
+    if (functionRef != null) {
+      functionOwner = functionRef.owner();
+      packageName = functionRef.packageName();
+      functionName = functionRef.functionName();
+    } else {
+      functionOwner = command.functionOwner() == null || command.functionOwner().isBlank()
+          ? currentUser
+          : requiredIdentifier(command.functionOwner(), "Function owner");
+      packageName = null;
+      functionName = command.functionName() == null || command.functionName().isBlank()
+          ? generatedFunctionName(policyName)
+          : requiredIdentifier(command.functionName(), "Function name");
+    }
     String statementTypes = normalizeStatementTypes(command.statementTypes());
     String filterPredicate = command.filterPredicate() == null ? "" : command.filterPredicate().trim();
 
@@ -95,7 +125,7 @@ public class VpdPolicyService {
         objectName,
         policyName,
         functionOwner,
-        functionName,
+        packageName == null ? functionName : packageName + "." + functionName,
         statementTypes);
   }
 
@@ -271,6 +301,22 @@ public class VpdPolicyService {
     return generated.length() > 128 ? generated.substring(0, 128) : generated;
   }
 
+  private FunctionRef parseFunctionRef(String functionKey) {
+    if (functionKey == null || functionKey.isBlank()) {
+      return null;
+    }
+    String[] parts = functionKey.trim().toUpperCase(Locale.ROOT).split("\\.");
+    if (parts.length == 2) {
+      return new FunctionRef(requiredIdentifier(parts[0], "Function owner"), null,
+          requiredIdentifier(parts[1], "Function name"));
+    }
+    if (parts.length == 3) {
+      return new FunctionRef(requiredIdentifier(parts[0], "Function owner"),
+          requiredIdentifier(parts[1], "Package name"), requiredIdentifier(parts[2], "Function name"));
+    }
+    throw new AppException("Function 선택 값이 올바르지 않습니다: " + functionKey);
+  }
+
   private String normalizeStatementTypes(String value) {
     String raw = value == null || value.isBlank() ? "SELECT" : value;
     List<String> statements = List.of(raw.split(",")).stream()
@@ -291,6 +337,9 @@ public class VpdPolicyService {
 
   private String escapeSqlLiteral(String value) {
     return value.replace("'", "''");
+  }
+
+  private record FunctionRef(String owner, String packageName, String functionName) {
   }
 
   private String policyFunctionArgument(VpdPolicyView policy) {
