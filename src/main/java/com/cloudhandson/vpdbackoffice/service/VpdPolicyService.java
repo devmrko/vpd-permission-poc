@@ -1,22 +1,30 @@
 package com.cloudhandson.vpdbackoffice.service;
 
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdFunctionSource;
+import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyCreateCommand;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyDetail;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyExplanation;
 import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyView;
 import com.cloudhandson.vpdbackoffice.mapper.VpdPolicyMapper;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class VpdPolicyService {
 
+  private static final Set<String> ALLOWED_STATEMENTS = Set.of("SELECT", "INSERT", "UPDATE", "DELETE", "INDEX");
+
   private final VpdPolicyMapper mapper;
+  private final JdbcTemplate jdbcTemplate;
   private final OpenAiCompatibleClient aiClient;
 
-  public VpdPolicyService(VpdPolicyMapper mapper, OpenAiCompatibleClient aiClient) {
+  public VpdPolicyService(VpdPolicyMapper mapper, JdbcTemplate jdbcTemplate, OpenAiCompatibleClient aiClient) {
     this.mapper = mapper;
+    this.jdbcTemplate = jdbcTemplate;
     this.aiClient = aiClient;
   }
 
@@ -43,6 +51,52 @@ public class VpdPolicyService {
       throw new AppException("VPD policy를 찾을 수 없습니다.");
     }
     return new VpdPolicyDetail(policy, buildAddPolicyBlock(policy));
+  }
+
+  @Transactional
+  public void createPolicy(VpdPolicyCreateCommand command) {
+    String objectOwner = requiredIdentifier(command.objectOwner(), "Object owner");
+    String objectName = requiredIdentifier(command.objectName(), "Object name");
+    String policyName = requiredIdentifier(command.policyName(), "Policy name");
+    String currentUser = jdbcTemplate.queryForObject("SELECT USER FROM dual", String.class);
+    String functionOwner = command.functionOwner() == null || command.functionOwner().isBlank()
+        ? currentUser
+        : requiredIdentifier(command.functionOwner(), "Function owner");
+    String functionName = command.functionName() == null || command.functionName().isBlank()
+        ? generatedFunctionName(policyName)
+        : requiredIdentifier(command.functionName(), "Function name");
+    String statementTypes = normalizeStatementTypes(command.statementTypes());
+    String filterPredicate = command.filterPredicate() == null ? "" : command.filterPredicate().trim();
+
+    if (!filterPredicate.isBlank()) {
+      if (currentUser == null || !currentUser.equalsIgnoreCase(functionOwner)) {
+        throw new AppException("필터 함수 자동 생성은 현재 연결 사용자 스키마에만 가능합니다. 현재 사용자: "
+            + currentUser + ", Function owner: " + functionOwner);
+      }
+      createFilterFunction(functionName, filterPredicate);
+    }
+
+    jdbcTemplate.update("""
+        BEGIN
+          DBMS_RLS.ADD_POLICY(
+            object_schema   => ?,
+            object_name     => ?,
+            policy_name     => ?,
+            function_schema => ?,
+            policy_function => ?,
+            statement_types => ?,
+            update_check    => %s,
+            enable          => %s,
+            policy_type     => DBMS_RLS.DYNAMIC
+          );
+        END;
+        """.formatted(command.updateCheck() ? "TRUE" : "FALSE", command.enabled() ? "TRUE" : "FALSE"),
+        objectOwner,
+        objectName,
+        policyName,
+        functionOwner,
+        functionName,
+        statementTypes);
   }
 
   public VpdPolicyExplanation explainPolicy(String objectOwner, String objectName, String policyName) {
@@ -194,6 +248,49 @@ public class VpdPolicyService {
         policyTypeArgument(policy.policyType()),
         yesNoBoolean(policy.longPredicate())
     );
+  }
+
+  private void createFilterFunction(String functionName, String filterPredicate) {
+    jdbcTemplate.execute("""
+        CREATE OR REPLACE FUNCTION %s(
+          p_schema_name IN VARCHAR2,
+          p_object_name IN VARCHAR2
+        ) RETURN VARCHAR2
+        AS
+        BEGIN
+          RETURN '%s';
+        END;
+        """.formatted(functionName, escapeSqlLiteral(filterPredicate)));
+  }
+
+  private String generatedFunctionName(String policyName) {
+    String base = policyName.endsWith("_POLICY")
+        ? policyName.substring(0, policyName.length() - "_POLICY".length())
+        : policyName;
+    String generated = base + "_FILTER";
+    return generated.length() > 128 ? generated.substring(0, 128) : generated;
+  }
+
+  private String normalizeStatementTypes(String value) {
+    String raw = value == null || value.isBlank() ? "SELECT" : value;
+    List<String> statements = List.of(raw.split(",")).stream()
+        .map(String::trim)
+        .filter(token -> !token.isBlank())
+        .map(token -> token.toUpperCase(Locale.ROOT))
+        .toList();
+    if (statements.isEmpty()) {
+      return "SELECT";
+    }
+    for (String statement : statements) {
+      if (!ALLOWED_STATEMENTS.contains(statement)) {
+        throw new AppException("지원하지 않는 statement type입니다: " + statement);
+      }
+    }
+    return String.join(",", statements);
+  }
+
+  private String escapeSqlLiteral(String value) {
+    return value.replace("'", "''");
   }
 
   private String policyFunctionArgument(VpdPolicyView policy) {

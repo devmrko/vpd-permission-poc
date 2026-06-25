@@ -1,33 +1,79 @@
 package com.cloudhandson.vpdbackoffice.web;
 
+import com.cloudhandson.vpdbackoffice.domain.vpd.VpdPolicyCreateCommand;
 import com.cloudhandson.vpdbackoffice.service.AppException;
+import com.cloudhandson.vpdbackoffice.service.ProtectedObjectService;
 import com.cloudhandson.vpdbackoffice.service.VpdPolicyService;
 import java.util.List;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class VpdPolicyController {
 
   private final VpdPolicyService vpdPolicyService;
+  private final ProtectedObjectService protectedObjectService;
 
-  public VpdPolicyController(VpdPolicyService vpdPolicyService) {
+  public VpdPolicyController(VpdPolicyService vpdPolicyService, ProtectedObjectService protectedObjectService) {
     this.vpdPolicyService = vpdPolicyService;
+    this.protectedObjectService = protectedObjectService;
   }
 
   @GetMapping("/vpd-policies")
   public String policies(Model model) {
     try {
       model.addAttribute("policies", vpdPolicyService.findPolicies());
+      model.addAttribute("objects", protectedObjectService.findEnabled());
     } catch (DataAccessException exception) {
       RuntimeErrorMessage message = RuntimeErrorMessages.dataAccess(exception);
       model.addAttribute("runtimeError", message);
       model.addAttribute("policies", List.of());
+      model.addAttribute("objects", List.of());
     }
     return "vpd-policies";
+  }
+
+  @PostMapping("/vpd-policies")
+  public String createPolicy(
+      @RequestParam String objectKey,
+      @RequestParam String policyName,
+      @RequestParam(required = false) String functionOwner,
+      @RequestParam(required = false) String functionName,
+      @RequestParam(defaultValue = "SELECT") String statementTypes,
+      @RequestParam(defaultValue = "false") boolean enabled,
+      @RequestParam(defaultValue = "false") boolean updateCheck,
+      @RequestParam(required = false) String filterPredicate,
+      RedirectAttributes redirectAttributes
+  ) {
+    try {
+      String[] objectParts = objectKey.split("\\.", 2);
+      if (objectParts.length != 2) {
+        throw new AppException("조회 대상 형식이 올바르지 않습니다: " + objectKey);
+      }
+      vpdPolicyService.createPolicy(new VpdPolicyCreateCommand(
+          objectParts[0],
+          objectParts[1],
+          policyName,
+          functionOwner,
+          functionName,
+          statementTypes,
+          enabled,
+          updateCheck,
+          filterPredicate
+      ));
+      redirectAttributes.addFlashAttribute("successMessage", "VPD policy를 등록했습니다: " + policyName);
+    } catch (AppException exception) {
+      redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+    } catch (DataAccessException exception) {
+      RuntimeErrorMessage message = RuntimeErrorMessages.dataAccess(exception);
+      redirectAttributes.addFlashAttribute("errorMessage", message.message());
+    }
+    return "redirect:/vpd-policies";
   }
 
   @GetMapping("/vpd-policies/function-source")
