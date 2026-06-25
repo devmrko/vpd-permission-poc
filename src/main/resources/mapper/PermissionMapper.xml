@@ -49,10 +49,12 @@
            ) AS visible_columns,
            (
              SELECT LISTAGG(
-                      CASE
+                       CASE
                         WHEN pr2.rule_type = 'ALL' THEN 'ALL ROWS'
-                        WHEN pr2.rule_type = 'MY_DEPT' THEN pr2.rule_column || ' = SYS_CONTEXT(CB_AGENT_CTX.DEPT_CODE)'
-                        WHEN pr2.rule_type = 'SELF' THEN pr2.rule_column || ' = SYS_CONTEXT(CB_AGENT_CTX.EMP_NO)'
+                        WHEN pr2.rule_type = 'MY_DEPT' THEN NVL(pr2.rule_column, 'DEPT_CODE') || ' = SYS_CONTEXT(CB_AGENT_CTX.DEPT_CODE)'
+                        WHEN pr2.rule_type = 'SELF' THEN NVL(pr2.rule_column, 'OWNER_EMP_NO') || ' = SYS_CONTEXT(CB_AGENT_CTX.EMP_NO)'
+                        WHEN pr2.rule_type = 'DEPT' THEN NVL(pr2.rule_column, 'DEPT_CODE') || ' = ' || pr2.rule_value
+                        WHEN pr2.rule_type = 'EMP_NO' THEN NVL(pr2.rule_column, 'OWNER_EMP_NO') || ' = ' || pr2.rule_value
                         ELSE pr2.rule_column || ' ' || pr2.rule_type || ' ' || pr2.rule_value
                       END,
                       CHR(10) || 'AND '

@@ -19,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PermissionService {
 
-  private static final Set<String> RULE_TYPES = Set.of("ALL", "=", "!=", "MY_DEPT", "SELF");
+  private static final Set<String> RULE_TYPES = Set.of("ALL", "=", "!=", "MY_DEPT", "SELF", "DEPT", "EMP_NO");
+  private static final Set<String> VALUE_REQUIRED_RULE_TYPES = Set.of("=", "!=", "DEPT", "EMP_NO");
+  private static final Set<String> DEFAULT_COLUMN_RULE_TYPES = Set.of("MY_DEPT", "SELF", "DEPT", "EMP_NO");
 
   private final PermissionMapper permissionMapper;
   private final ProtectedObjectService protectedObjectService;
@@ -137,17 +139,17 @@ public class PermissionService {
         throw new AppException("허용되지 않은 행 규칙입니다: " + type);
       }
       String column = normalizeNullable(rule.ruleColumn());
-      if (!"ALL".equals(type) && !allowedColumns.contains(column)) {
+      if (column != null && !allowedColumns.contains(column)) {
         throw new AppException("행 규칙 컬럼은 보호 객체 컬럼이어야 합니다: " + column);
       }
       if (!seen.add(column + ":" + type + ":" + clean(rule.ruleValue()))) {
         throw new AppException("중복된 행 규칙이 있습니다.");
       }
       hasAll = hasAll || "ALL".equals(type);
-      if (!"ALL".equals(type) && column.isBlank()) {
+      if (!"ALL".equals(type) && column == null && !DEFAULT_COLUMN_RULE_TYPES.contains(type)) {
         throw new AppException(type + " 규칙에는 컬럼이 필요합니다.");
       }
-      if (("=".equals(type) || "!=".equals(type)) && clean(rule.ruleValue()).isBlank()) {
+      if (VALUE_REQUIRED_RULE_TYPES.contains(type) && clean(rule.ruleValue()).isBlank()) {
         throw new AppException(type + " 규칙에는 값이 필요합니다.");
       }
     }

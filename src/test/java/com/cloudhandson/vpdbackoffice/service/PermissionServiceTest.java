@@ -14,6 +14,7 @@ import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedColumn;
 import com.cloudhandson.vpdbackoffice.domain.protectedobject.ProtectedObject;
 import com.cloudhandson.vpdbackoffice.mapper.AuditMapper;
 import com.cloudhandson.vpdbackoffice.mapper.PermissionMapper;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -76,6 +77,63 @@ class PermissionServiceTest {
   }
 
   @Test
+  void allowsDefaultColumnsForContextRules() {
+    var command = new PermissionSetCommand(
+        10L,
+        1L,
+        "SELECT",
+        List.of(new RuleCommand(null, "MY_DEPT", null), new RuleCommand(null, "SELF", null)),
+        List.of()
+    );
+
+    permissionService.savePermissionSet(command);
+
+    FakePermissionMapper mapper = (FakePermissionMapper) permissionMapper;
+    assertThat(mapper.insertedRules)
+        .extracting(PermissionRule::ruleType)
+        .containsExactly("MY_DEPT", "SELF");
+    assertThat(mapper.insertedRules)
+        .extracting(PermissionRule::ruleColumn)
+        .containsExactly(null, null);
+  }
+
+  @Test
+  void acceptsDeptAndEmpNoRulesWithDefaultColumnsAndValues() {
+    var command = new PermissionSetCommand(
+        10L,
+        1L,
+        "SELECT",
+        List.of(new RuleCommand(null, "DEPT", "HR"), new RuleCommand(null, "EMP_NO", "E2001")),
+        List.of()
+    );
+
+    permissionService.savePermissionSet(command);
+
+    FakePermissionMapper mapper = (FakePermissionMapper) permissionMapper;
+    assertThat(mapper.insertedRules)
+        .extracting(PermissionRule::ruleType)
+        .containsExactly("DEPT", "EMP_NO");
+    assertThat(mapper.insertedRules)
+        .extracting(PermissionRule::ruleValue)
+        .containsExactly("HR", "E2001");
+  }
+
+  @Test
+  void rejectsDeptRuleWithoutValue() {
+    var command = new PermissionSetCommand(
+        10L,
+        1L,
+        "SELECT",
+        List.of(new RuleCommand(null, "DEPT", "")),
+        List.of()
+    );
+
+    assertThatThrownBy(() -> permissionService.savePermissionSet(command))
+        .isInstanceOf(AppException.class)
+        .hasMessageContaining("값이 필요");
+  }
+
+  @Test
   void disablesProtectedObjectWhenLastPermissionIsDeleted() {
     var mapper = new FakePermissionMapper();
     boolean[] disabled = {false};
@@ -100,6 +158,8 @@ class PermissionServiceTest {
   }
 
   private static class FakePermissionMapper implements PermissionMapper {
+    private final List<PermissionRule> insertedRules = new ArrayList<>();
+
     @Override
     public List<AppRole> findRoles() {
       return List.of(new AppRole(10L, "HR_DEPT_ROLE", null));
@@ -163,6 +223,7 @@ class PermissionServiceTest {
 
     @Override
     public void insertRule(PermissionRule rule) {
+      insertedRules.add(rule);
     }
 
     @Override

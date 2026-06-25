@@ -150,11 +150,43 @@ function filterUserRoleDetail() {
 function renderRuleColumnOptions(columns) {
   document.querySelectorAll('.rule-column-select').forEach((select) => {
     const current = select.value;
-    select.innerHTML = '<option value="">전체 행</option>' + columns
+    select.innerHTML = '<option value="">기본 컬럼</option>' + columns
         .map((column) => `<option value="${column}">${column}</option>`)
         .join('');
     if (columns.includes(current)) {
       select.value = current;
+    }
+  });
+}
+
+function syncRuleTypeHints(root = document) {
+  root.querySelectorAll('.rule-row').forEach((row) => {
+    const typeSelect = row.querySelector('.rule-type-select');
+    const columnSelect = row.querySelector('.rule-column-select');
+    const valueInput = row.querySelector('input[name="ruleValue"]');
+    if (!typeSelect || !columnSelect || !valueInput) {
+      return;
+    }
+
+    const type = typeSelect.value;
+    const valueRequired = ['=', '!=', 'DEPT', 'EMP_NO'].includes(type);
+    const columnOptional = ['ALL', 'MY_DEPT', 'SELF', 'DEPT', 'EMP_NO'].includes(type);
+    const placeholderByType = {
+      ALL: '값 불필요',
+      MY_DEPT: '값 불필요',
+      SELF: '값 불필요',
+      DEPT: '예: HR',
+      EMP_NO: '예: E2001',
+      '=': '비교 값',
+      '!=': '비교 값'
+    };
+
+    columnSelect.required = !columnOptional;
+    valueInput.required = valueRequired;
+    valueInput.disabled = ['ALL', 'MY_DEPT', 'SELF'].includes(type);
+    valueInput.placeholder = placeholderByType[type] || '비교 값';
+    if (valueInput.disabled) {
+      valueInput.value = '';
     }
   });
 }
@@ -213,6 +245,10 @@ document.addEventListener('DOMContentLoaded', () => {
     objectSelect.addEventListener('change', syncRuleColumnOptions);
     syncRuleColumnOptions();
   }
+  document.querySelectorAll('.rule-type-select').forEach((select) => {
+    select.addEventListener('change', () => syncRuleTypeHints());
+  });
+  syncRuleTypeHints();
   const catalog = document.getElementById('objectCatalogSelect');
   if (catalog) {
     catalog.addEventListener('change', syncObjectCatalogSelection);
@@ -229,8 +265,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const cloneButton = clone.querySelector('[data-rule-add]');
       cloneButton.textContent = '삭제';
       cloneButton.addEventListener('click', () => clone.remove());
+      clone.querySelectorAll('.rule-type-select').forEach((select) => {
+        select.addEventListener('change', () => syncRuleTypeHints());
+      });
       list.appendChild(clone);
       syncRuleColumnOptions();
+      syncRuleTypeHints(clone);
     });
   });
 });
