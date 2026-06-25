@@ -65,6 +65,11 @@ public class ProtectedObjectService {
     if (object == null || !object.enabled()) {
       throw new AppException("활성 보호 객체를 찾을 수 없습니다.");
     }
+    if (isLegacyAutoPath(object.ordsPath(), object.owner(), object.objectName())) {
+      mapper.updateOrdsPath(object.objectId(), defaultOrdsPath(object.owner(), object.objectName()));
+      databaseObjectsCache = null;
+      return mapper.findById(object.objectId());
+    }
     return object;
   }
 
@@ -101,10 +106,18 @@ public class ProtectedObjectService {
     if (existing != null) {
       if (!existing.enabled()) {
         mapper.enableObject(existing.objectId());
+        if (isLegacyAutoPath(existing.ordsPath(), normalizedOwner, normalizedObjectName)) {
+          mapper.updateOrdsPath(existing.objectId(), defaultOrdsPath(normalizedOwner, normalizedObjectName));
+        }
         databaseObjectsCache = null;
         protectedColumnsCache.remove(existing.objectId());
         auditService.record(new AuditEvent("PROTECTED_OBJECT_RE_ENABLED", null, existing.objectId(), "SUCCESS", null,
             null, existing.displayName()));
+        return mapper.findById(existing.objectId());
+      }
+      if (isLegacyAutoPath(existing.ordsPath(), normalizedOwner, normalizedObjectName)) {
+        mapper.updateOrdsPath(existing.objectId(), defaultOrdsPath(normalizedOwner, normalizedObjectName));
+        databaseObjectsCache = null;
         return mapper.findById(existing.objectId());
       }
       return existing;
@@ -134,7 +147,17 @@ public class ProtectedObjectService {
   }
 
   private String defaultOrdsPath(String owner, String objectName) {
-    return owner.toLowerCase(Locale.ROOT) + "/" + objectName.toLowerCase(Locale.ROOT);
+    return "cb-ords/cb-object-query/"
+        + owner.toLowerCase(Locale.ROOT) + "/"
+        + objectName.toLowerCase(Locale.ROOT);
+  }
+
+  private boolean isLegacyAutoPath(String ordsPath, String owner, String objectName) {
+    if (ordsPath == null) {
+      return true;
+    }
+    String legacyPath = owner.toLowerCase(Locale.ROOT) + "/" + objectName.toLowerCase(Locale.ROOT);
+    return legacyPath.equals(ordsPath.trim());
   }
 
   private ProtectedObjectCreateCommand normalizeCreateCommand(ProtectedObjectCreateCommand command) {
