@@ -42,6 +42,13 @@
     SELECT DISTINCT policy_name
     FROM all_policies
     WHERE policy_name IS NOT NULL
+      AND EXISTS (
+        SELECT 1
+        FROM cb_protected_object o
+        WHERE o.enabled_yn = 'Y'
+          AND o.owner = all_policies.object_owner
+          AND o.object_name = all_policies.object_name
+      )
     UNION
     SELECT object_name || '_POLICY'
     FROM cb_protected_object
@@ -54,7 +61,16 @@
     UNION
     SELECT owner FROM cb_protected_object WHERE enabled_yn = 'Y'
     UNION
-    SELECT pf_owner FROM all_policies WHERE pf_owner IS NOT NULL
+    SELECT pf_owner
+    FROM all_policies p
+    WHERE pf_owner IS NOT NULL
+      AND EXISTS (
+        SELECT 1
+        FROM cb_protected_object o
+        WHERE o.enabled_yn = 'Y'
+          AND o.owner = p.object_owner
+          AND o.object_name = p.object_name
+      )
     ORDER BY 1
   </select>
 
@@ -64,7 +80,29 @@
       UNION
       SELECT owner FROM cb_protected_object WHERE enabled_yn = 'Y'
       UNION
-      SELECT pf_owner FROM all_policies WHERE pf_owner IS NOT NULL
+      SELECT pf_owner
+      FROM all_policies p
+      WHERE pf_owner IS NOT NULL
+        AND EXISTS (
+          SELECT 1
+          FROM cb_protected_object o
+          WHERE o.enabled_yn = 'Y'
+            AND o.owner = p.object_owner
+            AND o.object_name = p.object_name
+        )
+    ),
+    policy_functions AS (
+      SELECT pf_owner AS owner,
+             package AS package_name,
+             function AS function_name
+      FROM all_policies p
+      WHERE EXISTS (
+        SELECT 1
+        FROM cb_protected_object o
+        WHERE o.enabled_yn = 'Y'
+          AND o.owner = p.object_owner
+          AND o.object_name = p.object_name
+      )
     )
     SELECT owner,
            package_name,
@@ -75,6 +113,16 @@
       AND position = 0
       AND data_type = 'VARCHAR2'
       AND object_name IS NOT NULL
+      AND (
+        REGEXP_LIKE(COALESCE(package_name, '') || '.' || object_name, '(VPD|FILTER|POLICY|PREDICATE|RLS)', 'i')
+        OR EXISTS (
+          SELECT 1
+          FROM policy_functions pf
+          WHERE pf.owner = all_arguments.owner
+            AND NVL(pf.package_name, '-') = NVL(all_arguments.package_name, '-')
+            AND pf.function_name = all_arguments.object_name
+        )
+      )
     ORDER BY owner, package_name, function_name
     FETCH FIRST 300 ROWS ONLY
   </select>
