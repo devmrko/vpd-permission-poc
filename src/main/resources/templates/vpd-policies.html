@@ -6,8 +6,10 @@
 <main class="container py-4">
   <div class="page-title">
     <h1>VPD 설정</h1>
-    <p>보호 객체에 적용된 Oracle VPD policy와 policy function/filter predicate를 확인합니다.</p>
+    <p>Oracle Database의 TABLE/VIEW에 VPD policy와 policy function/filter predicate를 적용합니다.</p>
   </div>
+
+  <section th:replace="~{fragments/layout :: architectureStrip('vpd')}"></section>
 
   <div class="alert alert-warning" th:if="${runtimeError}">
     <strong th:text="${runtimeError.title()}">조회할 수 없습니다.</strong>

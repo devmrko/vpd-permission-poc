@@ -6,8 +6,10 @@
 <main class="container py-4">
   <div class="page-title">
     <h1>ORDS 검증</h1>
-    <p>Bearer Token과 보호 객체를 선택해 VPD/Redaction 적용 결과를 확인합니다.</p>
+    <p>ORDS가 서빙하는 TABLE/VIEW 호출 결과로 VPD/Redaction 적용 여부를 확인합니다.</p>
   </div>
+
+  <section th:replace="~{fragments/layout :: architectureStrip('ords')}"></section>
 
   <section class="content-band">
     <div class="section-heading">

@@ -6,8 +6,10 @@
 <main class="container py-4">
   <div class="page-title">
     <h1>권한 관리</h1>
-    <p>역할별 보호 객체 접근과 행 규칙을 저장합니다.</p>
+    <p>VPD policy function이 참조할 사용자, 역할, 행 규칙, 컬럼 원문 허용 규칙을 저장합니다.</p>
   </div>
+
+  <section th:replace="~{fragments/layout :: architectureStrip('permission')}"></section>
 
   <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
 

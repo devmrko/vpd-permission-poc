@@ -25,7 +25,7 @@
         </div>
       </div>
       <div class="rw-menu-group">
-        <button class="rw-menu-trigger" type="button">ORDS</button>
+        <button class="rw-menu-trigger" type="button">ORDS 서빙</button>
         <div class="rw-menu-panel">
           <a class="nav-link" href="/objects">조회 Handler 생성</a>
           <a class="nav-link" href="/probe">ORDS 검증</a>
@@ -57,5 +57,25 @@
     </form>
   </div>
 </nav>
+
+<section th:fragment="architectureStrip(activeLayer)" class="architecture-strip" aria-label="VPD Backoffice architecture">
+  <div class="architecture-step" th:classappend="${activeLayer == 'permission'} ? ' active'">
+    <span class="architecture-kicker">Backoffice Tables</span>
+    <strong>권한 테이블</strong>
+    <p>사용자, 역할, 행 규칙, 컬럼 원문 허용을 저장합니다.</p>
+  </div>
+  <div class="architecture-arrow">→</div>
+  <div class="architecture-step" th:classappend="${activeLayer == 'vpd'} ? ' active'">
+    <span class="architecture-kicker">Oracle Database</span>
+    <strong>VPD Policy</strong>
+    <p>TABLE/VIEW에 policy function을 붙여 DB에서 행 접근을 제한합니다.</p>
+  </div>
+  <div class="architecture-arrow">→</div>
+  <div class="architecture-step" th:classappend="${activeLayer == 'ords'} ? ' active'">
+    <span class="architecture-kicker">Oracle REST Data Services</span>
+    <strong>ORDS 서빙/검증</strong>
+    <p>VPD가 적용된 TABLE/VIEW를 HTTP API로 호출해 결과를 확인합니다.</p>
+  </div>
+</section>
 </body>
 </html>

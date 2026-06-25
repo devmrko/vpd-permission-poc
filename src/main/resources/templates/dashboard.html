@@ -6,8 +6,10 @@
 <main class="container py-4">
   <div class="page-title">
     <h1>VPD 권한 백오피스</h1>
-    <p>보호 객체, Bearer Token, ORDS 검증 상태를 확인합니다.</p>
+    <p>Oracle Database의 VPD/ORDS 기능을 권한 테이블과 운영 UI로 제어하고 검증합니다.</p>
   </div>
+
+  <section th:replace="~{fragments/layout :: architectureStrip('')}"></section>
 
   <div class="alert alert-warning" th:if="${runtimeErrorMessage}">
     <div class="fw-semibold" th:text="${runtimeErrorTitle}">데이터 처리 오류가 발생했습니다.</div>
