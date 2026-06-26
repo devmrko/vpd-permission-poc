@@ -80,24 +80,6 @@ public class VpdPolicyController {
     return "redirect:/vpd-policies";
   }
 
-  @PostMapping("/vpd-filter-policies")
-  public String createFilterPolicy(
-      @RequestParam String objectKey,
-      @RequestParam String policyName,
-      @RequestParam(required = false) String functionKey,
-      @RequestParam(required = false) String functionOwner,
-      @RequestParam(required = false) String functionName,
-      @RequestParam(defaultValue = "SELECT") List<String> statementTypes,
-      @RequestParam(defaultValue = "false") boolean enabled,
-      @RequestParam(defaultValue = "false") boolean updateCheck,
-      @RequestParam(required = false) String filterPredicate,
-      RedirectAttributes redirectAttributes
-  ) {
-    createPolicyInternal(objectKey, policyName, functionKey, functionOwner, functionName, statementTypes, enabled,
-        updateCheck, filterPredicate, redirectAttributes);
-    return "redirect:/vpd-filter-policies";
-  }
-
   @PostMapping("/vpd-filter-policies/filters")
   public String saveFilter(
       @RequestParam(required = false) String functionOwner,
@@ -214,25 +196,6 @@ public class VpdPolicyController {
     bulkApplyPolicyInternal(schemaOwner, includeTables, includeViews, functionKey, functionOwner, functionName,
         statementTypes, enabled, updateCheck, filterPredicate, redirectAttributes);
     return "redirect:/vpd-policies";
-  }
-
-  @PostMapping("/vpd-filter-policies/bulk")
-  public String bulkApplyFilterPolicy(
-      @RequestParam String schemaOwner,
-      @RequestParam(defaultValue = "false") boolean includeTables,
-      @RequestParam(defaultValue = "false") boolean includeViews,
-      @RequestParam(required = false) String functionKey,
-      @RequestParam(required = false) String functionOwner,
-      @RequestParam(required = false) String functionName,
-      @RequestParam(defaultValue = "SELECT") List<String> statementTypes,
-      @RequestParam(defaultValue = "false") boolean enabled,
-      @RequestParam(defaultValue = "false") boolean updateCheck,
-      @RequestParam(required = false) String filterPredicate,
-      RedirectAttributes redirectAttributes
-  ) {
-    bulkApplyPolicyInternal(schemaOwner, includeTables, includeViews, functionKey, functionOwner, functionName,
-        statementTypes, enabled, updateCheck, filterPredicate, redirectAttributes);
-    return "redirect:/vpd-filter-policies";
   }
 
   private void bulkApplyPolicyInternal(
