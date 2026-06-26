@@ -3,7 +3,8 @@
 -- Replaces the demo VPD filter with a whitelist predicate builder.
 --
 -- The function does not hardcode object names or rule values. It reads:
---   CB_AGENT_CTX.USER_ID -> CB_USER_ROLE -> CB_PERMISSION -> CB_PERMISSION_RULE
+--   CB_AGENT_CTX.USER_ID -> direct CB_USER_ROLE + group CB_USER_GROUP/CB_GROUP_ROLE
+--   -> CB_PERMISSION -> CB_PERMISSION_RULE
 -- and builds a row predicate for the object passed by DBMS_RLS.
 -- ============================================================
 WHENEVER SQLERROR EXIT SQL.SQLCODE
@@ -94,17 +95,30 @@ BEGIN
   v_target := UPPER(TRIM(p_object));
 
   FOR r IN (
+    WITH effective_role AS (
+      SELECT ur.role_id
+      FROM   cb_user_role ur
+      WHERE  ur.user_id = v_user_id
+      UNION
+      SELECT gr.role_id
+      FROM   cb_user_group ug
+      JOIN   cb_app_group g
+      ON     g.group_id = ug.group_id
+      AND    g.active_yn = 'Y'
+      JOIN   cb_group_role gr
+      ON     gr.group_id = ug.group_id
+      WHERE  ug.user_id = v_user_id
+    )
     SELECT UPPER(TRIM(r.rule_type)) AS rule_type,
            UPPER(TRIM(r.rule_column)) AS rule_column,
            NVL(UPPER(TRIM(p.permission_effect)), 'ALLOW') AS permission_effect,
            r.rule_value
-    FROM   cb_user_role ur
+    FROM   effective_role er
     JOIN   cb_permission p
-    ON     p.role_id = ur.role_id
+    ON     p.role_id = er.role_id
     JOIN   cb_permission_rule r
     ON     r.perm_id = p.perm_id
-    WHERE  ur.user_id = v_user_id
-    AND    p.target_name = v_target
+    WHERE  p.target_name = v_target
     AND    p.action_name = 'SELECT'
     ORDER BY r.rule_id
   ) LOOP

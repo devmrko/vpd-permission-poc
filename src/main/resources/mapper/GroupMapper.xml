@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cloudhandson.vpdbackoffice.mapper.GroupMapper">
+  <select id="findAll" resultType="com.cloudhandson.vpdbackoffice.domain.group.AppGroup">
+    SELECT group_id,
+           group_code,
+           group_name,
+           description,
+           active_yn
+    FROM cb_app_group
+    ORDER BY group_code
+  </select>
+
+  <select id="findGroupUsers" resultType="com.cloudhandson.vpdbackoffice.domain.group.GroupUserView">
+    SELECT g.group_id,
+           g.group_code,
+           g.group_name,
+           u.user_id,
+           u.user_name AS username
+    FROM cb_user_group ug
+    JOIN cb_app_group g ON g.group_id = ug.group_id
+    JOIN cb_app_user u ON u.user_id = ug.user_id
+    ORDER BY g.group_code, u.user_name
+  </select>
+
+  <select id="findGroupRoles" resultType="com.cloudhandson.vpdbackoffice.domain.group.GroupRoleView">
+    SELECT g.group_id,
+           g.group_code,
+           g.group_name,
+           r.role_id,
+           r.role_name
+    FROM cb_group_role gr
+    JOIN cb_app_group g ON g.group_id = gr.group_id
+    JOIN cb_app_role r ON r.role_id = gr.role_id
+    ORDER BY g.group_code, r.role_name
+  </select>
+
+  <select id="nextGroupId" resultType="long">
+    SELECT NVL(MAX(group_id), 0) + 1 FROM cb_app_group
+  </select>
+
+  <insert id="insertGroup">
+    INSERT INTO cb_app_group (
+      group_id, group_code, group_name, description, active_yn
+    ) VALUES (
+      #{groupId,jdbcType=NUMERIC},
+      UPPER(#{command.groupCode,jdbcType=VARCHAR}),
+      #{command.groupName,jdbcType=VARCHAR},
+      #{command.description,jdbcType=VARCHAR},
+      'Y'
+    )
+  </insert>
+
+  <update id="updateActive">
+    UPDATE cb_app_group
+    SET active_yn = #{activeYn,jdbcType=VARCHAR}
+    WHERE group_id = #{groupId,jdbcType=NUMERIC}
+  </update>
+
+  <insert id="insertGroupUser">
+    INSERT INTO cb_user_group (group_id, user_id)
+    VALUES (#{groupId,jdbcType=NUMERIC}, #{userId,jdbcType=NUMERIC})
+  </insert>
+
+  <delete id="deleteGroupUser">
+    DELETE FROM cb_user_group
+    WHERE group_id = #{groupId,jdbcType=NUMERIC}
+      AND user_id = #{userId,jdbcType=NUMERIC}
+  </delete>
+
+  <insert id="insertGroupRole">
+    INSERT INTO cb_group_role (group_id, role_id)
+    VALUES (#{groupId,jdbcType=NUMERIC}, #{roleId,jdbcType=NUMERIC})
+  </insert>
+
+  <delete id="deleteGroupRole">
+    DELETE FROM cb_group_role
+    WHERE group_id = #{groupId,jdbcType=NUMERIC}
+      AND role_id = #{roleId,jdbcType=NUMERIC}
+  </delete>
+</mapper>

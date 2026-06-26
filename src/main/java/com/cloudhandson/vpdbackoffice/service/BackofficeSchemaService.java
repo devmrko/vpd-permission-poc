@@ -47,11 +47,34 @@ public class BackofficeSchemaService {
         """);
     addColumn(results, "cb_app_role", "max_sensitivity_level",
         "ALTER TABLE cb_app_role ADD (max_sensitivity_level VARCHAR2(20) DEFAULT 'PUBLIC' NOT NULL)");
+    createTable(results, "cb_app_group", """
+        CREATE TABLE cb_app_group (
+          group_id     NUMBER PRIMARY KEY,
+          group_code   VARCHAR2(100) NOT NULL UNIQUE,
+          group_name   VARCHAR2(100) NOT NULL,
+          description  VARCHAR2(200),
+          active_yn    CHAR(1) DEFAULT 'Y' CHECK (active_yn IN ('Y','N')) NOT NULL
+        )
+        """);
     createTable(results, "cb_user_role", """
         CREATE TABLE cb_user_role (
           user_id  NUMBER NOT NULL,
           role_id  NUMBER NOT NULL,
           CONSTRAINT cb_user_role_pk PRIMARY KEY (user_id, role_id)
+        )
+        """);
+    createTable(results, "cb_user_group", """
+        CREATE TABLE cb_user_group (
+          group_id  NUMBER NOT NULL,
+          user_id   NUMBER NOT NULL,
+          CONSTRAINT cb_user_group_pk PRIMARY KEY (group_id, user_id)
+        )
+        """);
+    createTable(results, "cb_group_role", """
+        CREATE TABLE cb_group_role (
+          group_id  NUMBER NOT NULL,
+          role_id   NUMBER NOT NULL,
+          CONSTRAINT cb_group_role_pk PRIMARY KEY (group_id, role_id)
         )
         """);
     createTable(results, "cb_permission", """

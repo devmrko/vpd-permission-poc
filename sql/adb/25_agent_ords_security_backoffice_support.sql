@@ -72,6 +72,54 @@ EXCEPTION
 END;
 /
 
+PROMPT === Creating group role support tables ===
+BEGIN
+  EXECUTE IMMEDIATE '
+    CREATE TABLE cb_app_group (
+      group_id     NUMBER PRIMARY KEY,
+      group_code   VARCHAR2(100) NOT NULL UNIQUE,
+      group_name   VARCHAR2(100) NOT NULL,
+      description  VARCHAR2(200),
+      active_yn    CHAR(1) DEFAULT ''Y'' CHECK (active_yn IN (''Y'',''N'')) NOT NULL
+    )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE '
+    CREATE TABLE cb_user_group (
+      group_id  NUMBER NOT NULL,
+      user_id   NUMBER NOT NULL,
+      CONSTRAINT cb_user_group_pk PRIMARY KEY (group_id, user_id)
+    )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE '
+    CREATE TABLE cb_group_role (
+      group_id  NUMBER NOT NULL,
+      role_id   NUMBER NOT NULL,
+      CONSTRAINT cb_group_role_pk PRIMARY KEY (group_id, role_id)
+    )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
 CREATE TABLE cb_protected_object (
   object_id    NUMBER PRIMARY KEY,
   owner        VARCHAR2(128) NOT NULL,
@@ -226,13 +274,25 @@ BEGIN
 
   SELECT COUNT(*)
   INTO   v_allowed
-  FROM   cb_user_role ur
+  FROM   (
+           SELECT ur.role_id
+           FROM   cb_user_role ur
+           WHERE  ur.user_id = TO_NUMBER(SYS_CONTEXT('CB_AGENT_CTX', 'USER_ID'))
+           UNION
+           SELECT gr.role_id
+           FROM   cb_user_group ug
+           JOIN   cb_app_group g
+           ON     g.group_id = ug.group_id
+           AND    g.active_yn = 'Y'
+           JOIN   cb_group_role gr
+           ON     gr.group_id = ug.group_id
+           WHERE  ug.user_id = TO_NUMBER(SYS_CONTEXT('CB_AGENT_CTX', 'USER_ID'))
+         ) er
   JOIN   cb_permission p
-  ON     p.role_id = ur.role_id
+  ON     p.role_id = er.role_id
   JOIN   cb_permission_column pc
   ON     pc.permission_id = p.perm_id
-  WHERE  ur.user_id = TO_NUMBER(SYS_CONTEXT('CB_AGENT_CTX', 'USER_ID'))
-  AND    p.target_name = UPPER(p_target_name)
+  WHERE  p.target_name = UPPER(p_target_name)
   AND    p.action_name = 'SELECT'
   AND    pc.column_name = UPPER(p_column_name);
 

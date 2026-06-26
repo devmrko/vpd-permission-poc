@@ -243,6 +243,29 @@ function filterUserRoleDetail() {
   empty.hidden = shown !== 0;
 }
 
+function filterGroupDetail(masterId) {
+  const master = document.getElementById(masterId);
+  const table = document.querySelector(`[data-group-detail-table="${masterId}"]`);
+  if (!master || !table) {
+    return;
+  }
+  const selected = master.value;
+  let shown = 0;
+  table.querySelectorAll('tbody tr[data-group-id]').forEach((row) => {
+    const visible = row.dataset.groupId === selected;
+    row.hidden = !visible;
+    shown += visible ? 1 : 0;
+  });
+  let empty = table.querySelector('tbody tr.empty-group-detail-runtime');
+  if (!empty) {
+    empty = document.createElement('tr');
+    empty.className = 'empty-group-detail-runtime';
+    empty.innerHTML = `<td colspan="3" class="text-muted">${escapeHtml(table.dataset.emptyMessage || '선택한 그룹에 등록된 항목이 없습니다.')}</td>`;
+    table.querySelector('tbody').appendChild(empty);
+  }
+  empty.hidden = shown !== 0;
+}
+
 function renderRuleColumnOptions(columns) {
   document.querySelectorAll('.rule-column-select').forEach((select) => {
     const current = select.value;
@@ -477,6 +500,10 @@ document.addEventListener('DOMContentLoaded', () => {
     master.addEventListener('change', filterUserRoleDetail);
     filterUserRoleDetail();
   }
+  document.querySelectorAll('.group-master-select').forEach((select) => {
+    select.addEventListener('change', () => filterGroupDetail(select.id));
+    filterGroupDetail(select.id);
+  });
   const objectSelect = document.querySelector('select[name="objectRef"]');
   if (objectSelect) {
     objectSelect.addEventListener('change', () => {
